@@ -1,0 +1,28 @@
+.footer {
+  background-color: #f2f2f2;
+  padding: 20px 30px;
+  text-align: center;
+  border-top: 1px solid #e0e0e0;
+  font-size: 14px;
+  color: #555555;
+}
+
+.footer__links {
+  margin-bottom: 10px;
+}
+
+.footer__links a {
+  margin: 0 15px;
+  text-decoration: none;
+  color: #007bff;
+  transition: color 0.3s ease;
+}
+
+.footer__links a:hover {
+  color: #0056b3;
+}
+
+.footer__copyright {
+  font-size: 12px;
+  color: #888888;
+}

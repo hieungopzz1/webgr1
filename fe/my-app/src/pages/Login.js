@@ -1,21 +1,49 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import './Login.css';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!identifier || !password) {
-      setError('Please fill in all fields.');
+      setError("Please fill in all fields.");
       return;
     }
-    setError('');
-    // Call API or perform authentication here
-    console.log('Logging in with:', { identifier, password });
+    try {
+      // Thay vì gọi /login, lấy tất cả users và tự kiểm tra
+      const response = await axios.get('http://localhost:3001/users');
+      const users = response.data;
+      const user = users.find(
+        (u) =>
+          (u.email === identifier || u.username === identifier) &&
+          u.password === password
+      );
+
+      if (!user) {
+        setError("Invalid credentials. Please try again.");
+        return;
+      }
+
+      // Đăng nhập thành công, chuyển hướng dựa trên role
+      if (user.role === 'student') {
+        navigate('/student-dashboard');
+      } else if (user.role === 'tutor') {
+        navigate('/tutor-dashboard');
+      } else if (user.role === 'admin') {
+        navigate('/');
+      } else {
+        setError("User role not recognized.");
+      }
+    } catch (err) {
+      setError("An error occurred during login. Please try again.");
+      console.error(err);
+    }
   };
 
   return (

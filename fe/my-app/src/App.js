@@ -12,7 +12,7 @@ function App() {
       <Header />
       <main>
         <Routes>
-          <Route exact path="/" element={<Landing />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
         </Routes>
       </main>
@@ -22,3 +22,4 @@ function App() {
 }
 
 export default App;
+ 

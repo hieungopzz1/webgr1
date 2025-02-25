@@ -16,7 +16,6 @@ const Login = () => {
       return;
     }
     try {
-      // Thay vì gọi /login, lấy tất cả users và tự kiểm tra
       const response = await axios.get('http://localhost:3001/users');
       const users = response.data;
       const user = users.find(
@@ -29,8 +28,6 @@ const Login = () => {
         setError("Invalid credentials. Please try again.");
         return;
       }
-
-      // Đăng nhập thành công, chuyển hướng dựa trên role
       if (user.role === 'student') {
         navigate('/student-dashboard');
       } else if (user.role === 'tutor') {

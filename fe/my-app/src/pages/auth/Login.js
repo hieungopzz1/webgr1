@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import { getUsers } from '../../services/api';
 import './Login.css';
 
 const Login = () => {
@@ -16,8 +16,7 @@ const Login = () => {
       return;
     }
     try {
-      const response = await axios.get('http://localhost:3000/users');
-      const users = response.data;
+      const users = await getUsers();
       const user = users.find(
         (u) =>
           (u.email === identifier || u.username === identifier) &&
@@ -33,7 +32,7 @@ const Login = () => {
       } else if (user.role === 'tutor') {
         navigate('/tutor-dashboard');
       } else if (user.role === 'admin') {
-        navigate('/');
+        navigate('/admin-dashboard');
       } else {
         setError("User role not recognized.");
       }

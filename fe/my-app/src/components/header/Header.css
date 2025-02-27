@@ -1,15 +1,18 @@
 /* Header container */
 .header {
+  background-color: #f2f2f2;
+  padding: 15px 30px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Inner container for alignment */
+.header__container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #f2f2f2 0%, #f2f2f2 100%);
-  padding: 15px 30px;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Left section */
+/* Left section: Logo and Navigation */
 .header__left {
   display: flex;
   align-items: center;
@@ -17,73 +20,66 @@
 
 .header__logo img {
   height: 50px;
+  width: auto;
 }
 
-/* Navigation */
-.header__nav ul {
-  list-style: none;
-  display: flex;
-  margin: 0;
-  padding: 0;
+.header__nav {
+  margin-left: 30px;
 }
 
-.header__nav li {
-  margin-left: 25px;
-}
-
-.header__nav li a {
-  color: black;
+.header__nav a {
+  margin-right: 20px;
   text-decoration: none;
+  color: #333;
+  font-size: 16px;
   font-weight: 500;
   transition: color 0.3s ease;
 }
 
-.header__nav li a:hover {
-  color: #d1eaff;
+.header__nav a:hover,
+.header__nav a.active {
+  color: #007bff;
 }
 
-/* Right section */
+/* Right section: Search bar and Avatar */
 .header__right {
   display: flex;
   align-items: center;
 }
 
 .header__search {
-  margin-right: 20px;
-}
-
-.header__search input {
   padding: 8px 12px;
-  border: none;
+  border: 1px solid #ccc;
   border-radius: 20px;
   font-size: 14px;
   outline: none;
+  margin-right: 20px;
 }
 
-/* Avatar */
+/* Avatar styles */
 .header__avatar {
   position: relative;
   cursor: pointer;
 }
 
 .header__avatar img {
-  height: 45px;
-  width: 45px;
+  height: 40px;
+  width: 40px;
   border-radius: 50%;
-  border: 2px solid #ffffff;
+  border: 2px solid #fff;
 }
 
 /* Dropdown menu */
 .header__dropdown {
   position: absolute;
-  top: 60px;
+  top: 50px;
   right: 0;
-  background-color: #ffffff;
-  color: #333333;
+  background-color: #fff;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 10;
   min-width: 150px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
 .header__dropdown ul {
@@ -104,10 +100,10 @@
   display: block;
   padding: 10px 15px;
   text-decoration: none;
-  color: #333333;
+  color: #333;
   transition: background 0.3s ease;
 }
 
 .header__dropdown li a:hover {
-  background: #f2f2f2;
+  background-color: #f7f7f7;
 }

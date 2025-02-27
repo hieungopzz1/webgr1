@@ -1,10 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import './App.css';
-import Landing from './components/Landing';
+import Landing from './pages/Landing';
 import Header from './components/header/Header';
 import Footer from './components/footer/Footer';
-import Login from './pages/Login';
+import Login from './pages/auth/Login';
 
 function App() {
   return (

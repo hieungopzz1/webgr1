@@ -1,0 +1,29 @@
+.sidebar {
+    background-color: #f2f2f2;
+    padding: 20px;
+    min-width: 200px;
+    height: 100vh;
+  }
+  
+  .sidebar__nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .sidebar__nav li {
+    margin-bottom: 15px;
+  }
+  
+  .sidebar__nav li a {
+    text-decoration: none;
+    color: #333;
+    font-size: 16px;
+    transition: color 0.3s ease;
+  }
+  
+  .sidebar__nav li a:hover,
+  .sidebar__nav li a.active {
+    color: #007bff;
+  }
+  

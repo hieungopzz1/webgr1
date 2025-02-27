@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import './App.css';
 import Landing from './components/Landing';
 import Header from './components/header/Header';
@@ -9,17 +9,26 @@ import Login from './pages/Login';
 function App() {
   return (
     <Router>
-      <Header />
-      <main>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-        </Routes>
-      </main>
-      <Footer />
+      <AppContent />
     </Router>
   );
 }
 
+function AppContent() {
+  const location = useLocation();
+
+  return (
+    <>
+      {location.pathname !== '/' && <Header />}
+      <main>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/landing" element={<Landing />} />
+        </Routes>
+      </main>
+      <Footer />
+    </>
+  );
+}
+
 export default App;
- 

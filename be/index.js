@@ -1,8 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const mongoose = require("mongoose");
-const adminRoutes = require('./routes/admin'); // Import routes admin
+const connectDB = require("./config/db"); // Import connectDB từ config/db
+const adminRoutes = require("./routes/admin"); 
 
 // Load biến môi trường
 dotenv.config();
@@ -16,20 +16,8 @@ app.use(cors());
 // Sử dụng routes của admin
 app.use('/api/admin', adminRoutes);
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
-  }
-};
-
 // Kết nối MongoDB
-connectDB();
-
+connectDB();  // Không cần định nghĩa lại function connectDB ở đây
 
 // Test route
 app.get("/", (req, res) => {

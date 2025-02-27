@@ -7,7 +7,11 @@ const userSchema = new mongoose.Schema({
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
-  role: { type: String, enum: ['student', 'tutor'], required: true },
+  role: { 
+    type: String, 
+    enum: ['admin', 'student', 'tutor'], // Thêm admin vào enum
+    required: true 
+  },
   createdAt: { type: Date, default: Date.now },
 });
 

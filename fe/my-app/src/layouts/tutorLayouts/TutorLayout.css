@@ -1,0 +1,23 @@
+/* Container tổng của Tutor Layout */
+.tutor-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  .tutor-layout__body {
+    display: flex;
+    flex: 1;
+    background-color: #e9ecef;
+  }
+  
+  .tutor-layout__body .sidebar {
+    background-color: #f2f2f2;
+  }
+  
+  .tutor-layout__content {
+    flex: 1;
+    padding: 20px;
+    background-color: #e9ecef;
+  }
+  

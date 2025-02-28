@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import AuthLayout from '../../layouts/authLayout/AuthLayout';
+import InputField from '../../components/inputField/InputField';
+import Button from '../../components/button/Button';
 import { getUsers } from '../../services/api';
 import './Login.css';
 
@@ -17,16 +20,17 @@ const Login = () => {
     }
     try {
       const users = await getUsers();
+      // Trong thực tế, bạn nên mã hóa mật khẩu và xử lý logic xác thực tại backend
       const user = users.find(
         (u) =>
           (u.email === identifier || u.username === identifier) &&
           u.password === password
       );
-
       if (!user) {
         setError("Invalid credentials. Please try again.");
         return;
       }
+      setError('');
       if (user.role === 'student') {
         navigate('/student-dashboard');
       } else if (user.role === 'tutor') {
@@ -43,31 +47,26 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
+    <AuthLayout>
+      <div className="login">
         <h2 className="login-title">Log In</h2>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="identifier">Email or Username</label>
-            <input
-              type="text"
-              id="identifier"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="Enter your email or username..."
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password..."
-            />
-          </div>
+          <InputField
+            label="Email or Username"
+            name="identifier"
+            placeholder="Enter your email or username..."
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+          />
+          <InputField
+            label="Password"
+            type="password"
+            name="password"
+            placeholder="Enter your password..."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           <div className="form-options">
             <div className="remember-me">
               <input type="checkbox" id="remember" />
@@ -77,7 +76,7 @@ const Login = () => {
               <Link to="/forgot-password">Forgot password?</Link>
             </div>
           </div>
-          <button type="submit" className="login-btn">Log In</button>
+          <Button type="submit">Log In</Button>
         </form>
         <div className="signup-link">
           <p>
@@ -85,7 +84,7 @@ const Login = () => {
           </p>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 

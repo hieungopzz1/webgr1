@@ -20,7 +20,6 @@ const Login = () => {
     }
     try {
       const users = await getUsers();
-      // Trong thực tế, bạn nên mã hóa mật khẩu và xử lý logic xác thực tại backend
       const user = users.find(
         (u) =>
           (u.email === identifier || u.username === identifier) &&

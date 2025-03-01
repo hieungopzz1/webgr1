@@ -1,0 +1,23 @@
+/* Container tổng của Dashboard Layout */
+.dashboard-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  .dashboard-layout__body {
+    display: flex;
+    flex: 1;
+    background-color: #e9ecef;
+  }
+  
+  .dashboard-layout__body .sidebar {
+    background-color: #f2f2f2;
+  }
+  
+  .dashboard-layout__content {
+    flex: 1;
+    padding: 20px;
+    background-color: #e9ecef;
+  }
+  

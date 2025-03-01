@@ -1,0 +1,23 @@
+/* Container chính của StaffLayout */
+.staff-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  .staff-layout__body {
+    display: flex;
+    flex: 1;
+    background-color: #e9ecef;
+  }
+
+  .staff-layout__body .sidebar {
+    background-color: #f2f2f2;
+  }
+
+  .staff-layout__content {
+    flex: 1;
+    padding: 20px;
+    background-color: #e9ecef;
+  }
+  

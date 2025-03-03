@@ -3,7 +3,7 @@
     {
       "id": 1,
       "username": "tutor01",
-      "password": "123",
+      "password": "password123",
       "email": "tutor01@gmail.com",
       "fullname": "Tutor One",
       "role": "tutor"
@@ -11,7 +11,7 @@
     {
       "id": 2,
       "username": "student01",
-      "password": "123",
+      "password": "password123",
       "email": "student01@gmail.com",
       "fullname": "Student One",
       "role": "student"
@@ -19,7 +19,7 @@
     {
       "id": 3,
       "username": "admin01",
-      "password": "123",
+      "password": "password123",
       "email": "admin01@gmail.com",
       "fullname": "Admin One",
       "role": "admin"
@@ -109,6 +109,37 @@
   "student_id": 3,
   "assignedAt": "2022-01-01T12:00:00Z"
 }
-]}
+],
+"password_reset_requests": [
+    {
+      "request_id": "REQ001",
+      "user_id": "U12345",
+      "username": "user1",
+      "email": "user1@example.com",
+      "request_time": "2025-03-03T10:15:30Z",
+      "status": "pending",
+      "admin_response": null
+    },
+    {
+      "request_id": "REQ002",
+      "user_id": "U67890",
+      "username": "user2",
+      "email": "user2@example.com",
+      "request_time": "2025-03-03T11:20:45Z",
+      "status": "approved",
+      "admin_response": "Reset link sent to email."
+    },
+    {
+      "request_id": "REQ003",
+      "user_id": "U24680",
+      "username": "user3",
+      "email": "user3@example.com",
+      "request_time": "2025-03-03T12:05:10Z",
+      "status": "rejected",
+      "admin_response": "Email not found in system."
+    }
+  ]
+
+}
 
 

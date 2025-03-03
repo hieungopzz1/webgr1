@@ -3,7 +3,7 @@
     {
       "id": 1,
       "username": "tutor01",
-      "password": "password123",
+      "password": "123",
       "email": "tutor01@gmail.com",
       "fullname": "Tutor One",
       "role": "tutor"
@@ -11,7 +11,7 @@
     {
       "id": 2,
       "username": "student01",
-      "password": "password123",
+      "password": "123",
       "email": "student01@gmail.com",
       "fullname": "Student One",
       "role": "student"
@@ -19,7 +19,7 @@
     {
       "id": 3,
       "username": "admin01",
-      "password": "password123",
+      "password": "123",
       "email": "admin01@gmail.com",
       "fullname": "Admin One",
       "role": "admin"

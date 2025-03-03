@@ -1,26 +1,13 @@
-import axios from 'axios';
+import db from '../db.json';
 
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = token;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => Promise.reject(error)
-);
+const api = {
+  get: (endpoint) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ data: db });
+      }, 300);
+    });
+  }
+};
 
 export default api;

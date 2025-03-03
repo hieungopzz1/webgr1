@@ -1,25 +1,25 @@
 .input-field {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 15px;
-  }
-  
-  .input-field label {
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: #333;
-  }
-  
-  .input-field input {
-    padding: 10px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: border-color 0.3s ease;
-    outline: none;
-  }
-  
-  .input-field input:focus {
-    border-color: #007bff;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.input-field label {
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #333;
+  text-align: left;
+}
+
+.input-field input {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+  outline: none;
+}
+
+.input-field input:focus {
+  border-color: #007bff;
+}

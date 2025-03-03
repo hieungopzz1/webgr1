@@ -19,11 +19,11 @@ function AppContent() {
 
   return (
     <>
-      {location.pathname !== '/' && <Header />}
+      {location.pathname !== '/login' && <Header />}
       <main>
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/landing" element={<Landing />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </main>
       <Footer />

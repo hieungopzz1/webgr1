@@ -1,53 +1,27 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
+// const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');  
-const Tutor = require('../models/Tutor');  
-const Student = require('../models/Student');  
 const router = express.Router();
 
 // API tạo tài khoản cho Tutor
-router.post('/create-tutor-account', async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
-
+router.post("/create-account", async (req, res) => {
   try {
-    const userExists = await Tutor.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'Email already exists.' });
+    const { firstName, lastName, email, password } = req.body;
 
-    const newTutor = new Tutor({
+    const newAdmin = new Admin({
       firstName,
       lastName,
       email,
-      password, // Lưu mật khẩu thô
+      password,
     });
 
-    await newTutor.save();
-    res.status(201).json({ message: 'Tutor account created successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    await newAdmin.save();
+    res.status(201).json({ message: "Admin created successfully!" });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 
-// API tạo tài khoản cho Student
-router.post('/create-student-account', async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
-
-  try {
-    const userExists = await Student.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'Email already exists.' });
-
-    const newStudent = new Student({
-      firstName,
-      lastName,
-      email,
-      password, // Lưu mật khẩu thô
-    });
-
-    await newStudent.save();
-    res.status(201).json({ message: 'Student account created successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 // API đăng nhập cho Admin, Tutor, và Student
 router.post('/login', async (req, res) => {

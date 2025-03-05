@@ -1,1 +1,12 @@
 GET http://localhost:5001
+###
+POST http://localhost:5001/api/student/create-account
+Content-Type: application/json
+
+{
+    "firstName": "beo",
+    "lastName": "ngo",
+    "email": "beo@fpt.com",
+    "password": "hieu123"
+}
+### Tạo tài khoản Admin

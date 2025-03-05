@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 
-// Định nghĩa Schema cho User
-const StudentSchema = new mongoose.Schema({
-
-  createdAt: { type: Date, default: Date.now },
+// Định nghĩa Schema cho Student
+const studentSchema = new mongoose.Schema({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true }, 
 });
 
-// Mã hóa mật khẩu trước khi lưu vào cơ sở dữ liệu
-const Student = mongoose.model('Student', StudentSchema);
+const Student = mongoose.model('Student', studentSchema);
 
 module.exports = Student;

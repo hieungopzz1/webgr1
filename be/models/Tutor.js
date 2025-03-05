@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 
-// Định nghĩa Schema cho User
-const TutorSchema = new mongoose.Schema({
-
-  createdAt: { type: Date, default: Date.now },
+// Định nghĩa Schema cho Tutor
+const tutorSchema = new mongoose.Schema({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
 });
 
-// Mã hóa mật khẩu trước khi lưu vào cơ sở dữ liệu
-const Tutor = mongoose.model('Tutor', TutorSchema);
+const Tutor = mongoose.model('Tutor', tutorSchema);
 
 module.exports = Tutor;

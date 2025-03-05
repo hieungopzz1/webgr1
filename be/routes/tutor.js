@@ -1,44 +1,44 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const Student = require('../models/Student');
+const Tutor = require('../models/Tutor');
 const router = express.Router();
 
-// API tạo tài khoản Student
+// API tạo tài khoản Tutor
 router.post('/create-account', async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
   try {
-    const userExists = await Student.findOne({ email });
+    const userExists = await Tutor.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'Email already exists.' });
 
-    const newStudent = new Student({
+    const newTutor = new Tutor({
       firstName,
       lastName,
       email,
       password, 
     });
 
-    await newStudent.save();
-    res.status(201).json({ message: 'Student account created successfully' });
+    await newTutor.save();
+    res.status(201).json({ message: 'Tutor account created successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// API đăng nhập Student
+// API đăng nhập Tutor
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const student = await Student.findOne({ email });
-    if (!student) return res.status(400).json({ message: 'Invalid credentials.' });
+    const tutor = await Tutor.findOne({ email });
+    if (!tutor) return res.status(400).json({ message: 'Invalid credentials.' });
 
-    if (password !== student.password) { 
+    if (password !== tutor.password) {  
       return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
-    const token = jwt.sign({ id: student._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ token, user: student });
+    const token = jwt.sign({ id: tutor._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(200).json({ token, user: tutor });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

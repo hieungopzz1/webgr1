@@ -1,0 +1,210 @@
+diff --git a/be/index.js b/be/index.js
+index bce449a..75df98f 100644
+--- a/be/index.js
++++ b/be/index.js
+@@ -2,7 +2,9 @@ const express = require("express");
+ const dotenv = require("dotenv");
+ const cors = require("cors");
+ const connectDB = require("./config/db"); // Import connectDB từ config/db
+-const adminRoutes = require("./routes/admin"); 
++const adminRoutes = require("./routes/admin"); // Import routes admin
++const tutorRoutes = require("./routes/tutor"); // Import routes tutor
++const studentRoutes = require("./routes/student"); // Import routes student
+ 
+ // Load biến môi trường
+ dotenv.config();
+@@ -13,11 +15,13 @@ const app = express();
+ app.use(express.json());
+ app.use(cors());
+ 
+-// Sử dụng routes của admin
++// Sử dụng các routes cho admin, tutor và student
+ app.use('/api/admin', adminRoutes);
++app.use('/api/tutor', tutorRoutes);
++app.use('/api/student', studentRoutes);
+ 
+ // Kết nối MongoDB
+-connectDB();  // Không cần định nghĩa lại function connectDB ở đây
++connectDB();  // Kết nối đến MongoDB
+ 
+ // Test route
+ app.get("/", (req, res) => {
+@@ -27,4 +31,6 @@ app.get("/", (req, res) => {
+ // Lắng nghe server
+ const PORT = process.env.PORT || 5001;
+ 
+-app.listen(PORT, () => console.log(`Server running on port http://localhost:${PORT}`));
++app.listen(PORT, () => {
++  console.log(`Server running on port http://localhost:${PORT}`);
++});
+diff --git a/be/models/Message.js b/be/models/Message.js
+deleted file mode 100644
+index 9e3d70a..0000000
+--- a/be/models/Message.js
++++ /dev/null
+@@ -1,12 +0,0 @@
+-const mongoose = require('mongoose');
+-
+-const messageSchema = new mongoose.Schema({
+-  sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+-  receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+-  content: { type: String, required: true },
+-  sentAt: { type: Date, default: Date.now },
+-});
+-
+-const Message = mongoose.model('Message', messageSchema);
+-
+-module.exports = Message;
+diff --git a/be/models/User.js b/be/models/User.js
+deleted file mode 100644
+index 8ce906f..0000000
+--- a/be/models/User.js
++++ /dev/null
+@@ -1,35 +0,0 @@
+-const mongoose = require('mongoose');
+-const bcrypt = require('bcryptjs');
+-
+-// Định nghĩa Schema cho User
+-const userSchema = new mongoose.Schema({
+-  firstName: { type: String, required: true },
+-  lastName: { type: String, required: true },
+-  email: { type: String, required: true, unique: true },
+-  passwordHash: { type: String, required: true },
+-  role: { 
+-    type: String, 
+-    enum: ['admin', 'student', 'tutor'], // Thêm admin vào enum
+-    required: true 
+-  },
+-  createdAt: { type: Date, default: Date.now },
+-});
+-
+-// Mã hóa mật khẩu trước khi lưu vào cơ sở dữ liệu
+-userSchema.pre('save', async function (next) {
+-  if (!this.isModified('passwordHash')) return next();
+-
+-  // Mã hóa mật khẩu
+-  const salt = await bcrypt.genSalt(10);
+-  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+-  next();
+-});
+-
+-// Kiểm tra mật khẩu khi đăng nhập
+-userSchema.methods.matchPassword = async function (enteredPassword) {
+-  return await bcrypt.compare(enteredPassword, this.passwordHash);
+-};
+-
+-const User = mongoose.model('User', userSchema);
+-
+-module.exports = User;
+diff --git a/be/routes/admin.js b/be/routes/admin.js
+index 28dda84..5084f75 100644
+--- a/be/routes/admin.js
++++ b/be/routes/admin.js
+@@ -1,43 +1,81 @@
+ const express = require('express');
+-const bcrypt = require('bcryptjs');
+-const User = require('../models/User');
+-const isAdmin = require('../middleware/admin'); // Import middleware kiểm tra quyền admin
++const jwt = require('jsonwebtoken');
++const Admin = require('../models/Admin');  
++const Tutor = require('../models/Tutor');  
++const Student = require('../models/Student');  
+ const router = express.Router();
+ 
+-// API để admin tạo tài khoản cho tutor và student
+-router.post('/create-account', isAdmin, async (req, res) => {
+-  const { firstName, lastName, email, password, role } = req.body;
++// API tạo tài khoản cho Tutor
++router.post('/create-tutor-account', async (req, res) => {
++  const { firstName, lastName, email, password } = req.body;
+ 
+-  // Kiểm tra xem role có phải là 'tutor' hoặc 'student' không
+-  if (!['tutor', 'student'].includes(role)) {
+-    return res.status(400).json({ message: 'Role must be either tutor or student' });
++  try {
++    const userExists = await Tutor.findOne({ email });
++    if (userExists) return res.status(400).json({ message: 'Email already exists.' });
++
++    const newTutor = new Tutor({
++      firstName,
++      lastName,
++      email,
++      password, // Lưu mật khẩu thô
++    });
++
++    await newTutor.save();
++    res.status(201).json({ message: 'Tutor account created successfully' });
++  } catch (error) {
++    res.status(500).json({ message: 'Server error' });
+   }
++});
+ 
+-  try {
+-    // Kiểm tra xem email đã tồn tại trong cơ sở dữ liệu chưa
+-    const userExists = await User.findOne({ email });
+-    if (userExists) {
+-      return res.status(400).json({ message: 'Email already exists' });
+-    }
++// API tạo tài khoản cho Student
++router.post('/create-student-account', async (req, res) => {
++  const { firstName, lastName, email, password } = req.body;
+ 
+-    // Mã hóa mật khẩu
+-    const salt = await bcrypt.genSalt(10);
+-    const hashedPassword = await bcrypt.hash(password, salt);
++  try {
++    const userExists = await Student.findOne({ email });
++    if (userExists) return res.status(400).json({ message: 'Email already exists.' });
+ 
+-    // Tạo người dùng mới (tutor hoặc student)
+-    const newUser = new User({
++    const newStudent = new Student({
+       firstName,
+       lastName,
+       email,
+-      passwordHash: hashedPassword,
+-      role,
++      password, // Lưu mật khẩu thô
+     });
+ 
+-    // Lưu người dùng mới vào cơ sở dữ liệu
+-    await newUser.save();
+-    res.status(201).json({ message: 'Account created successfully' });
++    await newStudent.save();
++    res.status(201).json({ message: 'Student account created successfully' });
++  } catch (error) {
++    res.status(500).json({ message: 'Server error' });
++  }
++});
++
++// API đăng nhập cho Admin, Tutor, và Student
++router.post('/login', async (req, res) => {
++  const { email, password } = req.body;
++
++  try {
++    // Kiểm tra xem người dùng là Admin, Tutor hay Student
++    let user;
++    if (email.includes('@example.com')) {
++      user = await Admin.findOne({ email }); // Admin
++    } else if (email.includes('@tutor.com')) {
++      user = await Tutor.findOne({ email }); // Tutor
++    } else {
++      user = await Student.findOne({ email }); // Student
++    }
++
++    if (!user) {
++      return res.status(400).json({ message: 'Invalid credentials.' });
++    }
++
++    // So sánh mật khẩu thô
++    if (password !== user.password) {
++      return res.status(400).json({ message: 'Invalid credentials.' });
++    }
++
++    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
++    res.status(200).json({ token, user });
+   } catch (error) {
+-    console.error(error);
+     res.status(500).json({ message: 'Server error' });
+   }
+ });

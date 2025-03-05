@@ -3,6 +3,8 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db"); // Import connectDB từ config/db
 const adminRoutes = require("./routes/admin"); 
+const tutorRoutes = require("./routes/tutor"); 
+const studentRoutes = require("./routes/student"); 
 
 // Load biến môi trường
 dotenv.config();
@@ -15,6 +17,8 @@ app.use(cors());
 
 // Sử dụng routes của admin
 app.use('/api/admin', adminRoutes);
+app.use('/api/tutor', tutorRoutes);
+app.use('/api/student', studentRoutes);
 
 // Kết nối MongoDB
 connectDB();  // Không cần định nghĩa lại function connectDB ở đây

@@ -25,6 +25,16 @@ router.post('/create-account', async (req, res) => {
   }
 });
 
+
+router.get("/", async (req, res) => {
+  try {
+    const tutors = await Tutor.find(); // Lấy tất cả người dùng từ DB
+    res.status(200).json(tutors);
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error", error: err });
+  }
+});
+
 // API đăng nhập Tutor
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;

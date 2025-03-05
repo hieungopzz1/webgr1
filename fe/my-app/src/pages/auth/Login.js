@@ -21,24 +21,24 @@ const Login = () => {
     }
     setError('');
     try {
-      const response = await api.get('/');
-      const users = response.data.users || [];
-      const foundUser = users.find(
-        (user) =>
-          (user.email === identifier || user.username === identifier) &&
-          user.password === password
-      );
-      if (foundUser) {
-        localStorage.setItem('token', foundUser.id);
-        navigate('/');
+      const response = await api.post('/admin/login', { email: identifier, password });
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      
+      if (user.role === 'student') {
+        navigate('/student/dashboard');
+      } else if (user.role === 'tutor') {
+        navigate('/tutor/dashboard');
+      } else if (user.role === 'admin') {
+        navigate('/admin/dashboard');
       } else {
-        setError('Invalid credentials.');
+        navigate('/landing');
       }
     } catch (err) {
       console.error(err);
-      setError('Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     }
-  };  
+  };
 
   return (
     <AuthLayout>

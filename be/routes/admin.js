@@ -1,17 +1,16 @@
 // backend/routes/adminRoutes.js
 const express = require("express");
-const { register, assign, assigns, getAssign, deleteAssign} = require("../controllers/adminController");
+const { register, addClass, getAllClasses, assignTutorToClass} = require("../controllers/adminController");
 
 const router = express.Router();
 
 router.post("/create-account", register);
 
-router.post("/assign", assign);
+router.post("/class/create-class", addClass);
 
-router.post("/assigns", assigns);
+router.get("class/getAllClasses", getAllClasses)
 
-router.get("/getassign", getAssign);
+router.post("/class/:classId/assign-tutor", assignTutorToClass);
 
-router.delete("/assign/:id", deleteAssign);
 
 module.exports = router;

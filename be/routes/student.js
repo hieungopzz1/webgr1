@@ -1,13 +1,7 @@
-// const express = require('express');
-// const jwt = require('jsonwebtoken');
-// const { createAccount, login, getStudent } = require("../controllers/studentController");
+const express = require("express");
+const { enrollStudentInClass } = require("../controllers/studentController");
+const router = express.Router();
 
-// const router = express.Router();
+router.post("/class/:classId/enroll", enrollStudentInClass);
 
-// router.post('/create-account', createAccount);
-
-// router.get("/", getStudent);
-
-// router.post('/login', login);
-
-// module.exports = router;
+module.exports = router;

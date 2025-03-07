@@ -11,9 +11,9 @@ const AssignmentSchema = new mongoose.Schema({
     ref: "Tutor",
     required: true,
   },
-  student_id: {
+  class_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Student",
+    ref: "Class",
     required: true,
   },
   assigned_at: { type: Date, default: Date.now },

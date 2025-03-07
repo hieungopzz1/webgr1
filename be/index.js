@@ -7,6 +7,8 @@ const adminRoutes = require("./routes/admin"); // Import routes admin
 // const studentRoutes = require("./routes/student"); // Import routes student
 // const assignmentRoutes = require("./routes/assignment"); // Import routes student
 const authRoutes = require("./routes/auth"); 
+// const enrollmentRoutes = require("./routes/enrollment"); // Import routes enrollment
+const studentRoutes = require("./routes/student");
 
 // Load biến môi trường
 dotenv.config();
@@ -23,6 +25,10 @@ app.use('/api/admin', adminRoutes);
 // app.use('/api/student', studentRoutes);
 // app.use('/api/assignment', assignmentRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/student', studentRoutes);
+// app.use('/api/enrollment', enrollmentRoutes);
+
+
 // Kết nối MongoDB
 connectDB();  // Kết nối đến MongoDB
 

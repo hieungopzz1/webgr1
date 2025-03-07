@@ -43,11 +43,12 @@ const Register = () => {
         return;
       }
 
-      const endpoint = `/api/admin/create-account`;
+      const endpoint = `/admin/create-account`;
       const response = await api.post(endpoint, {
+        firstName,
+        lastName,
         email,
         password,
-        fullName: `${firstName} ${lastName}`,
         role
       });
 
@@ -60,13 +61,20 @@ const Register = () => {
         role: 'Student'
       });
     } catch (err) {
-      console.error('Account creation error:', err);
-      setError(err.response?.data?.message || 'Failed to create account. Please try again.');
+      console.error('Full error:', err);
+      console.error('Response data:', err.response?.data);
+      console.error('Status code:', err.response?.status);
+      
+      // Hiển thị thông báo lỗi chi tiết hơn
+      const errorMessage = err.response?.data?.message 
+        || err.response?.data?.error 
+        || err.message 
+        || 'Failed to create account. Please try again.';
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-
-    console.log(formData);
   };
 
   return (

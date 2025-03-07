@@ -5,6 +5,7 @@ import Landing from './pages/Landing';
 import Header from './components/header/Header';
 import Footer from './components/footer/Footer';
 import Login from './pages/auth/Login';
+import Register from './pages/staff/Register';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
         </Routes>
       </main>
       <Footer />

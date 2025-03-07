@@ -8,61 +8,95 @@ import api from '../../utils/api';
 import './Login.css';
 
 const Login = () => {
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!identifier || !password) {
-      setError('Please fill in all fields.');
-      return;
-    }
     setError('');
+    setLoading(true);
+
     try {
-      const response = await api.post('/admin/login', { email: identifier, password });
+      const { email, password } = formData;
+
+      if (!email || !password) {
+        setError('Please fill in all required fields.');
+        return;
+      }
+
+      const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
-      localStorage.setItem('token', token);
       
-      if (user.role === 'student') {
-        navigate('/student/dashboard');
-      } else if (user.role === 'tutor') {
-        navigate('/tutor/dashboard');
-      } else if (user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/landing');
+      localStorage.setItem('token', token);
+      localStorage.setItem('userData', JSON.stringify(user));
+
+      switch (user.role) {
+        case 'Student':
+          navigate('/student/dashboard');
+          break;
+        case 'Tutor':
+          navigate('/tutor/dashboard');
+          break;
+        case 'Admin':
+          navigate('/register');
+          break;
+        default:
+          setError('Invalid user role');
+          return;
       }
     } catch (err) {
-      console.error(err);
+      console.error('Login error:', err);
       setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <AuthLayout>
       <div className="login-page">
-        <h2 className="login-title">Log In</h2>
+        <h2 className="login-title">Login</h2>
         <form onSubmit={handleSubmit} className="login-form">
           <InputField
-            label="Email or Username"
-            name="identifier"
-            type="text"
-            placeholder="Enter your email or username..."
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="Enter your email..."
+            value={formData.email}
+            onChange={handleChange}
           />
+
           <PasswordInput
             label="Password"
             name="password"
             placeholder="Enter your password..."
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formData.password}
+            onChange={handleChange}
           />
+
           {error && <div className="login-error">{error}</div>}
-          <Button type="submit">Log In</Button>
+
+          <Button 
+            type="submit" 
+            disabled={loading}
+            className="login-button"
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </Button>
         </form>
+
         <div className="auth-links">
           <Link to="/forgot-password" className="auth-link">
             Forgot password?

@@ -1,6 +1,7 @@
 const Admin = require("../models/Admin");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
+const bcrypt = require("bcrypt");
 
 const register = async (req, res, next) => {
   try {

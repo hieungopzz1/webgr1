@@ -1,36 +1,102 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import './App.css';
-import Landing from './pages/Landing';
-import Header from './components/header/Header';
-import Footer from './components/footer/Footer';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout/MainLayout';
+import AuthLayout from './layouts/authLayout/AuthLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/staff/Register';
+import AssignTutor from './pages/staff/AssignTutor';
+import Settings from './pages/Settings/Settings';
+import { LanguageProvider } from './context/LanguageContext';
 
-function App() {
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('token');
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <MainLayout>
+      {children}
+    </MainLayout>
   );
-}
+};
 
-function AppContent() {
-  const location = useLocation();
+// Public Route component
+const PublicRoute = ({ children, restricted }) => {
+  const isAuthenticated = localStorage.getItem('token');
+
+  if (isAuthenticated && restricted) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
-    <>
-      {location.pathname !== '/login' && <Header />}
-      <main>
+    <AuthLayout>
+      {children}
+    </AuthLayout>
+  );
+};
+
+const App = () => {
+  return (
+    <LanguageProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* Public Routes */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute restricted={true}>
+                <Login />
+              </PublicRoute>
+            }
+          />
+
+          {/* Protected Routes */}
+          <Route
+            path="/register"
+            element={
+              <ProtectedRoute>
+                <Register />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/assign-tutor"
+            element={
+              <ProtectedRoute>
+                <AssignTutor />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Default route */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <AssignTutor />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
-      <Footer />
-    </>
+      </Router>
+    </LanguageProvider>
   );
-}
+};
 
 export default App;

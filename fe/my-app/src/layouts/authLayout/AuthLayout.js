@@ -1,12 +1,14 @@
 import React from 'react';
+import Footer from '../../components/footer/Footer';
 import './AuthLayout.css';
 
 const AuthLayout = ({ children }) => {
   return (
     <div className="auth-layout">
-      <div className="auth-layout__container">
+      <main className="auth-content">
         {children}
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 };

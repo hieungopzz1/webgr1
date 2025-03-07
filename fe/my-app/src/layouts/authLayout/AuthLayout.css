@@ -1,20 +1,33 @@
 /* AuthLayout: nền của toàn trang dùng cho các trang xác thực */
 .auth-layout {
-    background-color: #e9ecef;
     min-height: 100vh;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    background-color: #ffffff;
+}
+
+.auth-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: 20px;
-  }
-  
-  /* Vùng chứa trung tâm cho form đăng nhập, đăng ký, ... */
-  .auth-layout__container {
+}
+
+@media (max-width: 767px) {
+    .auth-content {
+        padding: 16px;
+    }
+}
+
+/* Vùng chứa trung tâm cho form đăng nhập, đăng ký, ... */
+.auth-layout__container {
     background-color: #ffffff;
     padding: 40px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 400px;
-  }
+}
   

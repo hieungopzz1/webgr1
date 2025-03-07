@@ -5,7 +5,7 @@ const connectDB = require("./config/db"); // Import connectDB từ config/db
 const adminRoutes = require("./routes/admin"); // Import routes admin
 // const tutorRoutes = require("./routes/tutor"); // Import routes tutor
 // const studentRoutes = require("./routes/student"); // Import routes student
-const assignmentRoutes = require("./routes/assignment"); // Import routes student
+// const assignmentRoutes = require("./routes/assignment"); // Import routes student
 const authRoutes = require("./routes/auth"); 
 
 // Load biến môi trường
@@ -21,7 +21,7 @@ app.use(cors());
 app.use('/api/admin', adminRoutes);
 // app.use('/api/tutor', tutorRoutes);
 // app.use('/api/student', studentRoutes);
-app.use('/api/assignment', assignmentRoutes);
+// app.use('/api/assignment', assignmentRoutes);
 app.use('/api/auth', authRoutes);
 // Kết nối MongoDB
 connectDB();  // Kết nối đến MongoDB

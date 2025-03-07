@@ -1,41 +1,55 @@
-// backend/controllers/adminController.js
 const Admin = require("../models/Admin");
-const jwt = require("jsonwebtoken");
+const Student = require("../models/Student");
+const Tutor = require("../models/Tutor");
 
-const createAccount = async (req, res) => {
+const register = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, role } = req.body;
 
-    const newAdmin = new Admin({
-      firstName,
-      lastName,
-      email,
-      password,
-    });
-
-    await newAdmin.save();
-    res.status(201).json({ message: "Admin created successfully!" });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const admin = await Admin.findOne({ email });
-    if (!admin) return res.status(400).json({ message: 'Invalid credentials.' });
-
-    if (password !== admin.password) { 
-      return res.status(400).json({ message: 'Invalid credentials.' });
+    if (!["Student", "Tutor", "Admin"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
     }
 
-    const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ token, user: admin });
+    const existingUser =
+      (await Student.findOne({ email })) ||
+      (await Tutor.findOne({ email })) ||
+      (await Admin.findOne({ email }));
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    let user;
+    if (role === "Student") {
+      user = new Student({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+      });
+    } else if (role === "Tutor") {
+      user = new Tutor({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+      });
+    } else if (role === "Admin") {
+      user = new Admin({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+      });
+    }
+
+    await user.save();
+    res.status(201).json({ message: "Create user successfully" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ error: error.message });
   }
 };
 
-module.exports = { createAccount, login };
+module.exports = { register };

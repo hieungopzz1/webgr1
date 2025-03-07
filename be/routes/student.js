@@ -1,13 +1,13 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const { createAccount, login, getStudent } = require("../controllers/studentController");
+// const express = require('express');
+// const jwt = require('jsonwebtoken');
+// const { createAccount, login, getStudent } = require("../controllers/studentController");
 
-const router = express.Router();
+// const router = express.Router();
 
-router.post('/create-account', createAccount);
+// router.post('/create-account', createAccount);
 
-router.get("/", getStudent);
+// router.get("/", getStudent);
 
-router.post('/login', login);
+// router.post('/login', login);
 
-module.exports = router;
+// module.exports = router;

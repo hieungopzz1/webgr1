@@ -1,53 +1,40 @@
-// backend/controllers/adminController.js
+const Class = require("../models/Class");
 const Student = require("../models/Student");
-const jwt = require("jsonwebtoken");
+const Enrollment = require("../models/Enrollment");
 
-const createAccount = async (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
+const enrollStudentInClass = async (req, res) => {
+  try {
+    const { student_id } = req.body;
+    const { classId } = req.params;
 
-    try {
-      const userExists = await Student.findOne({ email });
-      if (userExists) return res.status(400).json({ message: 'Email already exists.' });
-  
-      const newStudent = new Student({
-        firstName,
-        lastName,
-        email,
-        password, 
-      });
-  
-      await newStudent.save();
-      res.status(201).json({ message: 'Student account created successfully' });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error' });
+    if (!student_id) {
+      return res.status(400).json({ message: "Student ID is required" });
     }
-  };
-  
-const login = async (req, res) => {
-    const { email, password } = req.body;
 
-    try {
-      const student = await Student.findOne({ email });
-      if (!student) return res.status(400).json({ message: 'Invalid credentials.' });
-  
-      if (password !== student.password) { 
-        return res.status(400).json({ message: 'Invalid credentials.' });
-      }
-  
-      const token = jwt.sign({ id: student._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-      res.status(200).json({ token, user: student });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error' });
+    const classObj = await Class.findById(classId);
+    if (!classObj) return res.status(404).json({ message: "Class not found" });
+
+    const student = await Student.findById(student_id);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+
+    // Kiểm tra xem student đã enroll chưa
+    const alreadyEnrolled = await Enrollment.findOne({ class_id: classId, student_id });
+    if (alreadyEnrolled) {
+      return res.status(400).json({ message: "Student is already enrolled in this class" });
     }
+
+    // Tạo bản ghi mới trong bảng Enrollment
+    const newEnrollment = new Enrollment({
+      class_id: classId,
+      student_id,
+    });
+
+    await newEnrollment.save();
+
+    res.status(200).json({ message: "Student enrolled successfully", newEnrollment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
-const getStudent = async(req, res) => {
-    try {
-        const students = await Student.find(); 
-        res.status(200).json(students);
-      } catch (err) {
-        res.status(500).json({ message: "Internal Server Error", error: err });
-      }
-}
-
-module.exports = { createAccount, login, getStudent };
+module.exports = { enrollStudentInClass };

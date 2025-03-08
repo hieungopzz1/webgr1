@@ -7,6 +7,7 @@ const StudentSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, default: "Student" },
+  avatar: { type: String },
 });
 
 const Student = mongoose.model("Student", StudentSchema);

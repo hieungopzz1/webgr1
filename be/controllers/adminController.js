@@ -5,14 +5,16 @@ const Assignment = require("../models/Assignment");
 const Class = require("../models/Class");
 const bcrypt = require("bcrypt");
 
-const register = async (req, res, next) => {
+const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
+    const avatar = req.file ? `/uploads/${req.file.filename}` : null; // Lấy đường dẫn ảnh
 
     if (!["Student", "Tutor", "Admin"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
+    // Kiểm tra email đã tồn tại chưa
     const existingUser =
       (await Student.findOne({ email })) ||
       (await Tutor.findOne({ email })) ||
@@ -26,34 +28,67 @@ const register = async (req, res, next) => {
 
     let user;
     if (role === "Student") {
-      user = new Student({
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-      });
+      user = new Student({ firstName, lastName, email, password: hashedPassword, avatar });
     } else if (role === "Tutor") {
-      user = new Tutor({
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-      });
+      user = new Tutor({ firstName, lastName, email, password: hashedPassword, avatar });
     } else if (role === "Admin") {
-      user = new Admin({
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-      });
+      user = new Admin({ firstName, lastName, email, password: hashedPassword, avatar });
     }
 
     await user.save();
-    res.status(201).json({ message: "Create user successfully" });
+    res.status(201).json({ user, message: "User created successfully", avatar });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+//get all usuers
+const getAllUsers = async (req, res) => {
+  try {
+    // Lấy tất cả Student và Tutor
+    const students = await Student.find({}, "firstName lastName email role avatar");
+    const tutors = await Tutor.find({}, "firstName lastName email role avatar");
+
+    // Gộp danh sách lại
+    const users = [...students, ...tutors];
+
+    res.status(200).json({ message: "Success", users });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving users", error: error.message });
+  }
+}
+
+
+
+//delete user
+const deleteUser = async (req, res) => {
+  try {
+    const { role, id } = req.params;
+
+    // Kiểm tra role hợp lệ
+    if (!["Student", "Tutor"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    // Xóa user theo role
+    let deletedUser;
+    if (role === "Student") {
+      deletedUser = await Student.findByIdAndDelete(id);
+    } else if (role === "Tutor") {
+      deletedUser = await Tutor.findByIdAndDelete(id);
+    }
+
+    // Kiểm tra nếu user không tồn tại
+    if (!deletedUser) {
+      return res.status(404).json({ message: `${role} not found` });
+    }
+
+    res.status(200).json({ message: `${role} deleted successfully` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 
 //tạo lớp để thêm sinh viên và giảng viên
@@ -119,8 +154,10 @@ module.exports = { assignTutorToClass };
 
 
 module.exports = {
-  register,
+  createAccount,
   addClass,
   assignTutorToClass,
   getAllClasses,
+  deleteUser,
+  getAllUsers,
 };

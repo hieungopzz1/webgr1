@@ -2,6 +2,12 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db"); // Import connectDB từ config/db
+const multer = require('multer');
+
+
+
+
+
 // const tutorRoutes = require("./routes/tutor"); // Import routes tutor
 // const studentRoutes = require("./routes/student"); // Import routes student
 // const assignmentRoutes = require("./routes/assignment"); // Import routes student
@@ -12,7 +18,7 @@ const connectDB = require("./config/db"); // Import connectDB từ config/db
 const authRoutes = require("./routes/auth"); 
 const adminRoutes = require("./routes/admin"); // Import routes admin
 const blogRoutes = require("./routes/blog");
-const messageRoutes = require("./routes/mesage.route");
+// const messageRoutes = require("./routes/mesage.route");
 
 dotenv.config();
 
@@ -21,6 +27,9 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'));
+
+
 
 // Sử dụng các routes cho admin, tutor và student
 // app.use('/api/tutor', tutorRoutes);
@@ -30,7 +39,7 @@ app.use(cors());
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blog', blogRoutes);
-app.use('/api/messages', messageRoutes);
+// app.use('/api/messages', messageRoutes);
 
 
 // Kết nối MongoDB
@@ -40,6 +49,9 @@ connectDB();  // Kết nối đến MongoDB
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
+
+
+
 
 // Lắng nghe server
 const PORT = process.env.PORT || 5001;

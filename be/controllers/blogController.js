@@ -29,34 +29,50 @@ const addBlog = async (req, res) => {
   }
 };
 
-const addComment = async (req, res) => {
+const getBlogs = async (req, res) => {
   try {
-    const { blog_id, parent_comment_id, tutor_id, student_id, content } =
-      req.body;
+    const blogs = await Blog.find();
+    res.status(200).json({ message: "Blogs retrieved successfully", blogs });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
-    const blog = await Blog.findById(blog_id);
-    if (!blog) {
-      return res.status(404).json({ message: "Blog not exist" });
-    }
-
-    if ((!tutor_id && !student_id) || (tutor_id && student_id)) {
-      return res.status(400).json({
-        message:
-          "Only one of (tutor_id or student_id) is allowed to have a value",
+const addComment = async (req, res, io) => {
+    try {
+      const { blog_id, parent_comment_id, tutor_id, student_id, content } = req.body;
+  
+      const blog = await Blog.findById(blog_id);
+      if (!blog) return res.status(404).json({ message: "Blog không tồn tại" });
+  
+      if ((!tutor_id && !student_id) || (tutor_id && student_id)) {
+        return res.status(400).json({ message: "Chỉ một trong hai (tutor_id hoặc student_id) được phép có giá trị" });
+      }
+  
+      const newComment = new Comment({
+        blog_id,
+        parent_comment_id: parent_comment_id || null,
+        tutor_id: tutor_id || null,
+        student_id: student_id || null,
+        content,
       });
+  
+      await newComment.save(); 
+  
+      // io.emit("new_comment", newComment); 
+  
+      res.status(201).json({ message: "Bình luận đã được thêm!", comment: newComment });
+    } catch (error) {
+      res.status(500).json({ message: "Lỗi server", error: error.message });
     }
+  };
+  
+const getComment = async (req, res) => {
+  try {
+    const { blog_id } = req.params;
 
-    const newComment = new Comment({
-      blog_id,
-      parent_comment_id: parent_comment_id || null,
-      tutor_id: tutor_id || null,
-      student_id: student_id || null,
-      content,
-    });
-
-    await newComment.save();
-
-    res.status(201).json({ message: "Comment added!", comment: newComment });
+    const comments = await Comment.find({ blog_id });
+    res.status(200).json({ message: "Comments retrieved successfully", comments });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -101,4 +117,6 @@ module.exports = {
   addComment,
   deleteBlog,
   deleteComment,
+  getBlogs,
+  getComment,
 };

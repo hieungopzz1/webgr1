@@ -1,12 +1,91 @@
-GET http://localhost:5001
 ###
-POST http://localhost:5001/api/student/create-account
+POST http://localhost:5001/api/admin/create-account
 Content-Type: application/json
 
 {
-    "firstName": "beo",
-    "lastName": "ngo",
-    "email": "beo@fpt.com",
-    "password": "hieu123"
+    "firstName":"Ngo ",
+    "lastName":"Hieu",
+    "email":"tutor2@gmail.com",
+    "password":"123",
+    "role":"Tutor"
 }
-### Tạo tài khoản Admin
+
+
+###
+POST http://localhost:5001/api/auth/login
+Content-Type: application/json
+
+{
+    "email":"phong@gmail.com",
+    "password":"123"
+}
+###
+
+###
+POST http://localhost:5001/api/admin/class/create-class
+Content-Type: application/json
+
+{
+  "name": "Class 1",
+  "description": "This is a class"
+}
+
+###
+POST http://localhost:5001/api/admin/class/67cb0da31dee22603b2962d1/assign-tutor
+Content-Type: application/json
+
+{
+  "assigned_by": "67cac33566d2b313142d1a73",
+  "class_id": "67cb0da31dee22603b2962d1",
+  "tutor_id": "67cac65567c9830ba668e7a2"
+}
+
+###
+POST http://localhost:5001/api/student/class/67cb0da31dee22603b2962d1/enroll
+Content-Type: application/json
+
+{
+  "class_id": "67cb0da31dee22603b2962d1",
+  "student_id": "67cb127eb54d6a6af1684b0c"
+}
+
+
+###
+GET http://localhost:5001/api/admin/class/getAllClasses
+
+
+###
+POST http://localhost:5001/api/blog/create-blog
+Content-Type: application/json
+
+{
+  "student_id": "67cb2f4be57c785f0a4ebde2",
+  "title": "Blog Test",
+  "content": "Nội dung blog..."
+}
+
+###
+POST http://localhost:5001/api/blog/create-comment
+Content-Type: application/json
+
+{
+  "blog_id": "67cbef7fa5485f22b29955db",
+  "tutor_id": "67cbea01f2b9ac12ac4b6e07",
+  "content": "comment cc"
+}
+###
+POST http://localhost:5001/api/blog/create-comment
+Content-Type: application/json
+
+{
+  "blog_id": "67cbef7fa5485f22b29955db",
+  "parent_comment_id": "67cbea73f1b2aef47d546731",
+  "tutor_id": "67cbea01f2b9ac12ac4b6e07",
+  "content": "comcc"
+}
+###
+DELETE http://localhost:5001/api/blog/delete-blog/67cbef7fa5485f22b29955db
+
+###
+DELETE http://localhost:5001/api/student/delete-comment/67cbea73f1b2aef47d546731
+

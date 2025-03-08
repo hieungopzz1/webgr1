@@ -2,15 +2,18 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db"); // Import connectDB từ config/db
-const adminRoutes = require("./routes/admin"); // Import routes admin
 // const tutorRoutes = require("./routes/tutor"); // Import routes tutor
 // const studentRoutes = require("./routes/student"); // Import routes student
 // const assignmentRoutes = require("./routes/assignment"); // Import routes student
-const authRoutes = require("./routes/auth"); 
+// const tutorRoutes = require("./routes/tutor");
 // const enrollmentRoutes = require("./routes/enrollment"); // Import routes enrollment
-const studentRoutes = require("./routes/student");
-
+// const studentRoutes = require("./routes/student");
 // Load biến môi trường
+const authRoutes = require("./routes/auth"); 
+const adminRoutes = require("./routes/admin"); // Import routes admin
+const blogRoutes = require("./routes/blog");
+
+
 dotenv.config();
 
 const app = express();
@@ -20,14 +23,13 @@ app.use(express.json());
 app.use(cors());
 
 // Sử dụng các routes cho admin, tutor và student
-app.use('/api/admin', adminRoutes);
 // app.use('/api/tutor', tutorRoutes);
 // app.use('/api/student', studentRoutes);
 // app.use('/api/assignment', assignmentRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/student', studentRoutes);
 // app.use('/api/enrollment', enrollmentRoutes);
-
+app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Kết nối MongoDB
 connectDB();  // Kết nối đến MongoDB

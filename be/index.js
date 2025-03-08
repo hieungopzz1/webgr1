@@ -12,7 +12,7 @@ const connectDB = require("./config/db"); // Import connectDB từ config/db
 const authRoutes = require("./routes/auth"); 
 const adminRoutes = require("./routes/admin"); // Import routes admin
 const blogRoutes = require("./routes/blog");
-
+const messageRoutes = require("./routes/mesage.route");
 
 dotenv.config();
 
@@ -30,6 +30,8 @@ app.use(cors());
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blog', blogRoutes);
+app.use('/api/messages', messageRoutes);
+
 
 // Kết nối MongoDB
 connectDB();  // Kết nối đến MongoDB

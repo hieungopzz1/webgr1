@@ -1,27 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import './Settings.css';
 
 const Settings = () => {
   const { language, translate, changeLanguage } = useLanguage();
-  const [isDarkMode, setIsDarkMode] = React.useState(() => {
-    return document.documentElement.getAttribute('data-theme') === 'dark';
-  });
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDarkMode(savedTheme === 'dark');
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    }
-  }, []);
-
-  const handleThemeChange = () => {
-    const newTheme = !isDarkMode ? 'dark' : 'light';
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
+  const { isDarkMode, toggleTheme } = useTheme();
 
   const handleLanguageChange = (newLanguage) => {
     changeLanguage(newLanguage);
@@ -47,7 +31,7 @@ const Settings = () => {
               <input
                 type="checkbox"
                 checked={isDarkMode}
-                onChange={handleThemeChange}
+                onChange={toggleTheme}
               />
               <span className="slider">
                 <i className={`bi ${isDarkMode ? 'bi-moon-stars-fill' : 'bi-sun-fill'}`} />

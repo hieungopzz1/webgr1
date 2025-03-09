@@ -7,6 +7,7 @@ import Register from './pages/staff/Register';
 import AssignTutor from './pages/staff/AssignTutor';
 import Settings from './pages/Settings/Settings';
 import { LanguageProvider } from './context/LanguageContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -40,62 +41,64 @@ const PublicRoute = ({ children, restricted }) => {
 
 const App = () => {
   return (
-    <LanguageProvider>
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute restricted={true}>
-                <Login />
-              </PublicRoute>
-            }
-          />
+    <ThemeProvider>
+      <LanguageProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute restricted={true}>
+                  <Login />
+                </PublicRoute>
+              }
+            />
 
-          {/* Protected Routes */}
-          <Route
-            path="/register"
-            element={
-              <ProtectedRoute>
-                <Register />
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route
-            path="/assign-tutor"
-            element={
-              <ProtectedRoute>
-                <AssignTutor />
-              </ProtectedRoute>
-            }
-          />
+            {/* Protected Routes */}
+            <Route
+              path="/register"
+              element={
+                <ProtectedRoute>
+                  <Register />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/assign-tutor"
+              element={
+                <ProtectedRoute>
+                  <AssignTutor />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Default route */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <AssignTutor />
-              </ProtectedRoute>
-            }
-          />
+            {/* Default route */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AssignTutor />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </LanguageProvider>
+            {/* Catch all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 };
 

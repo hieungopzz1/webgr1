@@ -1,9 +1,11 @@
 .footer {
   padding: 24px 16px;
-  color: #737373;
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
   font-size: 12px;
   max-width: 1024px;
   margin: 0 auto;
+  transition: background-color var(--transition-speed), color var(--transition-speed);
 }
 
 .footer__container {
@@ -21,23 +23,25 @@
 }
 
 .footer__nav a {
-  color: #737373;
+  color: var(--color-footer-text);
   text-decoration: none;
   font-size: 12px;
   line-height: 16px;
+  transition: color var(--transition-speed);
 }
 
 .footer__nav a:hover {
+  color: var(--color-link-hover);
   text-decoration: underline;
 }
 
 .footer__dot {
-  color: #737373;
+  color: var(--color-footer-text);
   margin: 0 4px;
 }
 
 .footer__copyright {
-  color: #737373;
+  color: var(--color-footer-text);
   font-size: 12px;
   line-height: 16px;
   text-transform: uppercase;

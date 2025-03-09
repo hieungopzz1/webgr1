@@ -26,6 +26,7 @@ const PasswordInput = ({ label, placeholder, value, onChange, name }) => {
           onClick={toggleShowPassword}
           className="password-input__toggle"
           aria-label="Toggle password visibility"
+          style={{ pointerEvents: 'auto' }}
         >
           {showPassword ? (
             <i className="bi bi-eye-slash"></i>

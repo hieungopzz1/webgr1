@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 
 const MENU_ITEMS = {
@@ -88,13 +88,15 @@ const NavItem = ({ item }) => (
 
 const Sidebar = () => {
   const [userRole] = useState('student');
+  const location = useLocation();
+  const isMessagesPage = location.pathname.startsWith('/messages');
   const menuItems = [...MENU_ITEMS.common, ...MENU_ITEMS[userRole]];
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isMessagesPage ? 'collapsed' : ''}`}>
       <div className="sidebar__logo">
         <NavLink to="/" className="logo-link">
-          <img src="/logo.png" alt="eTutoring Logo" />
+          <img src="/logo192.png" alt="eTutoring Logo" />
         </NavLink>
       </div>
       <nav className="sidebar__nav">

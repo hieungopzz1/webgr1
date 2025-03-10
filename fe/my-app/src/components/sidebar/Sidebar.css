@@ -23,133 +23,112 @@
 
 /* Sidebar Container */
 .sidebar {
+  width: 240px;
+  height: 100vh;
+  background-color: #fff;
+  border-right: 1px solid #e0e0e0;
   position: fixed;
-  top: 0;
   left: 0;
-  bottom: 0;
-  width: var(--sidebar-width);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background-color: var(--color-background);
-  border-right: 1px solid var(--color-border);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  transition: all var(--transition-normal);
+  top: 0;
+  z-index: 1000;
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 75px;
 }
 
 /* Logo */
 .sidebar__logo {
-  padding: var(--spacing-xl) var(--spacing-sm) var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-  text-align: center;
+  height: 60px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.sidebar__logo img {
-  height: 40px;
+.logo-link img {
+  height: 36px;
   width: auto;
 }
 
 /* Navigation */
 .sidebar__nav {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  height: calc(100vh - 60px);
 }
 
-.sidebar__main-menu,
-.sidebar__bottom-menu {
-  list-style: none;
-  padding: 0;
+.sidebar__main-menu {
+  flex: 1;
+  padding: 8px 0;
   margin: 0;
+  list-style: none;
 }
 
-.sidebar__main-menu li,
-.sidebar__bottom-menu li {
-  margin: var(--spacing-xs) 0;
+.sidebar__bottom-menu {
+  padding: 8px 0;
+  margin: 0;
+  list-style: none;
+  border-top: 1px solid #e0e0e0;
 }
 
-/* Nav Link and Button common styling */
-.nav-link,
-.nav-button {
+.nav-link {
   display: flex;
   align-items: center;
-  padding: var(--spacing-sm) var(--spacing-xs);
-  color: var(--color-text);
+  padding: 12px 16px;
+  color: #333;
   text-decoration: none;
-  border-radius: var(--border-radius);
-  transition: background var(--transition-fast), color var(--transition-fast);
-  font-size: 16px;
-  width: 100%;
-  cursor: pointer;
-  background: none;
-  border: none;
+  transition: color 0.2s;
 }
 
-/* Không thay đổi font-weight khi hover/active */
-.nav-link:hover,
-.nav-button:hover {
-  background-color: var(--color-background-hover);
-}
-
-.nav-link.active,
-.nav-button.active {
-  background-color: var(--color-background-active);
-  color: var(--color-primary);
-}
-
-/* Icon Wrapper */
 .nav-icon-wrapper {
-  position: relative;
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: var(--spacing-md);
+  margin-right: 16px;
+  position: relative;
 }
 
-/* Hiển thị icon bình thường mặc định */
-.icon-normal {
-  display: block;
-}
-
-/* Ẩn icon active mặc định */
+.icon-normal,
 .icon-active {
-  display: none;
+  position: absolute;
+  transition: opacity 0.2s;
 }
 
-/* Khi hover hoặc active, ẩn icon normal và hiện icon active */
-.nav-link:hover .icon-normal,
-.nav-link.active .icon-normal,
-.nav-button:hover .icon-normal,
-.nav-button.active .icon-normal {
-  display: none;
+.icon-active {
+  opacity: 0;
 }
 
-.nav-link:hover .icon-active,
-.nav-link.active .icon-active,
-.nav-button:hover .icon-active,
-.nav-button.active .icon-active {
-  display: block;
+.nav-link.active .icon-normal {
+  opacity: 0;
 }
 
-/* Label: đảm bảo không tràn */
+.nav-link.active .icon-active {
+  opacity: 1;
+}
+
 .nav-label {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  font-size: 14px;
+  transition: opacity 0.3s;
 }
 
-/* Khi search-active, ẩn label */
-.sidebar.search-active .nav-label {
+.collapsed .nav-label {
   display: none;
 }
 
-/* Bottom Menu */
-.sidebar__bottom-menu {
-  margin-bottom: var(--spacing-lg);
-  padding-top: var(--spacing-xs);
+.collapsed .nav-icon-wrapper {
+  margin-right: 0;
+}
+
+.nav-link:hover {
+  color: #007bff;
+}
+
+.nav-link.active {
+  color: #007bff;
 }
 
 /* Search Panel: che kín phần label bên trái */
@@ -263,38 +242,16 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 1264px) {
+@media (max-width: 768px) {
   .sidebar {
-    width: var(--sidebar-collapsed-width);
-  }
-
-  .sidebar__logo img {
-    width: var(--icon-size);
-    height: var(--icon-size);
+    width: 75px;
   }
 
   .nav-label {
     display: none;
   }
 
-  .nav-link,
-  .nav-button {
-    padding: var(--spacing-sm);
-    justify-content: center;
-  }
-
   .nav-icon-wrapper {
     margin-right: 0;
-  }
-
-  .search-panel {
-    left: 0;
-    width: var(--sidebar-collapsed-width);
-  }
-}
-
-@media (max-width: 767px) {
-  .sidebar {
-    display: none;
   }
 }

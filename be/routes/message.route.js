@@ -1,5 +1,5 @@
 
-const express = requre('express');
+const express = require('express');
 const { getMessages, getUsersForSidebar, sendMessage } = requre('../controllers/messageController');
 
 const router = express.Router();

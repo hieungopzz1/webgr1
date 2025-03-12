@@ -3,7 +3,8 @@ const express = require("express");
 const { getAllUsers, createAccount, 
     addClass, getAllClasses, assignTutorToClass, 
     deleteUser , updateClass, deleteClass, 
-    updateAssignment, deleteAssignment} = require("../controllers/adminController");
+    updateAssignment, deleteAssignment, 
+    createMeeting,updateMeeting, deleteMeeting } = require("../controllers/adminController");
 const upload = require("../config/multer")
 const router = express.Router();
 
@@ -30,5 +31,12 @@ router.post("/class/assign-tutor/:classId", assignTutorToClass);
 router.put("/class/updateassign/:assignmentId", updateAssignment);
 
 router.delete("/class/deleteassign/:assignmentId", deleteAssignment);
+
+//quan ly meeting
+router.post("/meeting/create-meeting", createMeeting);
+
+router.put("/meeting/update/:meetingId", updateMeeting );
+
+router.delete("/meeting/delete/:meetingId", deleteMeeting );
 
 module.exports = router;

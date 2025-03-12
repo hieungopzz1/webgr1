@@ -2,6 +2,7 @@ const Admin = require("../models/Admin");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
 const Assignment = require("../models/Assignment");
+const Meeting = require("../models/Meeting");
 const Class = require("../models/Class");
 const bcrypt = require("bcrypt");
 
@@ -87,6 +88,8 @@ const deleteUser = async (req, res) => {
 const addClass = async (req, res) => {
   try {
     const { name, description } = req.body;
+    const existingClass = await Class.findOne({ name });
+    if(existingClass) return res.status(400).json({ message: "Class already exists" });
     const newClass = new Class({ name, description });
     await newClass.save();
     res.status(201).json({ message: "Class created successfully", newClass });
@@ -214,6 +217,68 @@ const deleteAssignment = async (req, res) => {
   }
 };
 
+
+const createMeeting = async (req, res) => {
+  try {
+    const { title, created_by, type, link, location, date } = req.body;
+
+    if (type === "online" && !link) {
+      return res.status(400).json({ message: "Online meeting must have a link" });
+    }
+    if (type === "offline" && !location) {
+      return res.status(400).json({ message: "Offline meeting must have a location" });
+    }
+
+    const newMeeting = new Meeting({
+      title,
+      created_by,
+      type,
+      link,
+      location,
+      date,
+    });
+
+    await newMeeting.save();
+    res.status(201).json({ message: "Meeting created successfully", newMeeting });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+const updateMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const { title, type, link, location, date } = req.body;
+
+    const updatedMeeting = await Meeting.findByIdAndUpdate(
+      meetingId,
+      { title, type, link, location, date },
+      { new: true }
+    );
+
+    if (!updatedMeeting) return res.status(404).json({ message: "Meeting not found" });
+
+    res.status(200).json({ message: "Meeting updated successfully", updatedMeeting });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const deletedMeeting = await Meeting.findByIdAndDelete(meetingId);
+
+    if (!deletedMeeting) return res.status(404).json({ message: "Meeting not found" });
+
+    res.status(200).json({ message: "Meeting deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 module.exports = { assignTutorToClass };
 
 
@@ -228,4 +293,7 @@ module.exports = {
   deleteClass,
   updateAssignment,
   deleteAssignment,
+  createMeeting,
+  deleteMeeting,
+  updateMeeting,
 };

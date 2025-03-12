@@ -7,6 +7,7 @@ import Register from './pages/staff/Register';
 import AssignTutor from './pages/staff/AssignTutor';
 import Settings from './pages/Settings/Settings';
 import Message from './pages/Message/Message';
+import Home from './pages/Home';
 import { LanguageProvider } from './context/LanguageContext';
 
 // Protected Route component
@@ -96,7 +97,7 @@ const App = () => {
             path="/"
             element={
               <ProtectedRoute>
-                <AssignTutor />
+                <Home />
               </ProtectedRoute>
             }
           />

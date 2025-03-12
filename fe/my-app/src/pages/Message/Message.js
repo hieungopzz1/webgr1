@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../utils/api';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Message.css';
 
 const Message = () => {
@@ -11,35 +12,40 @@ const Message = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await api.get('/api/messages/users');
+      if (response.data && Array.isArray(response.data)) {
+        setUsers(response.data);
+        if (id) {
+          const selected = response.data.find(user => user._id === id);
+          setSelectedUser(selected || null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  }, [id]);
+
+  const fetchMessages = useCallback(async (userId) => {
+    try {
+      const response = await api.get(`/api/messages/${userId}`);
+      if (response.data && Array.isArray(response.data)) {
+        setMessages(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  }, []);
 
   useEffect(() => {
     fetchUsers();
     if (id) {
       fetchMessages(id);
     }
-  }, [id]);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await api.get('/messages/users');
-      setUsers(response.data);
-      if (id) {
-        const selected = response.data.find(user => user._id === id);
-        setSelectedUser(selected);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  const fetchMessages = async (userId) => {
-    try {
-      const response = await api.get(`/messages/${userId}`);
-      setMessages(response.data);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
+  }, [id, fetchUsers, fetchMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,26 +61,28 @@ const Message = () => {
 
     try {
       const formData = new FormData();
-      formData.append('text', newMessage);
+      if (newMessage.trim()) {
+        formData.append('text', newMessage.trim());
+      }
       if (selectedFile) {
         formData.append('image', selectedFile);
       }
 
-      const response = await api.post(`/messages/send/${id}`, formData, {
+      const response = await api.post(`/api/messages/send/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      setMessages([...messages, response.data]);
-      setNewMessage('');
-      setSelectedFile(null);
+      if (response.data) {
+        setMessages(prev => [...prev, response.data]);
+        setNewMessage('');
+        setSelectedFile(null);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
-
-  const [selectedFile, setSelectedFile] = useState(null);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -98,10 +106,10 @@ const Message = () => {
             >
               <div className="message-sidebar__user-avatar">
                 {user.avatar ? (
-                  <img src={user.avatar} alt={user.firstName} />
+                  <img src={user.avatar} alt={user.firstName || 'User'} />
                 ) : (
                   <div className="avatar-placeholder">
-                    {user.firstName[0]}
+                    {(user.firstName || 'U')[0]}
                   </div>
                 )}
               </div>
@@ -121,10 +129,10 @@ const Message = () => {
               <div className="message-content__user-info">
                 <div className="message-content__user-avatar">
                   {selectedUser.avatar ? (
-                    <img src={selectedUser.avatar} alt={selectedUser.firstName} />
+                    <img src={selectedUser.avatar} alt={selectedUser.firstName || 'User'} />
                   ) : (
                     <div className="avatar-placeholder">
-                      {selectedUser.firstName[0]}
+                      {(selectedUser.firstName || 'U')[0]}
                     </div>
                   )}
                 </div>

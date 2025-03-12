@@ -1,0 +1,35 @@
+.home {
+  width: 100%;
+  max-width: 935px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+.home__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.home__loading,
+.home__error {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #262626;
+}
+
+.home__error {
+  color: #ed4956;
+}
+
+@media (max-width: 768px) {
+  .home {
+    padding: 20px 0;
+  }
+  
+  .home__content {
+    gap: 16px;
+  }
+} 

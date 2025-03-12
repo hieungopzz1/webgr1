@@ -36,7 +36,7 @@ const Login = () => {
         return;
       }
 
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email, password });
       const { token, user } = response.data;
       
       localStorage.setItem('token', token);
@@ -50,7 +50,7 @@ const Login = () => {
           navigate('/tutor/dashboard');
           break;
         case 'Admin':
-          navigate('/register');
+          navigate('/');   
           break;
         default:
           setError('Invalid user role');

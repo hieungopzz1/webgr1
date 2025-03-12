@@ -131,12 +131,12 @@
   color: #007bff;
 }
 
-/* Search Panel: che kín phần label bên trái */
+/* Search Panel*/
 .search-panel {
   position: absolute;
   top: 0;
-  left: 36px; /* Vị trí bắt đầu của label */
-  width: calc(var(--sidebar-width) - 36px); /* Phần còn lại của sidebar */
+  left: 36px;
+  width: calc(var(--sidebar-width) - 36px);
   height: 100%;
   background-color: var(--color-background);
   border-right: 1px solid var(--color-border);

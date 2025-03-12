@@ -1,6 +1,6 @@
 
 const express = require('express');
-const { getMessages, getUsersForSidebar, sendMessage } = requre('../controllers/messageController');
+const { getMessages, getUsersForSidebar, sendMessage } = require('../controllers/messageController');
 
 const router = express.Router();
 

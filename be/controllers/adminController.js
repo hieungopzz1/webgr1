@@ -42,14 +42,11 @@ const createAccount = async (req, res) => {
   }
 };
 
-//get all usuers
 const getAllUsers = async (req, res) => {
   try {
-    // Lấy tất cả Student và Tutor
     const students = await Student.find({}, "firstName lastName email role avatar");
     const tutors = await Tutor.find({}, "firstName lastName email role avatar");
 
-    // Gộp danh sách lại
     const users = [...students, ...tutors];
 
     res.status(200).json({ message: "Success", users });
@@ -60,17 +57,14 @@ const getAllUsers = async (req, res) => {
 
 
 
-//delete user
 const deleteUser = async (req, res) => {
   try {
     const { role, id } = req.params;
 
-    // Kiểm tra role hợp lệ
     if (!["Student", "Tutor"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
-    // Xóa user theo role
     let deletedUser;
     if (role === "Student") {
       deletedUser = await Student.findByIdAndDelete(id);
@@ -78,7 +72,6 @@ const deleteUser = async (req, res) => {
       deletedUser = await Tutor.findByIdAndDelete(id);
     }
 
-    // Kiểm tra nếu user không tồn tại
     if (!deletedUser) {
       return res.status(404).json({ message: `${role} not found` });
     }
@@ -91,7 +84,6 @@ const deleteUser = async (req, res) => {
 
 
 
-//tạo lớp để thêm sinh viên và giảng viên
 const addClass = async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -107,6 +99,39 @@ const getAllClasses = async (req, res) => {
   try {
     const classes = await Class.find().populate("tutors").populate("students");
     res.status(200).json({ classes });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const updateClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const updateData = req.body;
+
+    const updatedClass = await Class.findByIdAndUpdate(classId, updateData, { new: true });
+
+    if (!updatedClass) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    res.status(200).json({ message: "Class updated successfully", class: updatedClass });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    const deletedClass = await Class.findByIdAndDelete(classId);
+
+    if (!deletedClass) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    res.status(200).json({ message: "Class deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -149,6 +174,45 @@ const assignTutorToClass = async (req, res) => {
   }
 };
 
+const updateAssignment = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    const { new_tutor_id } = req.body;
+
+    if (!new_tutor_id) {
+      return res.status(400).json({ message: "New Tutor ID is required" });
+    }
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    assignment.tutor_id = new_tutor_id;
+    await assignment.save();
+
+    res.status(200).json({ message: "Assignment updated successfully", assignment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteAssignment = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    await Assignment.findByIdAndDelete(assignmentId);
+
+    res.status(200).json({ message: "Assignment deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 module.exports = { assignTutorToClass };
 
@@ -160,4 +224,8 @@ module.exports = {
   getAllClasses,
   deleteUser,
   getAllUsers,
+  updateClass,
+  deleteClass,
+  updateAssignment,
+  deleteAssignment,
 };

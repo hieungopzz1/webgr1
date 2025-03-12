@@ -16,8 +16,9 @@ const multer = require('multer');
 // const studentRoutes = require("./routes/student");
 // Load biến môi trường
 const authRoutes = require("./routes/auth"); 
-const adminRoutes = require("./routes/admin"); // Import routes admin
+const adminRoutes = require("./routes/admin"); 
 const blogRoutes = require("./routes/blog");
+const classRoutes = require("./routes/class"); 
 // const messageRoutes = require("./routes/mesage.route");
 
 dotenv.config();
@@ -39,6 +40,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blog', blogRoutes);
+app.use('/api/class', classRoutes);
 // app.use('/api/messages', messageRoutes);
 
 

@@ -7,11 +7,14 @@ const addBlog = async (req, res) => {
   try {
     const { title, content, tutor_id, student_id } = req.body;
 
-    if ((!tutor_id && !student_id) || (tutor_id && student_id)) {
-      return res.status(400).json({
-        message: "Cannot post",
-      });
+    if (!title ) {
+      return res.status(400).json({ message: "Title are required" });
     }
+
+    if (!tutor_id && !student_id) {
+      return res.status(400).json({ message: "Tutor or student is required" });
+    }
+
 
     const newBlog = new Blog({
       title,
@@ -30,8 +33,9 @@ const addBlog = async (req, res) => {
 
 const getAllBlogs = async (req, res) => {
   try {
-    const blogs = await Blog.find();
+    const blogs = await Blog.find({}, "title");
     res.status(200).json({ message: "Successfully", blogs });
+    
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -40,10 +44,20 @@ const getAllBlogs = async (req, res) => {
 const getBlogById = async (req, res) => {
   try {
     const { blog_id } = req.params;
+
     const blog = await Blog.findById(blog_id);
-    res.status(200).json({ message: "Successfully", blog });
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+
+    const comments = await Comment.find({ blog_id: blog_id })
+      .populate("tutor_id", "firstName lastName email")
+      .populate("student_id", "firstName lastName email")
+      .populate("parent_comment_id", "content");
+
+    res.status(200).json(comments);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
@@ -51,6 +65,9 @@ const updateBlog = async (req, res) => {
   try {
     const { blog_id } = req.params;
     const { title, content } = req.body;
+    if (!title) {
+      return res.status(400).json({ message: "Title are required" });
+    }
     const blog = await Blog.findByIdAndUpdate(
       blog_id,
       { title, content, updated_at: Date.now() },
@@ -81,7 +98,9 @@ const addComment = async (req, res, io) => {
   try {
     const { blog_id, parent_comment_id, tutor_id, student_id, content } =
       req.body;
-
+      if (!content) {
+        return res.status(400).json({ message: "Content are required" });
+      }
     const blog = await Blog.findById(blog_id);
     if (!blog) return res.status(404).json({ message: "Blog not exist" });
 

@@ -5,7 +5,6 @@ const Assignment = require("../models/Assignment");
 const Meeting = require("../models/Meeting");
 const Class = require("../models/Class");
 const bcrypt = require("bcrypt");
-
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
@@ -100,7 +99,7 @@ const addClass = async (req, res) => {
 const getAllClasses = async (req, res) => {
   try {
 
-    const classes = await Class.find();
+    const classes = await Class.find({}, "name");
     res.status(200).json({ classes });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -111,9 +110,11 @@ const updateClass = async (req, res) => {
   try {
     const { classId } = req.params;
     const updateData = req.body;
+    if (!updateData.name) {
+      return res.status(400).json({ message: "Class name is required" });
+    }
 
     const updatedClass = await Class.findByIdAndUpdate(classId, updateData, { new: true });
-
     if (!updatedClass) {
       return res.status(404).json({ message: "Class not found" });
     }
@@ -164,6 +165,9 @@ const assignTutorToClass = async (req, res) => {
     const classObj = await Class.findById(classId);
     if (!classObj) return res.status(404).json({ message: "Class not found" });
 
+    const assignedBy = await Admin.findById(assigned_by);
+    if (!assignedBy) return res.status(404).json({ message: "Admin not found" });
+
     const tutor = await Tutor.findById(tutor_id);
     if (!tutor) return res.status(404).json({ message: "Tutor not found" });
 
@@ -190,6 +194,8 @@ const assignTutorToClass = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 const updateAssignment = async (req, res) => {
   try {
@@ -236,6 +242,9 @@ const createMeeting = async (req, res) => {
   try {
     const { title, created_by, type, link, location, date } = req.body;
 
+    if (!title || !created_by || !type || !date) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
     if (type === "online" && !link) {
       return res.status(400).json({ message: "Online meeting must have a link" });
     }
@@ -264,6 +273,10 @@ const updateMeeting = async (req, res) => {
   try {
     const { meetingId } = req.params;
     const { title, type, link, location, date } = req.body;
+
+    if (!title || !type || !date) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
     const updatedMeeting = await Meeting.findByIdAndUpdate(
       meetingId,

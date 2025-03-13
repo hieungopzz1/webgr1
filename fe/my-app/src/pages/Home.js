@@ -11,18 +11,22 @@ const Home = () => {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await api.get('/api/blog');
-        const transformedBlogs = response.data.blogs.map(blog => ({
-          ...blog,
-          authorName: blog.student_id ? 'Student' : 'Tutor',
-          authorAvatar: '/default-avatar.png',
-          image: null
-        }));
-        setBlogs(transformedBlogs);
+        const response = await api.get('/api/blog/get-all-blogs');
+        if (response.data && response.data.blogs) {
+          const transformedBlogs = response.data.blogs.map(blog => ({
+            ...blog,
+            authorName: blog.student_id ? 'Student' : 'Tutor',
+            authorAvatar: '/default-avatar.png',
+            image: null
+          }));
+          setBlogs(transformedBlogs);
+        } else {
+          setError('Invalid response format');
+        }
         setLoading(false);
       } catch (err) {
         console.error('Error fetching blogs:', err);
-        setError('Failed to fetch blogs');
+        setError(err.response?.data?.message || 'Failed to fetch blogs');
         setLoading(false);
       }
     };
@@ -36,9 +40,13 @@ const Home = () => {
   return (
     <div className="home">
       <div className="home__content">
-        {blogs.map((blog) => (
-          <BlogCard key={blog._id} blog={blog} />
-        ))}
+        {blogs.length > 0 ? (
+          blogs.map((blog) => (
+            <BlogCard key={blog._id} blog={blog} />
+          ))
+        ) : (
+          <div className="home__no-blogs">No blogs found</div>
+        )}
       </div>
     </div>
   );

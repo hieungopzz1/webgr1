@@ -23,21 +23,62 @@ const addBlog = async (req, res) => {
 
     res
       .status(201)
-      .json({ message: "Blog created successfully!", blog: newBlog });
+      .json({ message: "Successfully", blog: newBlog });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-const getBlogs = async (req, res) => {
+const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find();
-    res.status(200).json({ message: "Blogs retrieved successfully", blogs });
+    res.status(200).json({ message: "Successfully", blogs });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
+const getBlogById = async (req, res) => {
+  try {
+    const { blog_id } = req.params;
+    const blog = await Blog.findById(blog_id);
+    res.status(200).json({ message: "Successfully", blog });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const updateBlog = async (req, res) => {
+  try {
+    const { blog_id } = req.params;
+    const { title, content } = req.body;
+
+    const blog = await Blog.findByIdAndUpdate(blog_id, { title, content }, { new: true });
+    res.status(200).json({ message: "Successfully", blog });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const deleteBlog = async (req, res) => {
+  try {
+    const { blog_id } = req.params;
+
+    await Comment.deleteMany({ blog_id });
+
+    const deletedBlog = await Blog.findByIdAndDelete(blog_id);
+    if (!deletedBlog) {
+      return res.status(404).json({ message: "Blog not exist" });
+    }
+
+    res.status(200).json({ message: "Successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+//quan ly comment
 const addComment = async (req, res, io) => {
     try {
       const { blog_id, parent_comment_id, tutor_id, student_id, content } = req.body;
@@ -72,28 +113,12 @@ const getComment = async (req, res) => {
     const { blog_id } = req.params;
 
     const comments = await Comment.find({ blog_id });
-    res.status(200).json({ message: "Comments retrieved successfully", comments });
+    res.status(200).json({ message: "Successfully", comments });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-const deleteBlog = async (req, res) => {
-  try {
-    const { blog_id } = req.params;
-
-    await Comment.deleteMany({ blog_id });
-
-    const deletedBlog = await Blog.findByIdAndDelete(blog_id);
-    if (!deletedBlog) {
-      return res.status(404).json({ message: "Blog not exist" });
-    }
-
-    res.status(200).json({ message: "Blog deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
 
 const deleteComment = async (req, res) => {
   try {
@@ -106,17 +131,33 @@ const deleteComment = async (req, res) => {
       return res.status(404).json({ message: "Comment not exist" });
     }
 
-    res.status(200).json({ message: "Comment deleted successfully" });
+    res.status(200).json({ message: "Successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+const updateComment = async (req, res) => {
+  try {
+    const { comment_id } = req.params;
+    const { content } = req.body;
+
+    const updatedComment = await Comment.findByIdAndUpdate(comment_id, { content }, { new: true });
+    res.status(200).json({ message: "Successfully", updatedComment });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 
 module.exports = {
   addBlog,
   addComment,
   deleteBlog,
   deleteComment,
-  getBlogs,
+  getAllBlogs,
+  getBlogById,
   getComment,
+  updateBlog,
+  updateComment,
 };

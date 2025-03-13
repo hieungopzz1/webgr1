@@ -5,17 +5,15 @@ const Assignment = require("../models/Assignment");
 const Meeting = require("../models/Meeting");
 const Class = require("../models/Class");
 const bcrypt = require("bcrypt");
-
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
-    const avatar = req.file ? `/uploads/${req.file.filename}` : null; // Lấy đường dẫn ảnh
+    const avatar = req.file ? `/uploads/${req.file.filename}` : null; 
 
     if (!["Student", "Tutor", "Admin"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
-    // Kiểm tra email đã tồn tại chưa
     const existingUser =
       (await Student.findOne({ email })) ||
       (await Tutor.findOne({ email })) ||
@@ -100,7 +98,8 @@ const addClass = async (req, res) => {
 
 const getAllClasses = async (req, res) => {
   try {
-    const classes = await Class.find().populate("tutors").populate("students");
+
+    const classes = await Class.find({}, "name");
     res.status(200).json({ classes });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -111,9 +110,11 @@ const updateClass = async (req, res) => {
   try {
     const { classId } = req.params;
     const updateData = req.body;
+    if (!updateData.name) {
+      return res.status(400).json({ message: "Class name is required" });
+    }
 
     const updatedClass = await Class.findByIdAndUpdate(classId, updateData, { new: true });
-
     if (!updatedClass) {
       return res.status(404).json({ message: "Class not found" });
     }
@@ -140,6 +141,17 @@ const deleteClass = async (req, res) => {
   }
 };
 
+const getAssignments = async (req, res) => {
+  try {
+    const assignments = await Assignment.find()
+        .populate("tutor_id", "firstName lastName email")
+        .populate("class_id", "name description");
+
+    res.status(200).json(assignments);
+} catch (error) {
+    res.status(500).json({ message: "Lỗi server", error });
+}
+};
 
 const assignTutorToClass = async (req, res) => {
   try {
@@ -153,8 +165,14 @@ const assignTutorToClass = async (req, res) => {
     const classObj = await Class.findById(classId);
     if (!classObj) return res.status(404).json({ message: "Class not found" });
 
+    const assignedBy = await Admin.findById(assigned_by);
+    if (!assignedBy) return res.status(404).json({ message: "Admin not found" });
+
     const tutor = await Tutor.findById(tutor_id);
     if (!tutor) return res.status(404).json({ message: "Tutor not found" });
+
+    const existingAssignment = await Assignment.findOne({ tutor_id, class_id: classId });
+    if (existingAssignment) return res.status(400).json({ message: "Tutor already assigned to this class" });
 
     const newAssignment = new Assignment({
       assigned_by, 
@@ -176,6 +194,8 @@ const assignTutorToClass = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 const updateAssignment = async (req, res) => {
   try {
@@ -222,6 +242,9 @@ const createMeeting = async (req, res) => {
   try {
     const { title, created_by, type, link, location, date } = req.body;
 
+    if (!title || !created_by || !type || !date) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
     if (type === "online" && !link) {
       return res.status(400).json({ message: "Online meeting must have a link" });
     }
@@ -251,6 +274,10 @@ const updateMeeting = async (req, res) => {
     const { meetingId } = req.params;
     const { title, type, link, location, date } = req.body;
 
+    if (!title || !type || !date) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
     const updatedMeeting = await Meeting.findByIdAndUpdate(
       meetingId,
       { title, type, link, location, date },
@@ -279,7 +306,6 @@ const deleteMeeting = async (req, res) => {
 };
 
 
-module.exports = { assignTutorToClass };
 
 
 module.exports = {
@@ -296,4 +322,5 @@ module.exports = {
   createMeeting,
   deleteMeeting,
   updateMeeting,
+  getAssignments,
 };

@@ -54,7 +54,20 @@ const getAllUsers = async (req, res) => {
   }
 }
 
-
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await Student.findById(id) || 
+                  await Tutor.findById(id) || 
+                  await Admin.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving user", error: error.message });
+  }
+}
 
 const deleteUser = async (req, res) => {
   try {
@@ -323,4 +336,5 @@ module.exports = {
   deleteMeeting,
   updateMeeting,
   getAssignments,
+  getUserById,
 };

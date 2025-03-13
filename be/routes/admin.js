@@ -1,6 +1,6 @@
 // backend/routes/adminRoutes.js
 const express = require("express");
-const { getAllUsers, createAccount, 
+const { getAllUsers, getUserById, createAccount, 
     addClass, getAllClasses, assignTutorToClass, 
     deleteUser , updateClass, deleteClass, 
     updateAssignment, deleteAssignment, 
@@ -14,6 +14,8 @@ router.post("/create-account", upload.single("avatar"), createAccount);
 router.delete("/users/:role/:id", deleteUser);
 
 router.get("/get-users", getAllUsers);
+
+router.get("/get-user/:id", getUserById);
 
 //quarn lys class
 router.post("/class/create-class", addClass);

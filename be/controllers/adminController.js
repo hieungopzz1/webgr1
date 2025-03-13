@@ -9,13 +9,12 @@ const bcrypt = require("bcrypt");
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
-    const avatar = req.file ? `/uploads/${req.file.filename}` : null; // Lấy đường dẫn ảnh
+    const avatar = req.file ? `/uploads/${req.file.filename}` : null; 
 
     if (!["Student", "Tutor", "Admin"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
-    // Kiểm tra email đã tồn tại chưa
     const existingUser =
       (await Student.findOne({ email })) ||
       (await Tutor.findOne({ email })) ||
@@ -100,7 +99,8 @@ const addClass = async (req, res) => {
 
 const getAllClasses = async (req, res) => {
   try {
-    const classes = await Class.find().populate("tutors").populate("students");
+
+    const classes = await Class.find();
     res.status(200).json({ classes });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -140,6 +140,17 @@ const deleteClass = async (req, res) => {
   }
 };
 
+const getAssignments = async (req, res) => {
+  try {
+    const assignments = await Assignment.find()
+        .populate("tutor_id", "firstName lastName email")
+        .populate("class_id", "name description");
+
+    res.status(200).json(assignments);
+} catch (error) {
+    res.status(500).json({ message: "Lỗi server", error });
+}
+};
 
 const assignTutorToClass = async (req, res) => {
   try {
@@ -155,6 +166,9 @@ const assignTutorToClass = async (req, res) => {
 
     const tutor = await Tutor.findById(tutor_id);
     if (!tutor) return res.status(404).json({ message: "Tutor not found" });
+
+    const existingAssignment = await Assignment.findOne({ tutor_id, class_id: classId });
+    if (existingAssignment) return res.status(400).json({ message: "Tutor already assigned to this class" });
 
     const newAssignment = new Assignment({
       assigned_by, 
@@ -279,7 +293,6 @@ const deleteMeeting = async (req, res) => {
 };
 
 
-module.exports = { assignTutorToClass };
 
 
 module.exports = {
@@ -296,4 +309,5 @@ module.exports = {
   createMeeting,
   deleteMeeting,
   updateMeeting,
+  getAssignments,
 };

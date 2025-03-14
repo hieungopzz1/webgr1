@@ -27,33 +27,30 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-  
+
     try {
       const { email, password } = formData;
-  
+
       if (!email || !password) {
         setError('Please fill in all required fields.');
         return;
       }
-  
+
       const response = await api.post('/api/auth/login', { email, password });
       const { token, user } = response.data;
-  
-      // Lưu token và role vào localStorage
+      
       localStorage.setItem('token', token);
-      localStorage.setItem('role', user.role);  // Lưu rõ ràng role
-      localStorage.setItem('userData', JSON.stringify(user));  // Lưu thông tin người dùng
-  
-      // Điều hướng dựa trên role
+      localStorage.setItem('userData', JSON.stringify(user));
+
       switch (user.role) {
         case 'Student':
           navigate('/student/dashboard');
           break;
         case 'Tutor':
-          navigate('/tutor/tutor-dashboard');
+          navigate('/tutor/dashboard');
           break;
         case 'Admin':
-          navigate('/');
+          navigate('/');   
           break;
         default:
           setError('Invalid user role');
@@ -66,7 +63,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-  
 
   return (
     <AuthLayout>

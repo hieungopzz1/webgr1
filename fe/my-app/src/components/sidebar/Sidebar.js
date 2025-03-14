@@ -56,13 +56,7 @@ const MENU_ITEMS = {
       label: 'Tutor Assignment'
     }
   ],
-  tutor: [
-    {
-      to: '/dashboard',
-      icon: <i className="bi bi-person-circle" />,
-      label: 'Tutor Dashboard'
-    }
-  ],
+  tutor: [],
   student: []
 };
 
@@ -93,8 +87,7 @@ const NavItem = ({ item }) => (
 );
 
 const Sidebar = () => {
-  // const [userRole] = useState('student');
-  const [userRole] = useState(localStorage.getItem('role'));  // Lấy role người dùng từ localStorage
+  const [userRole] = useState('student');
   const location = useLocation();
   const isMessagesPage = location.pathname.startsWith('/messages');
   const menuItems = [...MENU_ITEMS.common, ...MENU_ITEMS[userRole]];

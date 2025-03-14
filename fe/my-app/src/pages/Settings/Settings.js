@@ -1,19 +1,12 @@
 import React from 'react';
 import { useLanguage } from '../../context/LanguageContext';
-import { useNavigate } from 'react-router-dom';  
 import './Settings.css';
 
 const Settings = () => {
   const { language, setLanguage } = useLanguage();
-  const navigate = useNavigate();
 
   const handleLanguageChange = (e) => {
     setLanguage(e.target.value);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
   };
 
   return (
@@ -34,15 +27,8 @@ const Settings = () => {
           </select>
         </div>
       </div>
-
-      {/* Đăng xuất */}
-      <div className="logout-button-container">
-        <button className="logout-button" onClick={handleLogout}>
-          Log Out
-        </button>
-      </div>
     </div>
   );
 };
 
-export default Settings;
+export default Settings; 

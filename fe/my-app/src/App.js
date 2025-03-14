@@ -8,11 +8,6 @@ import AssignTutor from './pages/staff/AssignTutor';
 import Settings from './pages/Settings/Settings';
 import Message from './pages/Message/Message';
 import Home from './pages/Home';
-import TutorDashboard from './pages/tutor/TutorDashboard';  // Import TutorDashboard
-import StudentProgress from './pages/tutor/StudentProgress';  // Import StudentProgress
-import ManageCourses from './pages/tutor/ManageCourses';  // Import ManageCourses
-import CourseDetail from './pages/tutor/CourseDetail';  // Import CourseDetail
-import AssignmentReview from './pages/tutor/AssignmentReview';  // Import AssignmentReview
 import { LanguageProvider } from './context/LanguageContext';
 
 // Protected Route component
@@ -98,58 +93,12 @@ const App = () => {
             }
           />
 
-          {/* Tutor Dashboard */}
-          <Route
-            path="/tutor-dashboard"
-            element={
-              <ProtectedRoute>
-                <TutorDashboard /> {/* Tutor Dashboard route */}
-              </ProtectedRoute>
-            }
-          />
-
           {/* Default route */}
           <Route
             path="/"
             element={
               <ProtectedRoute>
-                <AssignTutor />
                 <Home />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/student-progress"
-            element={
-              <ProtectedRoute>
-                <StudentProgress />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/manage-courses"
-            element={
-              <ProtectedRoute>
-                <ManageCourses />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/course-detail/:courseId"
-            element={
-              <ProtectedRoute>
-                <CourseDetail />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/assignment-review"
-            element={
-              <ProtectedRoute>
-                <AssignmentReview />
               </ProtectedRoute>
             }
           />

@@ -7,7 +7,7 @@ const Tutor = require("../models/Tutor");
 const addBlog = async (req, res) => {
   try {
     const { title, content, tutor_id, student_id } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    const image = req.file ? `http://localhost:5001/uploads/${req.file.filename}` : null;
 
     if (!title ) {
       return res.status(400).json({ message: "Title are required" });
@@ -42,11 +42,13 @@ const getAllBlogs = async (req, res) => {
 
     const blogsWithAuthor = blogs.map(blog => {
       const author = blog.student_id || blog.tutor_id;
+      const imageUrl = blog.image ? `http://localhost:5001${blog.image}` : null;
       return {
         ...blog.toObject(),
         authorName: author ? `${author.firstName} ${author.lastName}` : 'Unknown User',
         authorAvatar: author?.avatar || '/default-avatar.png',
-        authorType: blog.student_id ? 'student' : blog.tutor_id ? 'tutor' : 'unknown'
+        authorType: blog.student_id ? 'student' : blog.tutor_id ? 'tutor' : 'unknown',
+        image: imageUrl
       };
     });
 

@@ -1,7 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const path = require("path");
 const connectDB = require("./config/db"); // Import connectDB từ config/db
 const multer = require('multer');
 
@@ -30,8 +29,7 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('uploads'));
 
 
 

@@ -1,10 +1,9 @@
 // backend/routes/adminRoutes.js
 const express = require("express");
-const { getAllUsers, getUserById, createAccount, 
-    addClass, getAllClasses, assignTutorToClass, 
-    deleteUser , updateClass, deleteClass, 
-    updateAssignment, deleteAssignment, 
-    createMeeting,updateMeeting, deleteMeeting, getAssignments } = require("../controllers/adminController");
+const { getAllUsers, getUserById, createAccount, getAllAssign, 
+    deleteUser , updateAssign, deleteAssign, 
+    createMeeting,updateMeeting, deleteMeeting,
+    assignTutor, getAssignById } = require("../controllers/adminController");
 const upload = require("../config/multer")
 const router = express.Router();
 
@@ -18,23 +17,18 @@ router.get("/get-users", getAllUsers);
 router.get("/get-user/:id", getUserById);
 
 //quarn lys class
-router.post("/class/create-class", addClass);
+router.post("/assign/create-assign", assignTutor);
 
-router.get("/class/get-all-classes", getAllClasses)
+router.get("/assign/get-all-assign", getAllAssign);
 
-router.put("/class/update/:classId", updateClass); 
+router.get("/assign/get-assign/:assignId", getAssignById);
 
-router.delete("/class/delete/:classId", deleteClass); 
+router.put("/assign/update/:assignId", updateAssign); 
+
+router.delete("/assign/delete/:assignId", deleteAssign); 
 
 
 //quarn ly phan bo sinh vien
-router.get("/assignment/get-assignments", getAssignments);
-
-router.post("/assignment/assign-tutor/:classId", assignTutorToClass);
-
-router.put("/assignment/updateassign/:assignmentId", updateAssignment);
-
-router.delete("/assignment/deleteassign/:assignmentId", deleteAssignment);
 
 //quan ly meeting
 router.post("/meeting/create-meeting", createMeeting);

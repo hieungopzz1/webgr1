@@ -5,18 +5,10 @@ import { AiOutlineHeart, AiFillHeart } from 'react-icons/ai';
 import { FaRegComment } from 'react-icons/fa';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-
 const BlogCard = ({ blog }) => {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showComments, setShowComments] = useState(false);
-
-  const getImageUrl = (path) => {
-    if (!path) return "/default-blog-image.png";
-    if (path.startsWith('http')) return path;
-    return `${API_URL}${path}`;
-  };
 
   return (
     <div className="blog-card">
@@ -31,19 +23,13 @@ const BlogCard = ({ blog }) => {
         </div>
       </div>
 
-      {blog.image && (
-        <div className="blog-card__image-container">
-          <img 
-            src={getImageUrl(blog.image)} 
-            alt={blog.title} 
-            className="blog-card__image"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "/default-blog-image.png";
-            }}
-          />
-        </div>
-      )}
+      <div className="blog-card__image-container">
+        <img 
+          src={blog.image} 
+          alt={blog.title} 
+          className="blog-card__image"
+        />
+      </div>
 
       <div className="blog-card__actions">
         <div className="blog-card__action-buttons">

@@ -79,12 +79,10 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
       image: ''
     };
 
-    // Title is optional, only validate length if provided
     if (formData.title.length > MAX_TITLE_LENGTH) {
       newValidation.title = `Title must be less than ${MAX_TITLE_LENGTH} characters`;
     }
 
-    // Content is required
     if (!formData.content.trim()) {
       newValidation.content = 'Content is required';
     } else if (formData.content.length > MAX_CONTENT_LENGTH) {
@@ -111,7 +109,6 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       const formDataToSend = new FormData();
-      // Only append title if it's not empty
       if (formData.title.trim()) {
         formDataToSend.append('title', formData.title.trim());
       }

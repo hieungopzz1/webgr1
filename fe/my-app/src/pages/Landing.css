@@ -2,7 +2,7 @@
 .landing {
     background-color: #e9ecef;
     padding: 40px;
-    min-height: calc(100vh - 140px); /* Điều chỉnh nếu Header và Footer có chiều cao khoảng 140px */
+    min-height: calc(100vh - 140px);
   }
   
   /* Main title */

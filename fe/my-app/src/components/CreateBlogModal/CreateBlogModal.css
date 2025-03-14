@@ -129,7 +129,7 @@
 .form-group textarea {
   min-height: 150px;
   resize: vertical;
-  padding-bottom: 32px; /* Space for character count */
+  padding-bottom: 32px;
 }
 
 .form-group input:focus,
@@ -286,7 +286,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Responsive styles */
 @media (max-width: 768px) {
   .modal-content {
     width: 95%;

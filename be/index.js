@@ -3,8 +3,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db"); // Import connectDB từ config/db
 const multer = require('multer');
-
-
+const uploadDocumentsRoute = require("./routes/uploadDocumentsRoute"); 
 
 
 
@@ -45,6 +44,8 @@ app.use('/api/class', classRoutes);
 app.use('/api/meeting', meetingRoutes);
 // app.use('/api/messages', messageRoutes);
 
+// Sử dụng route upload tài liệu
+app.use('/api', uploadDocumentsRoute);
 
 // Kết nối MongoDB
 connectDB();  // Kết nối đến MongoDB

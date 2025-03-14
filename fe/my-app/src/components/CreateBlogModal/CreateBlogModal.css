@@ -117,7 +117,7 @@
 .form-group input,
 .form-group textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 1px;
   border: 2px solid #e1e4e8;
   border-radius: 8px;
   font-size: 16px;
@@ -243,7 +243,10 @@
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-width: 120px;
+  text-align: center;
 }
 
 .cancel-button {

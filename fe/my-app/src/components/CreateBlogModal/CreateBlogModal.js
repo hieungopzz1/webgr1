@@ -79,12 +79,12 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
       image: ''
     };
 
-    if (!formData.title.trim()) {
-      newValidation.title = 'Title is required';
-    } else if (formData.title.length > MAX_TITLE_LENGTH) {
+    // Title is optional, only validate length if provided
+    if (formData.title.length > MAX_TITLE_LENGTH) {
       newValidation.title = `Title must be less than ${MAX_TITLE_LENGTH} characters`;
     }
 
+    // Content is required
     if (!formData.content.trim()) {
       newValidation.content = 'Content is required';
     } else if (formData.content.length > MAX_CONTENT_LENGTH) {
@@ -111,7 +111,10 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title.trim());
+      // Only append title if it's not empty
+      if (formData.title.trim()) {
+        formDataToSend.append('title', formData.title.trim());
+      }
       formDataToSend.append('content', formData.content.trim());
       if (formData.image) {
         formDataToSend.append('image', formData.image);
@@ -170,7 +173,7 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
             <div className="input-wrapper">
               <input
                 type="text"
-                placeholder="Title"
+                placeholder="Title (optional)"
                 value={formData.title}
                 onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 className={validation.title ? 'error' : ''}

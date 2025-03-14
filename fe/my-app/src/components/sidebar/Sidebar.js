@@ -12,6 +12,13 @@ const MENU_ITEMS = {
       end: true
     },
     {
+      to: '#',
+      icon: <i className="bi bi-file-earmark-plus" />,
+      activeIcon: <i className="bi bi-file-earmark-plus-fill" />,
+      label: 'Create Post',
+      onClick: () => window.dispatchEvent(new CustomEvent('openCreateBlogModal'))
+    },
+    {
       to: '/search',
       icon: <i className="bi bi-search-heart" />,
       activeIcon: <i className="bi bi-search-heart-fill" />,
@@ -72,17 +79,30 @@ const BOTTOM_MENU = {
 
 const NavItem = ({ item }) => (
   <li>
-    <NavLink
-      to={item.to}
-      end={item.end}
-      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-    >
-      <div className="nav-icon-wrapper">
-        <span className="icon-normal">{item.icon}</span>
-        <span className="icon-active">{item.activeIcon}</span>
-      </div>
-      <span className="nav-label">{item.label}</span>
-    </NavLink>
+    {item.onClick ? (
+      <button
+        className="nav-link"
+        onClick={item.onClick}
+      >
+        <div className="nav-icon-wrapper">
+          <span className="icon-normal">{item.icon}</span>
+          <span className="icon-active">{item.activeIcon}</span>
+        </div>
+        <span className="nav-label">{item.label}</span>
+      </button>
+    ) : (
+      <NavLink
+        to={item.to}
+        end={item.end}
+        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+      >
+        <div className="nav-icon-wrapper">
+          <span className="icon-normal">{item.icon}</span>
+          <span className="icon-active">{item.activeIcon}</span>
+        </div>
+        <span className="nav-label">{item.label}</span>
+      </NavLink>
+    )}
   </li>
 );
 

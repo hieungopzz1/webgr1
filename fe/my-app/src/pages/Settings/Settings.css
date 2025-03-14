@@ -172,4 +172,24 @@ input:checked + .slider i {
   .language-options {
     grid-template-columns: 1fr;
   }
+}
+
+.settings-logout-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.settings-logout-button:hover {
+  background-color: #c82333;
+}
+
+.settings-logout-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
 } 

@@ -1,17 +1,17 @@
 import React from 'react';
-import Header from '../components/Header';
+import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
 import './DashboardLayout.css';
 
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = () => {
   return (
     <div className="dashboard-layout">
-      <Header />
+      <Outlet />
       <div className="dashboard-layout__body">
         <Sidebar />
         <main className="dashboard-layout__content">
-          {children}
+          <Outlet />
         </main>
       </div>
       <Footer />

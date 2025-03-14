@@ -7,6 +7,7 @@ const Tutor = require("../models/Tutor");
 const addBlog = async (req, res) => {
   try {
     const { title, content, tutor_id, student_id } = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!title ) {
       return res.status(400).json({ message: "Title are required" });
@@ -16,12 +17,12 @@ const addBlog = async (req, res) => {
       return res.status(400).json({ message: "Tutor or student is required" });
     }
 
-
     const newBlog = new Blog({
       title,
       content,
       tutor_id: tutor_id || null,
       student_id: student_id || null,
+      image,
     });
 
     await newBlog.save();

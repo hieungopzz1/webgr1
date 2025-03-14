@@ -1,14 +1,13 @@
 const Admin = require("../models/Admin");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
-const Assignment = require("../models/Assignment");
 const Meeting = require("../models/Meeting");
 const Class = require("../models/Class");
 const bcrypt = require("bcrypt");
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
-    const avatar = req.file ? `/uploads/${req.file.filename}` : null; 
+    const avatar = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!["Student", "Tutor", "Admin"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
@@ -27,15 +26,35 @@ const createAccount = async (req, res) => {
 
     let user;
     if (role === "Student") {
-      user = new Student({ firstName, lastName, email, password: hashedPassword, avatar });
+      user = new Student({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        avatar,
+      });
     } else if (role === "Tutor") {
-      user = new Tutor({ firstName, lastName, email, password: hashedPassword, avatar });
+      user = new Tutor({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        avatar,
+      });
     } else if (role === "Admin") {
-      user = new Admin({ firstName, lastName, email, password: hashedPassword, avatar });
+      user = new Admin({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        avatar,
+      });
     }
 
     await user.save();
-    res.status(201).json({ user, message: "User created successfully", avatar });
+    res
+      .status(201)
+      .json({ user, message: "User created successfully", avatar });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -43,31 +62,39 @@ const createAccount = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const students = await Student.find({}, "firstName lastName email role avatar");
+    const students = await Student.find(
+      {},
+      "firstName lastName email role avatar"
+    );
     const tutors = await Tutor.find({}, "firstName lastName email role avatar");
 
     const users = [...students, ...tutors];
 
     res.status(200).json({ message: "Success", users });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving users", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error retrieving users", error: error.message });
   }
-}
+};
 
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await Student.findById(id) || 
-                  await Tutor.findById(id) || 
-                  await Admin.findById(id);
+    const user =
+      (await Student.findById(id)) ||
+      (await Tutor.findById(id)) ||
+      (await Admin.findById(id));
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json({ user });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving user", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error retrieving user", error: error.message });
   }
-}
+};
 
 const deleteUser = async (req, res) => {
   try {
@@ -94,162 +121,93 @@ const deleteUser = async (req, res) => {
   }
 };
 
-
-
-const addClass = async (req, res) => {
+const assignTutor = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, tutor_id, student_id, assgined_by } = req.body;
+    if (!name || !tutor_id || !student_id || !assgined_by) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    const tutor = await Tutor.findById(tutor_id);
+    if (!tutor) {
+      return res.status(400).json({ message: "Tutor not found" });
+    }
+    const students = await Student.find({ _id: { $in: student_id } });
+    if (students.length !== student_id.length) {
+      return res.status(400).json({ message: "Student not found" });
+    }
     const existingClass = await Class.findOne({ name });
-    if(existingClass) return res.status(400).json({ message: "Class already exists" });
-    const newClass = new Class({ name, description });
-    await newClass.save();
-    res.status(201).json({ message: "Class created successfully", newClass });
+    if (existingClass)
+      return res.status(400).json({ message: "Class already exists" });
+    const newAssign = new Class({ name, tutor_id, student_id, assgined_by });
+    await newAssign.save();
+    res.status(201).json({ message: "Class created successfully", newAssign });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const getAllClasses = async (req, res) => {
+const getAllAssign = async (req, res) => {
   try {
-
-    const classes = await Class.find({}, "name");
-    res.status(200).json({ classes });
+    const assigns = await Class.find(
+      {},
+      "name tutor_id student_id assgined_by"
+    );
+    res.status(200).json({ assigns });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const updateClass = async (req, res) => {
+const getAssignById = async (req, res) => {
   try {
-    const { classId } = req.params;
+    const { assignId } = req.params;
+    const assign = await Class.findById(assignId);
+    if (!assign) {
+      return res.status(404).json({ message: "Assign not found" });
+    }
+    res.status(200).json({ assign });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+const updateAssign = async (req, res) => {
+  try {
+    const { assignId } = req.params;
     const updateData = req.body;
-    if (!updateData.name) {
+    if (!updateData.name ) {
       return res.status(400).json({ message: "Class name is required" });
     }
 
-    const updatedClass = await Class.findByIdAndUpdate(classId, updateData, { new: true });
-    if (!updatedClass) {
-      return res.status(404).json({ message: "Class not found" });
-    }
-
-    res.status(200).json({ message: "Class updated successfully", class: updatedClass });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-const deleteClass = async (req, res) => {
-  try {
-    const { classId } = req.params;
-
-    const deletedClass = await Class.findByIdAndDelete(classId);
-
-    if (!deletedClass) {
-      return res.status(404).json({ message: "Class not found" });
-    }
-
-    res.status(200).json({ message: "Class deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-const getAssignments = async (req, res) => {
-  try {
-    const assignments = await Assignment.find()
-        .populate("tutor_id", "firstName lastName email")
-        .populate("class_id", "name description");
-
-    res.status(200).json(assignments);
-} catch (error) {
-    res.status(500).json({ message: "Lỗi server", error });
-}
-};
-
-const assignTutorToClass = async (req, res) => {
-  try {
-    const { tutor_id, assigned_by } = req.body; 
-    const { classId } = req.params;
-
-    if (!tutor_id || !assigned_by) {
-      return res.status(400).json({ message: "Assigned_by (Admin ID) and Tutor ID are required" });
-    }
-
-    const classObj = await Class.findById(classId);
-    if (!classObj) return res.status(404).json({ message: "Class not found" });
-
-    const assignedBy = await Admin.findById(assigned_by);
-    if (!assignedBy) return res.status(404).json({ message: "Admin not found" });
-
-    const tutor = await Tutor.findById(tutor_id);
-    if (!tutor) return res.status(404).json({ message: "Tutor not found" });
-
-    const existingAssignment = await Assignment.findOne({ tutor_id, class_id: classId });
-    if (existingAssignment) return res.status(400).json({ message: "Tutor already assigned to this class" });
-
-    const newAssignment = new Assignment({
-      assigned_by, 
-      tutor_id,
-      class_id: classId, 
+    const updatedAssign = await Class.findByIdAndUpdate(assignId, updateData, {
+      new: true,
     });
-
-    await newAssignment.save();
-
-    if (!classObj.tutors) {
-      classObj.tutors = []; 
+    if (!updatedAssign) {
+      return res.status(404).json({ message: "Assign not found" });
     }
 
-    classObj.tutors.push(tutor_id);
-    await classObj.save();
-
-    res.status(200).json({ message: "Tutor assigned successfully", classObj });
+    res
+      .status(200)
+      .json({ message: "Class updated successfully", assign: updatedAssign });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
-
-const updateAssignment = async (req, res) => {
+const deleteAssign = async (req, res) => {
   try {
-    const { assignmentId } = req.params;
-    const { new_tutor_id } = req.body;
+    const { assignId } = req.params;
 
-    if (!new_tutor_id) {
-      return res.status(400).json({ message: "New Tutor ID is required" });
+    const deletedAssign = await Class.findByIdAndDelete(assignId);
+
+    if (!deletedAssign) {
+      return res.status(404).json({ message: "Assign not found" });
     }
 
-    const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found" });
-    }
-
-    assignment.tutor_id = new_tutor_id;
-    await assignment.save();
-
-    res.status(200).json({ message: "Assignment updated successfully", assignment });
+    res.status(200).json({ message: "Assign deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
-const deleteAssignment = async (req, res) => {
-  try {
-    const { assignmentId } = req.params;
-
-    const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found" });
-    }
-
-    await Assignment.findByIdAndDelete(assignmentId);
-
-    res.status(200).json({ message: "Assignment deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
 
 const createMeeting = async (req, res) => {
   try {
@@ -259,10 +217,14 @@ const createMeeting = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
     if (type === "online" && !link) {
-      return res.status(400).json({ message: "Online meeting must have a link" });
+      return res
+        .status(400)
+        .json({ message: "Online meeting must have a link" });
     }
     if (type === "offline" && !location) {
-      return res.status(400).json({ message: "Offline meeting must have a location" });
+      return res
+        .status(400)
+        .json({ message: "Offline meeting must have a location" });
     }
 
     const newMeeting = new Meeting({
@@ -275,12 +237,13 @@ const createMeeting = async (req, res) => {
     });
 
     await newMeeting.save();
-    res.status(201).json({ message: "Meeting created successfully", newMeeting });
+    res
+      .status(201)
+      .json({ message: "Meeting created successfully", newMeeting });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 const updateMeeting = async (req, res) => {
   try {
@@ -297,9 +260,12 @@ const updateMeeting = async (req, res) => {
       { new: true }
     );
 
-    if (!updatedMeeting) return res.status(404).json({ message: "Meeting not found" });
+    if (!updatedMeeting)
+      return res.status(404).json({ message: "Meeting not found" });
 
-    res.status(200).json({ message: "Meeting updated successfully", updatedMeeting });
+    res
+      .status(200)
+      .json({ message: "Meeting updated successfully", updatedMeeting });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -310,7 +276,8 @@ const deleteMeeting = async (req, res) => {
     const { meetingId } = req.params;
     const deletedMeeting = await Meeting.findByIdAndDelete(meetingId);
 
-    if (!deletedMeeting) return res.status(404).json({ message: "Meeting not found" });
+    if (!deletedMeeting)
+      return res.status(404).json({ message: "Meeting not found" });
 
     res.status(200).json({ message: "Meeting deleted successfully" });
   } catch (error) {
@@ -318,23 +285,17 @@ const deleteMeeting = async (req, res) => {
   }
 };
 
-
-
-
 module.exports = {
   createAccount,
-  addClass,
-  assignTutorToClass,
-  getAllClasses,
+  assignTutor,
+  getAllAssign,
   deleteUser,
   getAllUsers,
-  updateClass,
-  deleteClass,
-  updateAssignment,
-  deleteAssignment,
+  updateAssign,
+  deleteAssign,
   createMeeting,
   deleteMeeting,
   updateMeeting,
-  getAssignments,
   getUserById,
+  getAssignById,
 };

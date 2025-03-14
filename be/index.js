@@ -17,7 +17,6 @@ const uploadDocumentsRoute = require("./routes/uploadDocumentsRoute");
 const authRoutes = require("./routes/auth"); 
 const adminRoutes = require("./routes/admin"); 
 const blogRoutes = require("./routes/blog");
-const classRoutes = require("./routes/class"); 
 const meetingRoutes = require("./routes/meeting");
 // const messageRoutes = require("./routes/mesage.route");
 
@@ -40,7 +39,6 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blog', blogRoutes);
-app.use('/api/class', classRoutes);
 app.use('/api/meeting', meetingRoutes);
 // app.use('/api/messages', messageRoutes);
 

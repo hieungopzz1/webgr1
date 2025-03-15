@@ -1,6 +1,7 @@
 const Admin = require("../models/Admin");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
+const Blog = require("../models/Blog");
 const Meeting = require("../models/Meeting");
 const Class = require("../models/Class");
 const bcrypt = require("bcrypt");
@@ -109,28 +110,34 @@ const getUserById = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
-    const { role, id } = req.params;
+    const { id } = req.params;
 
-    if (!["Student", "Tutor"].includes(role)) {
-      return res.status(400).json({ message: "Invalid role" });
+    let deletedUser = await Student.findById(id);
+    if (deletedUser) {
+      const blogs = await Blog.find({ student_id: id });
+      if (blogs.length > 0) {
+        await Blog.deleteMany({ student_id: id });
+      }
+      await Student.findByIdAndDelete(id);
+      return res.status(200).json({ message: "Student and related blogs deleted", deletedUser });
     }
 
-    let deletedUser;
-    if (role === "Student") {
-      deletedUser = await Student.findByIdAndDelete(id);
-    } else if (role === "Tutor") {
-      deletedUser = await Tutor.findByIdAndDelete(id);
+    deletedUser = await Tutor.findById(id);
+    if (deletedUser) {
+      const blogs = await Blog.find({ tutor_id: id });
+      if (blogs.length > 0) {
+        await Blog.deleteMany({ tutor_id: id });
+      }
+      await Tutor.findByIdAndDelete(id);
+      return res.status(200).json({ message: "Tutor and related blogs deleted", deletedUser });
     }
 
-    if (!deletedUser) {
-      return res.status(404).json({ message: `${role} not found` });
-    }
-
-    res.status(200).json({ message: `${role} deleted successfully` });
+    res.status(404).json({ message: "User not found" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const assignTutor = async (req, res) => {
   try {

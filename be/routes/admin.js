@@ -10,7 +10,7 @@ const router = express.Router();
 // quanr ly user
 router.post("/create-account", upload.single("avatar"), createAccount);
 
-router.delete("/users/:role/:id", deleteUser);
+router.delete("/delete-user/:id", deleteUser);
 
 router.get("/get-users", getAllUsers);
 

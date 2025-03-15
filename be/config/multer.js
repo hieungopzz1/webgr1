@@ -3,9 +3,17 @@ const path = require('path');
 
 // Cấu hình nơi lưu trữ ảnh
 const storage = multer.diskStorage({
-    destination: './uploads/', // Thư mục lưu ảnh
+    destination: (req, file, cb) => {
+        let uploadFolder = "./uploads"; // Thư mục mặc định
+        if (req.baseUrl.includes("/blog")) {
+            uploadFolder = "./uploads/blog"; // Nếu đang upload ảnh blog
+        } else if (req.baseUrl.includes("/admin")) {
+            uploadFolder = "./uploads/avatar"; // Nếu đang upload avatar
+        }
+        cb(null, uploadFolder);
+    },
     filename: (req, file, cb) => {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+        cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
     }
 });
 

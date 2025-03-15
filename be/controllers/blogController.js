@@ -2,36 +2,58 @@ const Blog = require("../models/Blog");
 const Comment = require("../models/Comment");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
+const fs = require("fs");
+const path = require("path");
 
 //quan ly blog
+
 const addBlog = async (req, res) => {
   try {
     const { title, content, tutor_id, student_id } = req.body;
-    const image = req.file ? `http://localhost:5001/uploads/${req.file.filename}` : null;
+    const image = req.file ? `/uploads/blog/${req.file.filename}` : null;
 
-    if (!title ) {
-      return res.status(400).json({ message: "Title are required" });
+    if (!title) {
+      if (image) removeImage(image); // Xóa ảnh nếu blog không hợp lệ
+      return res.status(400).json({ message: "Title is required" });
     }
 
     if (!tutor_id && !student_id) {
-      return res.status(400).json({ message: "Tutor or student is required" });
+      if (image) removeImage(image);
+      return res.status(400).json({ message: "Either tutor_id or student_id is required" });
+    }
+
+    const tutor = tutor_id ? await Tutor.findById(tutor_id) : null;
+    const student = student_id ? await Student.findById(student_id) : null;
+
+    if (!tutor && !student) {
+      if (image) removeImage(image);
+      return res.status(404).json({ message: "Tutor or Student not found" });
     }
 
     const newBlog = new Blog({
       title,
       content,
-      tutor_id: tutor_id || null,
-      student_id: student_id || null,
+      tutor_id: tutor ? tutor._id : null,
+      student_id: student ? student._id : null,
       image,
     });
 
     await newBlog.save();
-
-    res.status(201).json({ message: "Successfully", blog: newBlog });
+    res.status(201).json({ message: "Blog created successfully", blog: newBlog });
   } catch (error) {
+    if (req.file) removeImage(`/uploads/${req.file.filename}`);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+const removeImage = (filePath) => {
+  const fullPath = path.join(__dirname, "..", filePath);  
+  fs.unlink(fullPath, (err) => {
+    if (err) console.error("Error deleting image:", err);
+  });
+};
+
+
 
 const getAllBlogs = async (req, res) => {
   try {

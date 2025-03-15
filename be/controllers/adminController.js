@@ -4,12 +4,15 @@ const Tutor = require("../models/Tutor");
 const Meeting = require("../models/Meeting");
 const Class = require("../models/Class");
 const bcrypt = require("bcrypt");
+const fs = require("fs");
+const path = require("path");
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
-    const avatar = req.file ? `/uploads/${req.file.filename}` : null;
+    const avatar = req.file ? `/uploads/avatar/${req.file.filename}` : null;
 
     if (!["Student", "Tutor", "Admin"].includes(role)) {
+      if (avatar) removeImage(avatar);
       return res.status(400).json({ message: "Invalid role" });
     }
 
@@ -56,8 +59,16 @@ const createAccount = async (req, res) => {
       .status(201)
       .json({ user, message: "User created successfully", avatar });
   } catch (error) {
+    if (req.file) removeImage(`/uploads/avatar/${req.file.filename}`);
     res.status(500).json({ error: error.message });
   }
+};
+
+const removeImage = (filePath) => {
+  const fullPath = path.join(__dirname, "..", filePath);
+  fs.unlink(fullPath, (err) => {
+    if (err) console.error("Error deleting image:", err);
+  });
 };
 
 const getAllUsers = async (req, res) => {
@@ -174,7 +185,7 @@ const updateAssign = async (req, res) => {
   try {
     const { assignId } = req.params;
     const updateData = req.body;
-    if (!updateData.name ) {
+    if (!updateData.name) {
       return res.status(400).json({ message: "Class name is required" });
     }
 

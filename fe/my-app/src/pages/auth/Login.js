@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import AuthLayout from '../../layouts/authLayout/AuthLayout';
 import InputField from '../../components/inputField/InputField';
 import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
@@ -65,51 +64,49 @@ const Login = () => {
   };
 
   return (
-    <AuthLayout>
-      <div className="login-page">
-        <h2 className="login-title">Login</h2>
-        <form onSubmit={handleSubmit} className="login-form">
-          <InputField
-            label="Email"
-            name="email"
-            type="email"
-            placeholder="Enter your email..."
-            value={formData.email}
-            onChange={handleChange}
-          />
+    <div className="login-page">
+      <h2 className="login-title">Login</h2>
+      <form onSubmit={handleSubmit} className="login-form">
+        <InputField
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="Enter your email..."
+          value={formData.email}
+          onChange={handleChange}
+        />
 
-          <PasswordInput
-            label="Password"
-            name="password"
-            placeholder="Enter your password..."
-            value={formData.password}
-            onChange={handleChange}
-          />
+        <PasswordInput
+          label="Password"
+          name="password"
+          placeholder="Enter your password..."
+          value={formData.password}
+          onChange={handleChange}
+        />
 
-          {error && <div className="login-error">{error}</div>}
+        {error && <div className="login-error">{error}</div>}
 
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="login-button"
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </Button>
-        </form>
+        <Button 
+          type="submit" 
+          disabled={loading}
+          className="login-button"
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </Button>
+      </form>
 
-        <div className="auth-links">
-          <Link to="/forgot-password" className="auth-link">
-            Forgot password?
+      <div className="auth-links">
+        <Link to="/forgot-password" className="auth-link">
+          Forgot password?
+        </Link>
+        <p>
+          Don't have an account?{' '}
+          <Link to="/register" className="auth-link">
+            Sign Up
           </Link>
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register" className="auth-link">
-              Sign Up
-            </Link>
-          </p>
-        </div>
+        </p>
       </div>
-    </AuthLayout>
+    </div>
   );
 };
 

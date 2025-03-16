@@ -7,7 +7,7 @@ const upload = require("../config/multer");
 router.get("/get-all-blogs", getAllBlogs);
 router.get("/get-blog-by-id/:blog_id", getBlogById);
 router.post("/create-blog", upload.single("image"), addBlog);
-router.put("/update-blog/:blog_id", updateBlog);
+router.put("/update-blog/:blog_id", upload.single("image"), updateBlog);
 router.delete("/delete-blog/:blog_id", deleteBlog);
 
 //route cho comment

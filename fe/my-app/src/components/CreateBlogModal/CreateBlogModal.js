@@ -1,14 +1,14 @@
-import React, { useState, useContext, useCallback } from 'react';
+import React, { useState, useContext, useCallback, useEffect } from 'react';
 import api from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
+import InputField from '../inputField/InputField';
 import './CreateBlogModal.css';
 
 const MAX_TITLE_LENGTH = 100;
-const MAX_CONTENT_LENGTH = 2000;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
+const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
   const { user } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     title: '',
@@ -24,19 +24,33 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
     image: ''
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      if (editBlog) {
+        setFormData({
+          title: editBlog.title || '',
+          content: editBlog.content || '',
+          image: null,
+          imagePreview: editBlog.image || null
+        });
+      } else {
+        setFormData({
+          title: '',
+          content: '',
+          image: null,
+          imagePreview: null
+        });
+      }
+      setError('');
+      setValidation({
+        title: '',
+        content: '',
+        image: ''
+      });
+    }
+  }, [isOpen, editBlog]);
+
   const handleClose = useCallback(() => {
-    setFormData({
-      title: '',
-      content: '',
-      image: null,
-      imagePreview: null
-    });
-    setError('');
-    setValidation({
-      title: '',
-      content: '',
-      image: ''
-    });
     onClose();
   }, [onClose]);
 
@@ -85,12 +99,12 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
 
     if (!formData.content.trim()) {
       newValidation.content = 'Content is required';
-    } else if (formData.content.length > MAX_CONTENT_LENGTH) {
-      newValidation.content = `Content must be less than ${MAX_CONTENT_LENGTH} characters`;
     }
 
-    if (formData.image) {
-      newValidation.image = validateImage(formData.image);
+    if (formData.image && !ACCEPTED_IMAGE_TYPES.includes(formData.image.type)) {
+      newValidation.image = 'Please upload a valid image (JPEG, PNG, or GIF)';
+    } else if (formData.image && formData.image.size > MAX_IMAGE_SIZE) {
+      newValidation.image = 'Image size should be less than 5MB';
     }
 
     setValidation(newValidation);
@@ -109,29 +123,42 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       const formDataToSend = new FormData();
-      if (formData.title.trim()) {
-        formDataToSend.append('title', formData.title.trim());
-      }
+      
+      formDataToSend.append('title', formData.title.trim());
       formDataToSend.append('content', formData.content.trim());
+      
       if (formData.image) {
         formDataToSend.append('image', formData.image);
+      }
+      else if (editBlog && editBlog.image && !formData.imagePreview) {
+        formDataToSend.append('removeImage', 'true');
       }
 
       const idField = user.role === 'student' ? 'student_id' : 'tutor_id';
       formDataToSend.append(idField, user.id);
 
-      const response = await api.post('/api/blog/create-blog', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      let response;
+      if (editBlog) {
+        response = await api.put(`/api/blog/update-blog/${editBlog._id}`, formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        response = await api.post('/api/blog/create-blog', formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
 
       if (response.data) {
         onSuccess(response.data.blog);
         handleClose();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create blog. Please try again.');
+      console.error('Error details:', err.response?.data);
+      setError(err.response?.data?.message || 'Failed to save blog. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -140,15 +167,14 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   const charactersLeft = {
-    title: MAX_TITLE_LENGTH - formData.title.length,
-    content: MAX_CONTENT_LENGTH - formData.content.length
+    title: MAX_TITLE_LENGTH - formData.title.length
   };
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Create New Post</h2>
+          <h2>{editBlog ? 'Edit Post' : 'Create New Post'}</h2>
           <button 
             className="modal-close" 
             onClick={handleClose}
@@ -166,50 +192,35 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
           
-          <div className="form-group">
-            <div className="input-wrapper">
-              <input
-                type="text"
-                placeholder="Title (optional)"
-                value={formData.title}
-                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className={validation.title ? 'error' : ''}
-                maxLength={MAX_TITLE_LENGTH}
-                aria-label="Blog title"
-              />
-              <span className="character-count">
-                {charactersLeft.title} characters left
-              </span>
-            </div>
-            {validation.title && (
-              <span className="validation-error">{validation.title}</span>
-            )}
-          </div>
+          <InputField
+            name="title"
+            placeholder="Enter title (optional)..."
+            value={formData.title}
+            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            error={validation.title}
+            maxLength={MAX_TITLE_LENGTH}
+            characterCount={`${charactersLeft.title} characters left`}
+            fullWidth
+            size="large"
+          />
 
-          <div className="form-group">
-            <div className="input-wrapper">
-              <textarea
-                placeholder="What's on your mind?"
-                value={formData.content}
-                onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                className={validation.content ? 'error' : ''}
-                maxLength={MAX_CONTENT_LENGTH}
-                aria-label="Blog content"
-              />
-              <span className="character-count">
-                {charactersLeft.content} characters left
-              </span>
-            </div>
-            {validation.content && (
-              <span className="validation-error">{validation.content}</span>
-            )}
-          </div>
+          <InputField
+            name="content"
+            placeholder="What's on your mind?"
+            value={formData.content}
+            onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
+            error={validation.content}
+            multiline
+            rows={5}
+            fullWidth
+            required
+          />
 
           <div className="form-group">
             <div className={`image-upload ${validation.image ? 'error' : ''}`}>
               <label htmlFor="image-input" className="image-upload-label">
                 <i className="bi bi-image"></i>
-                <span>Add Photo (Max 5MB)</span>
+                <span>Add Photo (Optional, Max 5MB)</span>
                 <span className="supported-formats">Supports: JPEG, PNG, GIF</span>
               </label>
               <input
@@ -256,10 +267,10 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess }) => {
               {loading ? (
                 <>
                   <i className="bi bi-arrow-repeat spinning"></i>
-                  Creating...
+                  {editBlog ? 'Saving...' : 'Creating...'}
                 </>
               ) : (
-                'Create Post'
+                editBlog ? 'Save Changes' : 'Create Post'
               )}
             </button>
           </div>

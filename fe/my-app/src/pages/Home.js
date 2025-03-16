@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import BlogCard from '../components/BlogCard/BlogCard';
-import CreateBlogModal from '../components/CreateBlogModal/CreateBlogModal';
 import './Home.css';
 
 const Home = () => {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchBlogs = async () => {
     try {
@@ -27,17 +25,17 @@ const Home = () => {
   useEffect(() => {
     fetchBlogs();
 
-    const handleOpenModal = () => setIsCreateModalOpen(true);
-    window.addEventListener('openCreateBlogModal', handleOpenModal);
+    const handleBlogCreated = (event) => {
+      const newBlog = event.detail;
+      setBlogs(prevBlogs => [newBlog, ...prevBlogs]);
+    };
+
+    window.addEventListener('blogCreated', handleBlogCreated);
 
     return () => {
-      window.removeEventListener('openCreateBlogModal', handleOpenModal);
+      window.removeEventListener('blogCreated', handleBlogCreated);
     };
   }, []);
-
-  const handleCreateSuccess = (newBlog) => {
-    setBlogs(prevBlogs => [newBlog, ...prevBlogs]);
-  };
 
   if (loading) {
     return (
@@ -59,7 +57,7 @@ const Home = () => {
           <div className="home__no-blogs">
             <p>No blogs found</p>
             <button 
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent('openCreateBlogModal'))}
               className="create-blog-button"
             >
               Create Your First Blog
@@ -67,12 +65,6 @@ const Home = () => {
           </div>
         )}
       </div>
-
-      <CreateBlogModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleCreateSuccess}
-      />
     </div>
   );
 };

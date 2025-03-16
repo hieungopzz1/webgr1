@@ -12,11 +12,6 @@ const addBlog = async (req, res) => {
     const { title, content, tutor_id, student_id } = req.body;
     const image = req.file ? `/uploads/blog/${req.file.filename}` : null;
 
-    if (!title) {
-      if (image) removeImage(image); // Xóa ảnh nếu blog không hợp lệ
-      return res.status(400).json({ message: "Title is required" });
-    }
-
     if (!tutor_id && !student_id) {
       if (image) removeImage(image);
       return res.status(400).json({ message: "Either tutor_id or student_id is required" });
@@ -31,7 +26,7 @@ const addBlog = async (req, res) => {
     }
 
     const newBlog = new Blog({
-      title,
+      title: title || '',
       content,
       tutor_id: tutor ? tutor._id : null,
       student_id: student ? student._id : null,
@@ -41,7 +36,7 @@ const addBlog = async (req, res) => {
     await newBlog.save();
     res.status(201).json({ message: "Blog created successfully", blog: newBlog });
   } catch (error) {
-    if (req.file) removeImage(`/uploads/${req.file.filename}`);
+    if (req.file) removeImage(`/uploads/blog/${req.file.filename}`);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -65,10 +60,11 @@ const getAllBlogs = async (req, res) => {
     const blogsWithAuthor = blogs.map(blog => {
       const author = blog.student_id || blog.tutor_id;
       const imageUrl = blog.image ? `http://localhost:5001${blog.image}` : null;
+      const avatarUrl = author?.avatar ? `http://localhost:5001${author.avatar}` : '/default-avatar.png';
       return {
         ...blog.toObject(),
         authorName: author ? `${author.firstName} ${author.lastName}` : 'Unknown User',
-        authorAvatar: author?.avatar || '/default-avatar.png',
+        authorAvatar: avatarUrl,
         authorType: blog.student_id ? 'student' : blog.tutor_id ? 'tutor' : 'unknown',
         image: imageUrl
       };
@@ -93,11 +89,15 @@ const getBlogById = async (req, res) => {
     }
 
     const author = blog.student_id || blog.tutor_id;
+    const avatarUrl = author?.avatar ? `http://localhost:5001${author.avatar}` : '/default-avatar.png';
+    const imageUrl = blog.image ? `http://localhost:5001${blog.image}` : null;
+    
     const blogWithAuthor = {
       ...blog.toObject(),
       authorName: `${author.firstName} ${author.lastName}`,
-      authorAvatar: author.avatar || '/default-avatar.png',
-      authorType: blog.student_id ? 'student' : 'tutor'
+      authorAvatar: avatarUrl,
+      authorType: blog.student_id ? 'student' : 'tutor',
+      image: imageUrl
     };
 
     res.status(200).json({ message: "Successfully", blog: blogWithAuthor });
@@ -109,18 +109,62 @@ const getBlogById = async (req, res) => {
 const updateBlog = async (req, res) => {
   try {
     const { blog_id } = req.params;
-    const { title, content } = req.body;
-    if (!title) {
-      return res.status(400).json({ message: "Title are required" });
+    const { title, content, removeImage } = req.body;
+    
+    // Tìm blog hiện tại để lấy thông tin image cũ
+    const currentBlog = await Blog.findById(blog_id);
+    if (!currentBlog) return res.status(404).json({ error: "Blog not found" });
+
+    // Xử lý image
+    let image = currentBlog.image;
+    if (req.file) {
+      // Nếu có upload image mới
+      if (currentBlog.image) {
+        // Xóa image cũ nếu có
+        removeImage(currentBlog.image);
+      }
+      image = `/uploads/blog/${req.file.filename}`;
+    } else if (removeImage === 'true') {
+      // Nếu user muốn xóa image
+      if (currentBlog.image) {
+        removeImage(currentBlog.image);
+      }
+      image = null;
     }
+
     const blog = await Blog.findByIdAndUpdate(
       blog_id,
-      { title, content, updated_at: Date.now() },
+      { 
+        title: title || '', 
+        content, 
+        image,
+        updated_at: Date.now() 
+      },
       { new: true }
-    );
+    )
+    .populate('student_id', 'firstName lastName avatar')
+    .populate('tutor_id', 'firstName lastName avatar');
+
     if (!blog) return res.status(404).json({ error: "Blog not found" });
-    res.status(200).json({ message: "Successfully", blog });
+
+    // Format response giống như getBlogById
+    const author = blog.student_id || blog.tutor_id;
+    const avatarUrl = author?.avatar ? `http://localhost:5001${author.avatar}` : '/default-avatar.png';
+    const imageUrl = blog.image ? `http://localhost:5001${blog.image}` : null;
+    
+    const blogWithAuthor = {
+      ...blog.toObject(),
+      authorName: `${author.firstName} ${author.lastName}`,
+      authorAvatar: avatarUrl,
+      authorType: blog.student_id ? 'student' : 'tutor',
+      image: imageUrl
+    };
+
+    res.status(200).json({ message: "Successfully", blog: blogWithAuthor });
   } catch (error) {
+    if (req.file) {
+      removeImage(`/uploads/blog/${req.file.filename}`);
+    }
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

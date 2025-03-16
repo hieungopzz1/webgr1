@@ -1,19 +1,28 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 // Cấu hình nơi lưu trữ ảnh
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         let uploadFolder = "./uploads"; // Thư mục mặc định
+        
+        // Kiểm tra route để xác định thư mục lưu trữ
         if (req.baseUrl.includes("/blog")) {
-            uploadFolder = "./uploads/blog"; // Nếu đang upload ảnh blog
-        } else if (req.baseUrl.includes("/admin")) {
-            uploadFolder = "./uploads/avatar"; // Nếu đang upload avatar
+            uploadFolder = "./uploads/blog"; // Ảnh blog
+        } else if (req.baseUrl.includes("/auth") || req.baseUrl.includes("/admin")) {
+            uploadFolder = "./uploads/avatar"; // Avatar của user
         }
+        
+        // Tạo thư mục nếu chưa tồn tại
+        fs.mkdirSync(uploadFolder, { recursive: true });
+        
         cb(null, uploadFolder);
     },
     filename: (req, file, cb) => {
-        cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
+        // Đổi tên file theo loại
+        const prefix = req.baseUrl.includes("/blog") ? "image" : "avatar";
+        cb(null, `${prefix}-${Date.now()}${path.extname(file.originalname)}`);
     }
 });
 

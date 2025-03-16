@@ -12,11 +12,22 @@ const MENU_ITEMS = {
       end: true
     },
     {
-      to: '#',
-      icon: <i className="bi bi-file-earmark-plus" />,
-      activeIcon: <i className="bi bi-file-earmark-plus-fill" />,
-      label: 'Create Post',
-      onClick: () => window.dispatchEvent(new CustomEvent('openCreateBlogModal'))
+      type: 'dropdown',
+      icon: <i className="bi bi-plus-square" />,
+      activeIcon: <i className="bi bi-plus-square-fill" />,
+      label: 'Create',
+      items: [
+        {
+          label: 'Post',
+          icon: <i className="bi bi-file-earmark-plus" />,
+          onClick: () => window.dispatchEvent(new CustomEvent('openCreateBlogModal'))
+        },
+        {
+          to: '/register',
+          label: 'Account',
+          icon: <i className="bi bi-person-plus" />
+        }
+      ]
     },
     {
       to: '/search',
@@ -77,20 +88,76 @@ const BOTTOM_MENU = {
   }
 };
 
-const NavItem = ({ item }) => (
-  <li>
-    {item.onClick ? (
-      <button
-        className="nav-link"
-        onClick={item.onClick}
-      >
-        <div className="nav-icon-wrapper">
-          <span className="icon-normal">{item.icon}</span>
-          <span className="icon-active">{item.activeIcon}</span>
-        </div>
-        <span className="nav-label">{item.label}</span>
-      </button>
-    ) : (
+const NavItem = ({ item }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  if (item.type === 'dropdown') {
+    return (
+      <li className="dropdown-container">
+        <button
+          className={`nav-link ${isDropdownOpen ? 'active' : ''}`}
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        >
+          <div className="nav-icon-wrapper">
+            <span className="icon-normal">{item.icon}</span>
+            <span className="icon-active">{item.activeIcon}</span>
+          </div>
+          <span className="nav-label">{item.label}</span>
+        </button>
+        {isDropdownOpen && (
+          <div className="dropdown-overlay" onClick={() => setIsDropdownOpen(false)}>
+            <ul className="dropdown-menu">
+              {item.items.map((dropdownItem, index) => (
+                <li key={index}>
+                  {dropdownItem.onClick ? (
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        dropdownItem.onClick();
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {dropdownItem.icon}
+                      <span>{dropdownItem.label}</span>
+                    </button>
+                  ) : (
+                    <NavLink
+                      to={dropdownItem.to}
+                      className="dropdown-item"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      {dropdownItem.icon}
+                      <span>{dropdownItem.label}</span>
+                    </NavLink>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </li>
+    );
+  }
+
+  if (item.onClick) {
+    return (
+      <li>
+        <button
+          className="nav-link"
+          onClick={item.onClick}
+        >
+          <div className="nav-icon-wrapper">
+            <span className="icon-normal">{item.icon}</span>
+            <span className="icon-active">{item.activeIcon}</span>
+          </div>
+          <span className="nav-label">{item.label}</span>
+        </button>
+      </li>
+    );
+  }
+
+  return (
+    <li>
       <NavLink
         to={item.to}
         end={item.end}
@@ -102,9 +169,9 @@ const NavItem = ({ item }) => (
         </div>
         <span className="nav-label">{item.label}</span>
       </NavLink>
-    )}
-  </li>
-);
+    </li>
+  );
+};
 
 const Sidebar = () => {
   const [userRole] = useState('student');

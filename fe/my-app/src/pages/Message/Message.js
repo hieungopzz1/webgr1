@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../utils/api';
+import InputField from '../../components/inputField/InputField';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Message.css';
 
@@ -174,16 +175,20 @@ const Message = () => {
               >
                 <i className="bi bi-paperclip"></i>
               </button>
-              <input
-                type="text"
+              <InputField
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
                 className="message-content__text-input"
+                fullWidth
+                size="small"
+                variant="standard"
+                endAdornment={
+                  <button type="submit" className="message-content__send">
+                    <i className="bi bi-send"></i>
+                  </button>
+                }
               />
-              <button type="submit" className="message-content__send">
-                <i className="bi bi-send"></i>
-              </button>
             </form>
           </>
         ) : (

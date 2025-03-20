@@ -7,54 +7,75 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = async () => {
+  const loadUserData = async (token) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      // Đặt token vào header cho tất cả các request
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
       const response = await api.get('/api/auth/me');
-      if (response.data) {
-        setUser(response.data);
-      } else {
-        // Nếu response không có data, xóa token
-        localStorage.removeItem('token');
-        delete api.defaults.headers.common['Authorization'];
+      const userData = response.data;
+
+      if (!userData || !userData.role) {
+        throw new Error('Invalid user data');
       }
+
+      console.log('User data loaded:', {
+        id: userData.id,
+        role: userData.role,
+        firstName: userData.firstName,
+        lastName: userData.lastName
+      });
+
+      setUser(userData);
+      return true;
     } catch (err) {
-      console.error('Error checking auth:', err);
-      // Nếu có lỗi (401, 404, etc), xóa token
+      console.error('Load user data error:', err);
       localStorage.removeItem('token');
       delete api.defaults.headers.common['Authorization'];
-    } finally {
-      setLoading(false);
+      setUser(null);
+      return false;
     }
   };
 
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        await loadUserData(token);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     checkAuth();
   }, []);
 
   const login = async (identifier, password) => {
     try {
       const response = await api.post('/api/auth/login', { identifier, password });
-      const { token, user } = response.data;
+      const { token, user: userData } = response.data;
       
-      if (token && user) {
-        localStorage.setItem('token', token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser(user);
-        return { success: true };
-      } else {
-        throw new Error('Invalid response format');
+      if (!token || !userData || !userData.role) {
+        throw new Error('Invalid response format or missing user data');
       }
+
+      localStorage.setItem('token', token);
+      
+      const success = await loadUserData(token);
+      if (!success) {
+        throw new Error('Failed to load user data');
+      }
+
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      localStorage.removeItem('token');
+      delete api.defaults.headers.common['Authorization'];
+      setUser(null);
+      
       return { 
         success: false, 
         message: error.response?.data?.message || 'Login failed. Please try again.' 

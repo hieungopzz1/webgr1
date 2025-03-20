@@ -43,7 +43,7 @@ const Register = () => {
       }
 
       const endpoint = `/admin/create-account`;
-      const response = await api.post(endpoint, {
+      await api.post(endpoint, {
         firstName,
         lastName,
         email,
@@ -59,12 +59,17 @@ const Register = () => {
         password: '',
         role: 'Student'
       });
+
+      // Redirect to accounts list after successful creation
+      setTimeout(() => {
+        navigate('/admin/accounts');
+      }, 2000);
+
     } catch (err) {
       console.error('Full error:', err);
       console.error('Response data:', err.response?.data);
       console.error('Status code:', err.response?.status);
       
-      // Hiển thị thông báo lỗi chi tiết hơn
       const errorMessage = err.response?.data?.message 
         || err.response?.data?.error 
         || err.message 

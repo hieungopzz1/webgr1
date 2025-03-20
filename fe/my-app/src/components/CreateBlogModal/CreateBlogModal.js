@@ -16,7 +16,7 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
     image: null,
     imagePreview: null
   });
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [validation, setValidation] = useState({
     title: '',
@@ -26,29 +26,36 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
 
   useEffect(() => {
     if (isOpen) {
-      if (editBlog) {
-        setFormData({
-          title: editBlog.title || '',
-          content: editBlog.content || '',
-          image: null,
-          imagePreview: editBlog.image || null
-        });
+      if (!user) {
+        setError('User session invalid. Please login again.');
+        setTimeout(() => {
+          window.location.replace('/login');
+        }, 2000);
       } else {
-        setFormData({
+        if (editBlog) {
+          setFormData({
+            title: editBlog.title || '',
+            content: editBlog.content || '',
+            image: null,
+            imagePreview: editBlog.image || null
+          });
+        } else {
+          setFormData({
+            title: '',
+            content: '',
+            image: null,
+            imagePreview: null
+          });
+        }
+        setError('');
+        setValidation({
           title: '',
           content: '',
-          image: null,
-          imagePreview: null
+          image: ''
         });
       }
-      setError('');
-      setValidation({
-        title: '',
-        content: '',
-        image: ''
-      });
     }
-  }, [isOpen, editBlog]);
+  }, [isOpen, user, editBlog]);
 
   const handleClose = useCallback(() => {
     onClose();
@@ -119,48 +126,84 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
       return;
     }
 
-    setLoading(true);
+    if (!user || !user.id || !user.role) {
+      setError('User session invalid. Please login again.');
+      setTimeout(() => {
+        window.location.replace('/login');
+      }, 2000);
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Tạo form data
       const formDataToSend = new FormData();
-      
       formDataToSend.append('title', formData.title.trim());
       formDataToSend.append('content', formData.content.trim());
       
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
-      else if (editBlog && editBlog.image && !formData.imagePreview) {
-        formDataToSend.append('removeImage', 'true');
-      }
 
-      const idField = user.role === 'student' ? 'student_id' : 'tutor_id';
+      // Xác định đúng role và ID field
+      const idField = user.role.toLowerCase() === 'student' ? 'student_id' : 'tutor_id';
       formDataToSend.append(idField, user.id);
 
-      let response;
-      if (editBlog) {
-        response = await api.put(`/api/blog/update-blog/${editBlog._id}`, formDataToSend, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      } else {
-        response = await api.post('/api/blog/create-blog', formDataToSend, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      }
+      // Log request details
+      console.log('Sending request:', {
+        url: '/api/blog/create-blog',
+        userData: {
+          id: user.id,
+          role: user.role
+        },
+        formData: {
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+          [idField]: user.id,
+          hasImage: !!formData.image
+        }
+      });
+
+      const response = await api.post('/api/blog/create-blog', formDataToSend, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
       if (response.data) {
         onSuccess(response.data.blog);
         handleClose();
       }
     } catch (err) {
-      console.error('Error details:', err.response?.data);
-      setError(err.response?.data?.message || 'Failed to save blog. Please try again.');
+      console.error('Error creating blog:', {
+        error: err,
+        status: err.response?.status,
+        data: err.response?.data,
+        user: user ? { id: user.id, role: user.role } : 'No user data',
+        hasToken: !!localStorage.getItem('token')
+      });
+
+      if (!user || err.message === 'No authentication token found') {
+        setError('User session invalid. Please login again.');
+        setTimeout(() => {
+          window.location.replace('/login');
+        }, 2000);
+      } else if (err.response?.status === 401) {
+        setError('Your session has expired. Please login again.');
+        setTimeout(() => {
+          window.location.replace('/login');
+        }, 2000);
+      } else {
+        setError(err.response?.data?.message || 'Failed to create blog. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -255,16 +298,16 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
               type="button"
               className="cancel-button"
               onClick={handleClose}
-              disabled={loading}
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
               className="submit-button"
-              disabled={loading}
+              disabled={isSubmitting}
             >
-              {loading ? (
+              {isSubmitting ? (
                 <>
                   <i className="bi bi-arrow-repeat spinning"></i>
                   {editBlog ? 'Saving...' : 'Creating...'}

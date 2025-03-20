@@ -9,7 +9,9 @@ const { getAllUsers, getUserById, createAccount,
     assignStudent, getAssignTutorInClass, getAssignStudentInClass,
     createSchedule, updateSchedule, deleteSchedule,
     getScheduleByClass, getAllSchedules,
-    getStudentsByMajor
+    getStudentsByMajor,
+    getAllStudents,
+    getAllTutors,
 } = require("../controllers/adminController");
 const upload = require("../config/multer")
 const router = express.Router();
@@ -32,6 +34,8 @@ router.get("/class/get-all-class", getAllClasses);
 router.get("/class/get-class/:classId", getClassById);
 
 //quan ly phan bo sinh vien va tutor
+router.get("/assign/get-all-students", getAllStudents);
+router.get("/assign/get-all-tutors", getAllTutors);
 router.post("/assign/assign-tutor", assignTutor);
 router.post("/assign/assign-student", assignStudent);
 router.get("/assign/get-tutors/:classId", getAssignTutorInClass);

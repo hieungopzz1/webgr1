@@ -217,23 +217,22 @@ const updateBlog = async (req, res) => {
 const deleteBlog = async (req, res) => {
   try {
     const { blog_id } = req.params;
+
     const deletedBlog = await Blog.findByIdAndDelete(blog_id);
     if (!deletedBlog) {
       return res.status(404).json({ message: "Blog not exist" });
     }
 
-    const deleteComment = await Comment.findById(blog_id);
-    if (deleteComment) {
-      await Comment.deleteMany({ blog_id: blog_id });
-    }
-    console.log(deleteComment);
+    const deletedComment = await Comment.deleteMany({ blog_id });
+
     return res
       .status(200)
-      .json({ message: "Blog and related comments deleted", deleteComment });
+      .json({ message: "Blog and related comments deleted", deletedComment });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 //quan ly comment
 const addComment = async (req, res, io) => {

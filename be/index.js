@@ -16,7 +16,7 @@ const adminRoutes = require("./routes/admin");
 const blogRoutes = require("./routes/blog");
 // const classRoutes = require("./routes/class"); 
 const meetingRoutes = require("./routes/meeting");
-// const messageRoutes = require("./routes/mesage.route");
+const messageRoutes = require("./routes/message");
 const documentRoutes = require("./routes/documentRoutes");
 const notificationRoutes = require("./routes/notification");
 dotenv.config();
@@ -38,7 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/blog', blogRoutes);
 // app.use('/api/class', classRoutes);
 app.use('/api/meeting', meetingRoutes);
-// app.use('/api/messages', messageRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/notification', notificationRoutes);
 // Kết nối MongoDB

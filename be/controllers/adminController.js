@@ -3,6 +3,7 @@ const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
 const Blog = require("../models/Blog");
 const Meeting = require("../models/Meeting");
+const Document = require("../models/Document");
 const Class = require("../models/Class");
 const AssignStudent = require("../models/AssignStudent");
 const AssignTutor = require("../models/AssignTutor");
@@ -121,8 +122,14 @@ const deleteUser = async (req, res) => {
       if (blogs.length > 0) {
         await Blog.deleteMany({ student_id: id });
       }
+
+      const documents = await Document.find({ student_id: id });
+      if (documents.length > 0) {
+        await Document.deleteMany({ student_id: id });
+      }
+
       await Student.findByIdAndDelete(id);
-      return res.status(200).json({ message: "Student and related blogs deleted", deletedUser });
+      return res.status(200).json({ message: "Student and related data deleted", deletedUser });
     }
 
     deletedUser = await Tutor.findById(id);
@@ -131,8 +138,12 @@ const deleteUser = async (req, res) => {
       if (blogs.length > 0) {
         await Blog.deleteMany({ tutor_id: id });
       }
+      const documents = await Document.find({ tutor_id: id });
+      if (documents.length > 0) {
+        await Document.deleteMany({ tutor_id: id });
+      }
       await Tutor.findByIdAndDelete(id);
-      return res.status(200).json({ message: "Tutor and related blogs deleted", deletedUser });
+      return res.status(200).json({ message: "Tutor and related data deleted", deletedUser });
     }
 
     res.status(404).json({ message: "User not found" });
@@ -293,57 +304,30 @@ const getClassById = async (req, res) => {
 }
 
 //quan ly phan bo sinh vien va giao vien
-
-const getAllStudents = async (req, res) => {
-  try {
-    const students = await Student.find({}, "student_ID firstName lastName email avatar");
-    res.status(200).json({ message: "Success", students });
-  } catch (error) {
-    res.status(500).json({ message: "Error retrieving students", error: error.message });
-  }
-};
-
-const getAllTutors = async (req, res) => {
-  try {
-    const tutors = await Tutor.find({}, "firstName lastName email avatar");
-    res.status(200).json({ message: "Success", tutors });
-  } catch (error) {
-    res.status(500).json({ message: "Error retrieving tutors", error: error.message });
-  }
-};
 const assignStudent = async (req, res) => {
   try {
     const { studentIds, classId, adminId } = req.body;
 
+    // Kiểm tra xem có sinh viên nào chưa được gửi không
     if (!studentIds || studentIds.length === 0) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ message: "Danh sách sinh viên không được để trống!" });
     }
 
-    const existingAssignments = await AssignStudent.find({ class: classId }).select("student");
-    const assignedStudentIds = existingAssignments.map((as) => as.student.toString());
-
-    const newStudents = studentIds.filter((id) => !assignedStudentIds.includes(id));
-
-    if (newStudents.length === 0) {
-      return res.status(400).json({ message: "Students have been assigned to this class before!" });
-    }
-
-    const assignments = newStudents.map((studentId) => ({
+    // Tạo danh sách gán sinh viên vào lớp
+    const assignments = studentIds.map(studentId => ({
       student: studentId,
       class: classId,
-      assignedBy: adminId,
+      assignedBy: adminId
     }));
 
+    // Chèn hàng loạt vào database
     await AssignStudent.insertMany(assignments);
 
-    res.status(201).json({ 
-      message: "Students assigned to class successfully!", 
-      assigned: newStudents.length 
-    });
+    res.status(201).json({ message: "Đã gán sinh viên vào lớp thành công!", assignments });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-};
+}
 const assignTutor = async (req, res) => {
   try {
     const { tutor, classId, adminId } = req.body;
@@ -351,7 +335,7 @@ const assignTutor = async (req, res) => {
     const assignment = new AssignTutor({ tutor, class: classId, assignedBy: adminId });
     await assignment.save();
 
-    res.status(201).json({ message: "Tutor assigned to class successfully!", assignment });
+    res.status(201).json({ message: "Tutor đã được gán vào lớp!", assignment });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -393,7 +377,7 @@ const createSchedule = async (req, res) => {
     });
 
     await schedule.save();
-    res.status(201).json({ message: "Schedule created successfully!", schedule });
+    res.status(201).json({ message: "Lịch học đã được tạo!", schedule });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -464,6 +448,4 @@ module.exports = {
   getAllSchedules,
   getStudentsByMajor,
   getClassById,
-  getAllStudents,
-  getAllTutors,
 };

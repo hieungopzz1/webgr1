@@ -12,7 +12,9 @@ const Register = () => {
     lastName: '',
     email: '',
     password: '',
-    role: 'Student'
+    role: 'Student',
+    student_ID: '',
+    major: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,23 +35,35 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const { firstName, lastName, email, password, role } = formData;
+      const { firstName, lastName, email, password, role, student_ID, major } = formData;
 
-      // Validation
       if (!firstName || !lastName || !email || !password || !role) {
         setError('Please fill in all required fields.');
         setLoading(false);
         return;
       }
 
+      if (role === 'Student' && (!student_ID || !major)) {
+        setError('Student ID and Major are required for student accounts.');
+        setLoading(false);
+        return;
+      }
+
       const endpoint = `/admin/create-account`;
-      await api.post(endpoint, {
+      const requestData = {
         firstName,
         lastName,
         email,
         password,
         role
-      });
+      };
+
+      if (role === 'Student') {
+        requestData.student_ID = student_ID;
+        requestData.major = major;
+      }
+
+      await api.post(endpoint, requestData);
 
       setSuccess(`Successfully created ${role} account for ${email}`);
       setFormData({
@@ -57,7 +71,9 @@ const Register = () => {
         lastName: '',
         email: '',
         password: '',
-        role: 'Student'
+        role: 'Student',
+        student_ID: '',
+        major: ''
       });
 
       // Redirect to accounts list after successful creation
@@ -98,6 +114,30 @@ const Register = () => {
             <option value="Admin">Admin</option>
           </select>
         </div>
+
+        {formData.role === 'Student' && (
+          <>
+            <InputField
+              label="Student ID"
+              name="student_ID"
+              type="text"
+              placeholder="Enter student ID..."
+              value={formData.student_ID}
+              onChange={handleChange}
+              required
+            />
+
+            <InputField
+              label="Major"
+              name="major"
+              type="text"
+              placeholder="Enter major..."
+              value={formData.major}
+              onChange={handleChange}
+              required
+            />
+          </>
+        )}
 
         <InputField
           label="First Name"
@@ -144,6 +184,9 @@ const Register = () => {
         <Button 
           type="submit" 
           disabled={loading}
+          variant="primary"
+          size="medium"
+          fullWidth
           className="register-button"
         >
           {loading ? 'Creating Account...' : 'Create Account'}

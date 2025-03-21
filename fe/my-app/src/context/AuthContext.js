@@ -7,75 +7,53 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUserData = async (token) => {
-    try {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const response = await api.get('/api/auth/me');
-      const userData = response.data;
-
-      if (!userData || !userData.role) {
-        throw new Error('Invalid user data');
-      }
-
-      console.log('User data loaded:', {
-        id: userData.id,
-        role: userData.role,
-        firstName: userData.firstName,
-        lastName: userData.lastName
-      });
-
-      setUser(userData);
-      return true;
-    } catch (err) {
-      console.error('Load user data error:', err);
-      localStorage.removeItem('token');
-      delete api.defaults.headers.common['Authorization'];
-      setUser(null);
-      return false;
-    }
-  };
-
   useEffect(() => {
-    const checkAuth = async () => {
+    const loadUserData = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
+        const userData = localStorage.getItem('userData');
 
-        await loadUserData(token);
+        if (token && userData) {
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          const response = await api.get('/api/auth/me');
+          if (response.data) {
+            setUser(response.data);
+          } else {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userData');
+            delete api.defaults.headers.common['Authorization'];
+          }
+        }
+      } catch (err) {
+        console.error('Error loading user data:', err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('userData');
+        delete api.defaults.headers.common['Authorization'];
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
+    loadUserData();
   }, []);
 
-  const login = async (identifier, password) => {
+  const login = async (email, password) => {
     try {
-      const response = await api.post('/api/auth/login', { identifier, password });
+      const response = await api.post('/api/auth/login', { email, password });
       const { token, user: userData } = response.data;
       
-      if (!token || !userData || !userData.role) {
-        throw new Error('Invalid response format or missing user data');
+      if (token && userData) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(userData);
+        return { success: true };
+      } else {
+        throw new Error('Invalid response format');
       }
-
-      localStorage.setItem('token', token);
-      
-      const success = await loadUserData(token);
-      if (!success) {
-        throw new Error('Failed to load user data');
-      }
-
-      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      localStorage.removeItem('token');
-      delete api.defaults.headers.common['Authorization'];
-      setUser(null);
-      
       return { 
         success: false, 
         message: error.response?.data?.message || 'Login failed. Please try again.' 
@@ -85,12 +63,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userData');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, setUser }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

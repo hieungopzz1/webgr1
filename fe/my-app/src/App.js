@@ -8,7 +8,7 @@ import AssignTutor from './pages/staff/AssignTutor';
 import Settings from './pages/Settings/Settings';
 import Message from './pages/Message/Message';
 import Home from './pages/Home';
-import { LanguageProvider } from './context/LanguageContext';
+import { AuthProvider } from './context/AuthContext';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -42,7 +42,7 @@ const PublicRoute = ({ children, restricted }) => {
 
 const App = () => {
   return (
-    <LanguageProvider>
+    <AuthProvider>
       <Router>
         <Routes>
           {/* Public Routes */}
@@ -106,7 +106,7 @@ const App = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
-    </LanguageProvider>
+    </AuthProvider>
   );
 };
 

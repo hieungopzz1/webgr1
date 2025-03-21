@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import InputField from '../../components/inputField/InputField';
 import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
-import api from '../../utils/api';
+import { AuthContext } from '../../context/AuthContext';
 import './Login.css';
 
 const Login = () => {
@@ -13,7 +13,9 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
   const handleChange = (e) => {
     setFormData({
@@ -29,35 +31,16 @@ const Login = () => {
 
     try {
       const { email, password } = formData;
-
-      if (!email || !password) {
-        setError('Please fill in all required fields.');
-        return;
-      }
-
-      const response = await api.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
+      const result = await login(email, password);
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('userData', JSON.stringify(user));
-
-      switch (user.role) {
-        case 'Student':
-          navigate('/student/dashboard');
-          break;
-        case 'Tutor':
-          navigate('/tutor/dashboard');
-          break;
-        case 'Admin':
-          navigate('/');   
-          break;
-        default:
-          setError('Invalid user role');
-          return;
+      if (result.success) {
+        navigate('/home');
+      } else {
+        setError(result.message || 'Login failed. Please try again.');
       }
     } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
       console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,21 +48,21 @@ const Login = () => {
 
   return (
     <div className="login-page">
-      <h2 className="login-title">Login</h2>
+      <h2 className="login-title">Đăng nhập</h2>
       <form onSubmit={handleSubmit} className="login-form">
         <InputField
           label="Email"
           name="email"
           type="email"
-          placeholder="Enter your email..."
+          placeholder="Nhập email của bạn..."
           value={formData.email}
           onChange={handleChange}
         />
 
         <PasswordInput
-          label="Password"
+          label="Mật khẩu"
           name="password"
-          placeholder="Enter your password..."
+          placeholder="Nhập mật khẩu của bạn..."
           value={formData.password}
           onChange={handleChange}
         />
@@ -91,18 +74,18 @@ const Login = () => {
           disabled={loading}
           className="login-button"
         >
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </Button>
       </form>
 
       <div className="auth-links">
         <Link to="/forgot-password" className="auth-link">
-          Forgot password?
+          Quên mật khẩu?
         </Link>
         <p>
-          Don't have an account?{' '}
+          Chưa có tài khoản?{' '}
           <Link to="/register" className="auth-link">
-            Sign Up
+            Đăng ký
           </Link>
         </p>
       </div>

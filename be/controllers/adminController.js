@@ -13,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const createAccount = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
+    const { firstName, lastName, email, password, role, student_ID, major } = req.body;
     const avatar = req.file ? `/uploads/avatar/${req.file.filename}` : null;
 
     if (!["Student", "Tutor", "Admin"].includes(role)) {
@@ -40,6 +40,8 @@ const createAccount = async (req, res) => {
         email,
         password: hashedPassword,
         avatar,
+        student_ID,
+        major
       });
     } else if (role === "Tutor") {
       user = new Tutor({

@@ -1,7 +1,7 @@
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
 const Message = require("../models/Message");
-const cloudinary = require("../config/cloudinary"); 
+// const cloudinary = require("../config/ "); 
 
 
 const getUsersForSidebar = async (req, res) => {
@@ -46,17 +46,17 @@ const sendMessage = async (req, res) => {
       const  {receiverId}  = req.body;
       const{ senderId }= req.body;
       console.log(senderId,receiverId)
-      let imageUrl;
-      if (image) {
-          const uploadResponse = await cloudinary.uploader.upload(image);
-          imageUrl = uploadResponse.secure_url;
-      }
+      // let imageUrl;
+      // if (image) {
+      //     const uploadResponse = await cloudinary.uploader.upload(image);
+      //     imageUrl = uploadResponse.secure_url;
+      // }
 
       const newMessage = new Message({
           senderId,
           receiverId,
           text,
-          image: imageUrl,
+          // image: imageUrl,
       });
 
       await newMessage.save();

@@ -1,31 +1,10 @@
 const mongoose = require("mongoose");
 
 const ClassSchema = new mongoose.Schema({
-  assgined_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Admin",
-  },
-  tutor_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Tutor",
-    default: null,
-  },
-  student_id: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
-      default: null,
-    },
-  ],
-  name: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
+  class_name: { type: String, required: true },
+  major: { type: String, required: true }, 
+  subject: { type: String, required: true } 
 });
 
-module.exports = mongoose.model("Class", ClassSchema);
+const Class = mongoose.model("Class", ClassSchema);
+module.exports = Class;

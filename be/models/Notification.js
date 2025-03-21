@@ -2,14 +2,15 @@ const mongoose = require("mongoose");
 
 const NotificationSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true }, // Tiêu đề thông báo
-    message: { type: String, required: true }, // Nội dung thông báo
+    title: { type: String, required: true }, 
+    message: { type: String, required: true }, 
     recipients: [{ type: mongoose.Schema.Types.ObjectId, refPath: "recipientType" }],
     recipientType: { type: String, enum: ["Tutor", "Student"], required: true },
-    type: { type: String, enum: ["assignment", "meeting", "system"], default: "system" }, // Loại thông báo
-    status: { type: String, enum: ["unread", "read"], default: "unread" }, // Trạng thái
+    type: { type: String, enum: ["assignment", "meeting", "system"], default: "system" }, 
+    status: { type: String, enum: ["unread", "read"], default: "unread" }, 
+    isDeleted: { type: Boolean, default: false }
   },
-  { timestamps: true } // Tự động tạo createdAt & updatedAt
+  { timestamps: true } 
 );
 
 module.exports = mongoose.model("Notification", NotificationSchema);

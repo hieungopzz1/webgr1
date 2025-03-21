@@ -1,57 +1,38 @@
+const Student = require("../models/Student");
+const Tutor = require("../models/Tutor");
+const Message = require("../models/Message");
+// const cloudinary = require("../config/ "); 
 
-// import { getReceiverSocketId, io } from "../lib/socket.js";
 
-const Tutor = require('../models/Tutor')
-const Student = require('../models/Student');
-const Message = require('../models/Message');
-const cloudinary = require('cloudinary');
+const getUsersForSidebar = async (req, res) => {
+  try {
+    const students = await Student.find(
+      {},
+      "firstName lastName email role avatar"
+    );
+    const tutors = await Tutor.find({}, "firstName lastName email role avatar");
 
-export const getUsersForSidebar = async (req, res) => {
-    try {
-        const loggedInUserId = req.user._id;
-        const userRole = req.user.role; // Assuming req.user has a 'role' field ('tutor' or 'student')
+    const users = [...students, ...tutors];
 
-        let filteredUsers;
-
-        if (userRole === 'tutor') {
-            // For a tutor, sidebar will show their students 
-            filteredUsers = await Student.find({ tutors: loggedInUserId }).select("-password"); // Example: Find students associated with this tutor
-        } else if (userRole === 'student') {
-            // For a student, sidebar will show their tutors           
-            filteredUsers = await Tutor.find({ students: loggedInUserId }).select("-password"); // Example: Find tutors associated with this student
-        } else {
-            return res.status(400).json({ error: "Invalid user role" }); 
-        }
-
-        res.status(200).json(filteredUsers);
-    } catch (error) {
-        console.error("Error in getUsersForSidebar: ", error.message);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    res.status(200).json({ message: "Success", users });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error retrieving users", error: error.message });
+  }
 };
-
-export const getMessages = async (req, res) => {
+  
+  const getMessages = async (req, res) => {
     try {
-        const { id: otherUserId } = req.params; // This is the ID of the Tutor or Student the logged-in user is chatting with
-        const loggedInUserId = req.user._id;
-        const userRole = req.user.role;
-
-        let tutorId, studentId;
-
-        if (userRole === 'tutor') {
-            tutorId = loggedInUserId;
-            studentId = otherUserId; // Assuming 'id' in params is Student ID when Tutor is logged in
-        } else if (userRole === 'student') {
-            tutorId = otherUserId; // Assuming 'id' in params is Tutor ID when Student is logged in
-            studentId = loggedInUserId;
-        } else {
-            return res.status(400).json({ error: "Invalid user role" });
-        }
+        const { id: userToChatId } = req.params;
+        const myId = req.user._id;
 
         const messages = await Message.find({
-            tutorId: tutorId,
-            studentId: studentId,
-        }).sort({ createdAt: 1 }); // Sort messages by createdAt in ascending order
+            $or: [
+                { senderId: myId, receiverId: userToChatId },
+                { senderId: userToChatId, receiverId: myId },
+            ],
+        }).sort({ createdAt: 1 }); // Sort messages by creation time
 
         res.status(200).json(messages);
     } catch (error) {
@@ -59,53 +40,36 @@ export const getMessages = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
+const sendMessage = async (req, res) => {
+  try {
+      const { text,image } = req.body;
+      const  {receiverId}  = req.body;
+      const{ senderId }= req.body;
+      console.log(senderId,receiverId)
+      // let imageUrl;
+      // if (image) {
+      //     const uploadResponse = await cloudinary.uploader.upload(image);
+      //     imageUrl = uploadResponse.secure_url;
+      // }
 
-export const sendMessage = async (req, res) => {
-    try {
-        const { text, image } = req.body;
-        const { id: receiverId } = req.params; // ID of the receiver (Student if sender is Tutor, Tutor if sender is Student)
-        const senderId = req.user._id;
-        const userRole = req.user.role;
+      const newMessage = new Message({
+          senderId,
+          receiverId,
+          text,
+          // image: imageUrl,
+      });
 
-        let imageUrl;
-        if (image) {
-            // Upload base64 image to cloudinary
-            const uploadResponse = await cloudinary.uploader.upload(image);
-            imageUrl = uploadResponse.secure_url;
-        }
+      await newMessage.save();
 
-        let tutorId, studentId, senderType;
-
-        if (userRole === 'tutor') {
-            tutorId = senderId;
-            studentId = receiverId;
-            senderType = 'tutor';
-        } else if (userRole === 'student') {
-            tutorId = receiverId;
-            studentId = senderId;
-            senderType = 'student';
-        } else {
-            return res.status(400).json({ error: "Invalid user role" });
-        }
-
-        const newMessage = new Message({
-            tutorId,
-            studentId,
-            senderType,
-            text,
-            image: imageUrl,
-        });
-
-        await newMessage.save();
-
-        // const receiverSocketId = getReceiverSocketId(receiverId); 
-        // if (receiverSocketId) {
-        //     io.to(receiverSocketId).emit("newMessage", newMessage);
-        // }
-
-        res.status(201).json(newMessage);
-    } catch (error) {
-        console.log("Error in sendMessage controller: ", error.message);
-        res.status(500).json({ error: "Internal server error" });
-    }
+      // const receiverSocketId = getReceiverSocketId(receiverId);
+      // if (receiverSocketId) {
+      //     io.to(receiverSocketId).emit("newMessage", newMessage);
+      // }
+      
+      res.status(201).json(newMessage);
+  } catch (error) {
+      console.log("Error in sendMessage controller: ", error.message);
+      res.status(500).json({ error: "Internal server error" });
+  }
 };
+  module.exports = { getUsersForSidebar,getMessages,sendMessage };

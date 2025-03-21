@@ -23,7 +23,7 @@ const createAccount = async (req, res) => {
 
     const existingUser =
       (await Student.findOne({ email })) ||
-      (await Tutor.findOne({ email })) ||git branch
+      (await Tutor.findOne({ email })) ||
       (await Admin.findOne({ email }));
 
     if (existingUser) {

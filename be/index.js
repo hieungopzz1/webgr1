@@ -4,21 +4,21 @@ const cors = require("cors");
 const connectDB = require("./config/db"); // Import connectDB từ config/db
 const multer = require('multer');
 
-// const tutorRoutes = require("./routes/tutor"); // Import routes tutor
-// const studentRoutes = require("./routes/student"); // Import routes student
-// const assignmentRoutes = require("./routes/assignment"); // Import routes student
-// const tutorRoutes = require("./routes/tutor");
-// const enrollmentRoutes = require("./routes/enrollment"); // Import routes enrollment
-// const studentRoutes = require("./routes/student");
-// Load biến môi trường
+
+//dung cac routes
 const authRoutes = require("./routes/auth"); 
 const adminRoutes = require("./routes/admin"); 
 const blogRoutes = require("./routes/blog");
-// const classRoutes = require("./routes/class"); 
 const meetingRoutes = require("./routes/meeting");
 const messageRoutes = require("./routes/message");
 const documentRoutes = require("./routes/documentRoutes");
 const notificationRoutes = require("./routes/notification");
+const attendanceRoutes = require("./routes/attendance");
+const sheduleRoutes = require("./routes/schedule");
+const assignStudentRoutes = require("./routes/assignStudent");
+const assignTutorRoutes = require("./routes/assignTutor");
+const classRoutes = require("./routes/class");
+
 dotenv.config();
 
 const app = express();
@@ -29,18 +29,20 @@ app.use(cors());
 app.use('/uploads', express.static('uploads'));
 
 // Sử dụng các routes cho admin, tutor và student
-// app.use('/api/tutor', tutorRoutes);
-// app.use('/api/student', studentRoutes);
-// app.use('/api/assignment', assignmentRoutes);
-// app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blog', blogRoutes);
-// app.use('/api/class', classRoutes);
 app.use('/api/meeting', meetingRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/notification', notificationRoutes);
+app.use('/api/attendance',attendanceRoutes)
+app.use('/api/schedule',sheduleRoutes)
+app.use('/api/assign',assignStudentRoutes)
+app.use('/api/assign',assignTutorRoutes)
+app.use('/api/class',classRoutes)
+
+
 // Kết nối MongoDB
 connectDB();  // Kết nối đến MongoDB
 

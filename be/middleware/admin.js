@@ -13,7 +13,7 @@
 //     req.user = decoded.id;
 
 //     // Kiểm tra xem người dùng có phải là admin không
-//     if (decoded.role !== 'admin') {
+//     if (decoded.role !== 'Admin') {
 //       return res.status(403).json({ message: 'Access denied, admin only' });
 //     }
 

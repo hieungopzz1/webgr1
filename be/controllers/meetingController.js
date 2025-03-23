@@ -1,6 +1,84 @@
 const Meeting = require("../models/Meeting");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
+
+
+
+const createMeeting = async (req, res) => {
+  try {
+    const { title, created_by, type, link, location, date } = req.body;
+
+    if (!title || !created_by || !type || !date) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    if (type === "online" && !link) {
+      return res
+        .status(400)
+        .json({ message: "Online meeting must have a link" });
+    }
+    if (type === "offline" && !location) {
+      return res
+        .status(400)
+        .json({ message: "Offline meeting must have a location" });
+    }
+
+    const newMeeting = new Meeting({
+      title,
+      created_by,
+      type,
+      link,
+      location,
+      date,
+    });
+
+    await newMeeting.save();
+    res
+      .status(201)
+      .json({ message: "Meeting created successfully", newMeeting });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const updateMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const { title, type, link, location, date } = req.body;
+
+    if (!title || !type || !date) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const updatedMeeting = await Meeting.findByIdAndUpdate(
+      meetingId,
+      { title, type, link, location, date },
+      { new: true }
+    );
+
+    if (!updatedMeeting)
+      return res.status(404).json({ message: "Meeting not found" });
+
+    res
+      .status(200)
+      .json({ message: "Meeting updated successfully", updatedMeeting });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const deletedMeeting = await Meeting.findByIdAndDelete(meetingId);
+
+    if (!deletedMeeting)
+      return res.status(404).json({ message: "Meeting not found" });
+
+    res.status(200).json({ message: "Meeting deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 const getAllMeetings = async (req, res) => {
   try {
     const meetings = await Meeting.find()
@@ -82,4 +160,4 @@ const leaveMeeting = async (req, res) => {
   }
 };
 
-module.exports = { getAllMeetings, getMeetingById, joinMeeting, leaveMeeting };
+module.exports = {createMeeting,updateMeeting,deleteMeeting, getAllMeetings, getMeetingById, joinMeeting, leaveMeeting };

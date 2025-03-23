@@ -1,59 +1,18 @@
 // backend/routes/adminRoutes.js
 const express = require("express");
-const { getAllUsers, getUserById, createAccount, 
-    deleteUser , 
-    createMeeting,updateMeeting, deleteMeeting,
-    assignTutor,
-    createClass, updateClass, deleteClass,
-    getClassById, getAllClasses,
-    assignStudent, getAssignTutorInClass, getAssignStudentInClass,
-    createSchedule, updateSchedule, deleteSchedule,
-    getScheduleByClass, getAllSchedules,
-    getStudentsByMajor,
-    getAllStudents,
-    getAllTutors,
-} = require("../controllers/adminController");
+const adminController = require("../controllers/adminController");
 const upload = require("../config/multer")
 const router = express.Router();
+const { authenticateUser, authorizeRole } = require("../middleware/authMiddleware");
 
 // quanr ly user
-router.post("/create-account", upload.single("avatar"), createAccount);
+router.post("/create-account",authenticateUser,authorizeRole(["Admin"]),upload.single("avatar"), adminController.createAccount);
 
-router.delete("/delete-user/:id", deleteUser);
+router.delete("/delete-user/:id", authenticateUser,authorizeRole(["Admin"]),adminController.deleteUser);
 
-router.get("/get-users", getAllUsers);
+router.get("/get-users",authenticateUser,authorizeRole(["Admin"]), adminController.getAllUsers);
 
-router.get("/get-user/:id", getUserById);
+router.get("/get-user/:id",authenticateUser,authorizeRole(["Admin"]), adminController.getUserById);
 
-//loc major
-router.get("/get-students-by-major", getStudentsByMajor);
-
-//quarn ly lop
-router.post("/class/create-class", createClass);
-router.get("/class/get-all-class", getAllClasses);
-router.get("/class/get-class/:classId", getClassById);
-
-//quan ly phan bo sinh vien va tutor
-router.get("/assign/get-all-students", getAllStudents);
-router.get("/assign/get-all-tutors", getAllTutors);
-router.post("/assign/assign-tutor", assignTutor);
-router.post("/assign/assign-student", assignStudent);
-router.get("/assign/get-tutors/:classId", getAssignTutorInClass);
-router.get("/assign/get-students/:classId", getAssignStudentInClass);
-
-//quan ly lich hoc
-router.post("/schedule/create-schedule", createSchedule);
-router.get("/schedule/get-all-schedule", getAllSchedules);
-router.get("/schedule/get-by-class/:classId", getScheduleByClass);
-
-
-
-
-//quan ly meeting
-router.post("/meeting/create-meeting", createMeeting);
-
-router.put("/meeting/update/:meetingId", updateMeeting );
-
-router.delete("/meeting/delete/:meetingId", deleteMeeting );
 
 module.exports = router;

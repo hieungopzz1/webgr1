@@ -29,19 +29,135 @@ const getStudentsBySchedule = async (req, res) => {
   }
 };
 
+// const markAttendance = async (req, res) => {
+//   try {
+//     const { scheduleId, students } = req.body;
+//     const tutorId = req.user.id; 
+
+//     const schedule = await Schedule.findById(scheduleId);
+//     if (!schedule) {
+//       return res.status(404).json({ message: "Schedule not found" });
+//     }
+
+//     const assignedStudents = await AssignStudent.find({ class: schedule.class }).populate("student");
+
+//     const classStudentIds = assignedStudents.map((s) => s.student._id.toString());
+//     console.log(classStudentIds)
+//     const invalidStudents = students.filter(s => !classStudentIds.includes(s.studentId));
+//     console.log(invalidStudents)
+//     if (invalidStudents.length > 0) {
+//       return res.status(400).json({ 
+//         message: "Some students are not in this class", 
+//         invalidStudents 
+//       });
+//     }
+
+//     const existingAttendance = await Attendance.find({ 
+//       schedule: scheduleId, 
+//       student: { $in: students.map(s => s.studentId) }
+//     });
+
+//     const alreadyMarkedIds = existingAttendance.map(a => a.student.toString());
+//     const newAttendances = students.filter(s => !alreadyMarkedIds.includes(s.studentId));
+
+//     if (newAttendances.length === 0) {
+//       return res.status(400).json({ message: "All students have already been marked attendance!" });
+//     }
+
+//     const attendanceRecords = newAttendances.map(({ studentId, status }) => ({
+//       schedule: scheduleId,
+//       student: studentId,
+//       status,
+//       markedBy: tutorId,
+//     }));
+
+//     await Attendance.insertMany(attendanceRecords);
+
+//     res.status(201).json({ 
+//       message: "Bulk attendance marked successfully!", 
+//       attendanceCount: attendanceRecords.length 
+//     });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+//
+// const markAttendance = async (req, res) => {
+//   try {
+//     const { scheduleId, students } = req.body;
+//     const tutorId = req.user.id;
+//     console.log(tutorId)
+//     const schedule = await Schedule.findById(scheduleId);
+//     if (!schedule) {
+//       return res.status(404).json({ message: "Schedule not found" });
+//     }
+
+//     const assignedStudents = await AssignStudent.find({
+//       class: schedule.class,
+//     }).populate("student", "firstName lastName email role");
+
+//     const classStudentIds = assignedStudents.map((s) => s.student._id.toString());
+
+//     const invalidStudents = students.filter(s => !classStudentIds.includes(s.studentId));
+//     if (invalidStudents.length > 0) {
+//       return res.status(400).json({ 
+//         message: "Some students are not in this class", 
+//         invalidStudents 
+//       });
+//     }
+
+//     const existingAttendance = await Attendance.find({ 
+//       schedule: scheduleId, 
+//       student: { $in: classStudentIds }
+//     });
+
+//     const alreadyMarkedIds = existingAttendance.map(a => a.student.toString());
+
+//     const newAttendances = students.filter(s => !alreadyMarkedIds.includes(s.studentId));
+
+//     const absentStudents = classStudentIds.filter(id => !students.some(s => s.studentId === id));
+
+//     const attendanceRecords = [
+//       ...newAttendances.map(({ studentId, status }) => ({
+//         schedule: scheduleId,
+//         student: studentId,
+//         status,
+//         markedBy: tutorId,
+//       })),
+//       ...absentStudents.map(studentId => ({
+//         schedule: scheduleId,
+//         student: studentId,
+//         status: "Absent",
+//         markedBy: tutorId,
+//       }))
+//     ];
+
+//     await Attendance.insertMany(attendanceRecords);
+
+//     res.status(201).json({ 
+//       message: "Attendance marked successfully!", 
+//       attendanceCount: attendanceRecords.length 
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 const markAttendance = async (req, res) => {
   try {
     const { scheduleId, students } = req.body;
-    const tutorId = req.user.id; 
+    const tutorId = req.user.id;
 
     const schedule = await Schedule.findById(scheduleId);
     if (!schedule) {
       return res.status(404).json({ message: "Schedule not found" });
     }
 
-    const assignedStudents = await AssignStudent.find({ class: schedule.class }).populate("student");
+    const assignedStudents = await AssignStudent.find({ class: schedule.class }).populate("student", "firstName lastName email");
 
     const classStudentIds = assignedStudents.map((s) => s.student._id.toString());
+
     const invalidStudents = students.filter(s => !classStudentIds.includes(s.studentId));
     if (invalidStudents.length > 0) {
       return res.status(400).json({ 
@@ -52,29 +168,40 @@ const markAttendance = async (req, res) => {
 
     const existingAttendance = await Attendance.find({ 
       schedule: scheduleId, 
-      student: { $in: students.map(s => s.studentId) }
+      student: { $in: classStudentIds }
     });
 
-    const alreadyMarkedIds = existingAttendance.map(a => a.student.toString());
-    const newAttendances = students.filter(s => !alreadyMarkedIds.includes(s.studentId));
+    const alreadyMarked = new Map(existingAttendance.map(a => [a.student.toString(), a.status]));
 
-    if (newAttendances.length === 0) {
-      return res.status(400).json({ message: "All students have already been marked attendance!" });
-    }
+    const newAttendances = students.filter(s => {
+      const existingStatus = alreadyMarked.get(s.studentId);
+      return !existingStatus || existingStatus !== "Present"; 
+    });
 
-    const attendanceRecords = newAttendances.map(({ studentId, status }) => ({
-      schedule: scheduleId,
-      student: studentId,
-      status,
-      markedBy: tutorId,
-    }));
+    const absentStudents = classStudentIds.filter(id => !students.some(s => s.studentId === id));
+
+    const attendanceRecords = [
+      ...newAttendances.map(({ studentId, status }) => ({
+        schedule: scheduleId,
+        student: studentId,
+        status,
+        markedBy: tutorId,
+      })),
+      ...absentStudents.map(studentId => ({
+        schedule: scheduleId,
+        student: studentId,
+        status: "Absent",
+        markedBy: tutorId,
+      }))
+    ];
 
     await Attendance.insertMany(attendanceRecords);
 
     res.status(201).json({ 
-      message: "Bulk attendance marked successfully!", 
+      message: "Attendance marked successfully!", 
       attendanceCount: attendanceRecords.length 
     });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

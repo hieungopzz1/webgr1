@@ -18,6 +18,7 @@ const sheduleRoutes = require("./routes/schedule");
 const assignStudentRoutes = require("./routes/assignStudent");
 const assignTutorRoutes = require("./routes/assignTutor");
 const classRoutes = require("./routes/class");
+const likeRoutes = require("./routes/like");
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use('/api/schedule',sheduleRoutes)
 app.use('/api/assign',assignStudentRoutes)
 app.use('/api/assign',assignTutorRoutes)
 app.use('/api/class',classRoutes)
+app.use('/api/like',likeRoutes)
 
 
 // Kết nối MongoDB

@@ -4,18 +4,19 @@ import MainLayout from './layouts/MainLayout/MainLayout';
 import AuthLayout from './layouts/authLayout/AuthLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/staff/Register';
-import AssignTutor from './pages/staff/AssignTutor';
+import AssignTutor from './pages/staff/AssignClass';
 import Settings from './pages/Settings/Settings';
 import Message from './pages/Message/Message';
 import Home from './pages/Home';
-import { AuthProvider } from './context/AuthContext';
+import Notifications from './components/notification/Notification';
+import { ROUTES } from './utils/constants';
+import { isAuthenticated } from './utils/storage';
+import './App.css';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('token');
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated()) {
+    return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
   return (
@@ -27,10 +28,8 @@ const ProtectedRoute = ({ children }) => {
 
 // Public Route component
 const PublicRoute = ({ children, restricted }) => {
-  const isAuthenticated = localStorage.getItem('token');
-
-  if (isAuthenticated && restricted) {
-    return <Navigate to="/" replace />;
+  if (isAuthenticated() && restricted) {
+    return <Navigate to={ROUTES.HOME} replace />;
   }
 
   return (
@@ -42,12 +41,13 @@ const PublicRoute = ({ children, restricted }) => {
 
 const App = () => {
   return (
-    <AuthProvider>
+    <>
+      <Notifications />
       <Router>
         <Routes>
           {/* Public Routes */}
           <Route
-            path="/login"
+            path={ROUTES.LOGIN}
             element={
               <PublicRoute restricted={true}>
                 <Login />
@@ -57,7 +57,7 @@ const App = () => {
 
           {/* Protected Routes */}
           <Route
-            path="/register"
+            path={ROUTES.REGISTER}
             element={
               <ProtectedRoute>
                 <Register />
@@ -75,7 +75,7 @@ const App = () => {
           />
 
           <Route
-            path="/settings"
+            path={ROUTES.SETTINGS}
             element={
               <ProtectedRoute>
                 <Settings />
@@ -84,7 +84,7 @@ const App = () => {
           />
 
           <Route
-            path="/messages/:id?"
+            path={`${ROUTES.MESSAGES}/:id?`}
             element={
               <ProtectedRoute>
                 <Message />
@@ -94,7 +94,7 @@ const App = () => {
 
           {/* Default route */}
           <Route
-            path="/"
+            path={ROUTES.HOME}
             element={
               <ProtectedRoute>
                 <Home />
@@ -103,10 +103,10 @@ const App = () => {
           />
 
           {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
       </Router>
-    </AuthProvider>
+    </>
   );
 };
 

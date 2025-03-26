@@ -76,7 +76,7 @@ const getAllUsers = async (req, res) => {
   try {
     const students = await Student.find(
       {},
-      "firstName lastName email role avatar"
+      "firstName lastName email role avatar student_ID"
     );
     const tutors = await Tutor.find({}, "firstName lastName email role avatar");
 

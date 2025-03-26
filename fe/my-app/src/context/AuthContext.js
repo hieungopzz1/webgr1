@@ -1,5 +1,12 @@
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../utils/api';
+import { API_ROUTES } from '../utils/constants';
+import { 
+  saveToken, 
+  saveUserData, 
+  getUserData, 
+  clearAuthData 
+} from '../utils/storage';
 
 export const AuthContext = createContext();
 
@@ -10,26 +17,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('userData');
+        const userData = getUserData();
 
-        if (token && userData) {
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
-          const response = await api.get('/api/auth/me');
+        if (userData) {
+          const response = await api.get(API_ROUTES.AUTH.ME);
           if (response.data) {
             setUser(response.data);
           } else {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userData');
-            delete api.defaults.headers.common['Authorization'];
+            clearAuthData();
           }
         }
       } catch (err) {
         console.error('Error loading user data:', err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('userData');
-        delete api.defaults.headers.common['Authorization'];
+        clearAuthData();
       } finally {
         setLoading(false);
       }
@@ -40,13 +40,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/api/auth/login', { email, password });
+      const response = await api.post(API_ROUTES.AUTH.LOGIN, { email, password });
       const { token, user: userData } = response.data;
       
       if (token && userData) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('userData', JSON.stringify(userData));
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        saveToken(token);
+        saveUserData(userData);
         setUser(userData);
         return { success: true };
       } else {
@@ -62,9 +61,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userData');
-    delete api.defaults.headers.common['Authorization'];
+    clearAuthData();
     setUser(null);
   };
 

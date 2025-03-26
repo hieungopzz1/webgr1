@@ -1,9 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import InputField from '../../components/inputField/InputField';
 import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
-import { AuthContext } from '../../context/AuthContext';
+import useAuth from '../../hooks/useAuth';
 import './Login.css';
 
 const Login = () => {
@@ -15,7 +15,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData({

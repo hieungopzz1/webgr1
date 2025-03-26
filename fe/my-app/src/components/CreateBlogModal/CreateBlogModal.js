@@ -1,6 +1,6 @@
-import React, { useState, useContext, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import api from '../../utils/api';
-import { AuthContext } from '../../context/AuthContext';
+import useAuth from '../../hooks/useAuth';
 import InputField from '../inputField/InputField';
 import './CreateBlogModal.css';
 
@@ -9,7 +9,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     content: '',

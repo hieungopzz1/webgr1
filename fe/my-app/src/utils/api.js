@@ -11,6 +11,8 @@
 // // };
 
 import axios from 'axios';
+import { ROUTES } from './constants';
+import { getToken, clearAuthData } from './storage';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL,
@@ -21,12 +23,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Không override Content-Type nếu là FormData
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -36,7 +37,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Thêm interceptor để log errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -46,6 +46,12 @@ api.interceptors.response.use(
       status: error.response?.status,
       data: error.response?.data,
     });
+
+    if (error.response?.status === 401) {
+      clearAuthData();
+      window.location.href = ROUTES.LOGIN;
+    }
+
     return Promise.reject(error);
   }
 );

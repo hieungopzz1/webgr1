@@ -366,3 +366,7 @@
     left: 75px;
   }
 }
+
+.sidebar__toggle {
+  display: none;
+}

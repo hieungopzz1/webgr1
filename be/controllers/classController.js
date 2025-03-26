@@ -66,7 +66,7 @@ const getUsersInClass  = async (req, res) => {
       return res.status(404).json({ message: "Class not found" });
     }
 
-    const assignedStudents = await AssignStudent.find({ class: classId }).populate("student", "_id student_ID");
+    const assignedStudents = await AssignStudent.find({ class: classId }).populate("student", "_id student_ID firstName lastName");
 
     const assignedTutors = await AssignTutor.find({ class: classId }).populate("tutor", "_id");
 

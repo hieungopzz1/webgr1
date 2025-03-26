@@ -1,33 +1,24 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useSidebar } from '../../context/SidebarContext';
+import { ROUTES, USER_ROLES } from '../../utils/constants';
+import useAuth from '../../hooks/useAuth';
 import './Sidebar.css';
 
 const MENU_ITEMS = {
   common: [
     {
-      to: '/',
+      to: ROUTES.HOME,
       icon: <i className="bi bi-house-heart" />,
       activeIcon: <i className="bi bi-house-heart-fill" />,
       label: 'Home',
       end: true
     },
     {
-      type: 'dropdown',
-      icon: <i className="bi bi-plus-square" />,
-      activeIcon: <i className="bi bi-plus-square-fill" />,
-      label: 'Create',
-      items: [
-        {
-          label: 'Post',
-          icon: <i className="bi bi-file-earmark-plus" />,
-          onClick: () => window.dispatchEvent(new CustomEvent('openCreateBlogModal'))
-        },
-        {
-          to: '/register',
-          label: 'Account',
-          icon: <i className="bi bi-person-plus" />
-        }
-      ]
+      icon: <i className="bi bi-file-earmark-plus" />,
+      activeIcon: <i className="bi bi-file-earmark-plus-fill" />,
+      label: 'Create Post',
+      onClick: () => window.dispatchEvent(new CustomEvent('openCreateBlogModal'))
     },
     {
       to: '/search',
@@ -36,7 +27,7 @@ const MENU_ITEMS = {
       label: 'Search'
     },
     {
-      to: '/messages',
+      to: ROUTES.MESSAGES,
       icon: <i className="bi bi-chat-dots" />,
       activeIcon: <i className="bi bi-chat-dots-fill" />,
       label: 'Messages'
@@ -54,33 +45,33 @@ const MENU_ITEMS = {
       label: 'Timetable'
     },
     {
-      to: '/dashboard',
+      to: ROUTES.DASHBOARD,
       icon: <i className="bi bi-bar-chart" />,
       activeIcon: <i className="bi bi-bar-chart-fill" />,
       label: 'Dashboard'
     }
   ],
-  admin: [
+  [USER_ROLES.ADMIN]: [
     {
-      to: '/register',
+      to: ROUTES.REGISTER,
       icon: <i className="bi bi-person-plus" />,
-      activeIcon: <i className="bi bi-person-plus" />,
+      activeIcon: <i className="bi bi-person-plus-fill" />,
       label: 'Create Account'
     },
     {
       to: '/assign-tutor',
       icon: <i className="bi bi-people" />,
       activeIcon: <i className="bi bi-people-fill" />,
-      label: 'Tutor Assignment'
-    }
+      label: 'Class Assignment'
+    },
   ],
-  tutor: [],
-  student: []
+  [USER_ROLES.TUTOR]: [],
+  [USER_ROLES.STUDENT]: []
 };
 
 const BOTTOM_MENU = {
   settings: {
-    to: '/settings',
+    to: ROUTES.SETTINGS,
     icon: <i className="bi bi-gear" />,
     activeIcon: <i className="bi bi-gear-fill" />,
     label: 'Settings',
@@ -174,15 +165,19 @@ const NavItem = ({ item }) => {
 };
 
 const Sidebar = () => {
-  const [userRole] = useState('student');
+  const { user } = useAuth();
+  const userRole = user?.role || USER_ROLES.STUDENT;
   const location = useLocation();
+  const { expanded } = useSidebar();
   const isMessagesPage = location.pathname.startsWith('/messages');
-  const menuItems = [...MENU_ITEMS.common, ...MENU_ITEMS[userRole]];
+  
+  const roleSpecificItems = MENU_ITEMS[userRole] || [];
+  const menuItems = [...MENU_ITEMS.common, ...roleSpecificItems];
 
   return (
-    <aside className={`sidebar ${isMessagesPage ? 'collapsed' : ''}`}>
+    <aside className={`sidebar ${isMessagesPage || !expanded ? 'collapsed' : ''}`}>
       <div className="sidebar__logo">
-        <NavLink to="/" className="logo-link">
+        <NavLink to={ROUTES.HOME} className="logo-link">
           <img src="/logo192.png" alt="eTutoring Logo" />
         </NavLink>
       </div>

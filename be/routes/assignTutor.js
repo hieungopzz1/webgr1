@@ -8,4 +8,5 @@ router.get("/get-all-tutors",authenticateUser,authorizeRole(["Admin"]), assignTu
 router.post("/assign-tutor",authenticateUser,authorizeRole(["Admin"]), assignTutorController.assignTutor);
 router.get("/get-tutors/:classId", authenticateUser,authorizeRole(["Admin"]),assignTutorController.getAssignTutorInClass);
 router.delete("/remove",authenticateUser,authorizeRole(["Admin"]),assignTutorController.removeTutor );
+router.put("/update-tutor",authenticateUser,authorizeRole(["Admin"]),assignTutorController.updateAssignTutor );
 module.exports = router;

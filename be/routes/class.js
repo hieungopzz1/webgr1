@@ -9,6 +9,7 @@ router.get("/get-all-class", classController.getAllClasses);
 router.get("/get-class/:classId", classController.getClassById);
 router.get("/:classId/users", classController.getUsersInClass );
 router.get("/unassign", classController.getUnassignedClasses );
-
+router.put("/update-class/:classId", classController.updateClass);
+router.delete("/delete-class/:classId", classController.deleteClass);
 
 module.exports = router;

@@ -45,25 +45,25 @@ const getUnassignedClasses = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-// const updateClass = async (req, res) => {
-//   try {
-//     const { classId } = req.params;
-//     const { class_name, major, subject } = req.body;
-//     const updatedClass = await Class.findByIdAndUpdate(classId, { class_name, major, subject }, { new: true });
-//     res.status(200).json({ message: "Class updated successfully", updatedClass });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// }
-// const deleteClass = async (req, res) => {
-//   try {
-//     const { class_id } = req.params;
-//     const deletedClass = await Class.findByIdAndDelete(class_id);
-//     res.status(200).json({ message: "Class deleted successfully", deletedClass });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// }
+const updateClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { class_name, major, subject } = req.body;
+    const updatedClass = await Class.findByIdAndUpdate(classId, { class_name, major, subject }, { new: true });
+    res.status(200).json({ message: "Class updated successfully", updatedClass });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+const deleteClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const deletedClass = await Class.findByIdAndDelete(classId);
+    res.status(200).json({ message: "Class deleted successfully", deletedClass });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
 const getAllClasses = async (req, res) => {
   try {
     const classes = await Class.find();
@@ -108,4 +108,4 @@ const getUsersInClass  = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-module.exports = {createClass, getAllClasses, getClassById,getUsersInClass,getUnassignedClasses}
+module.exports = {createClass, getAllClasses,updateClass,deleteClass, getClassById,getUsersInClass,getUnassignedClasses}

@@ -2,6 +2,8 @@ const AssignStudent = require("../models/AssignStudent");
 const Student = require("../models/Student");
 const Class = require("../models/Class");
 
+
+
 const assignStudent = async (req, res) => {
   try {
     const { studentIds, classId, adminId } = req.body;
@@ -14,6 +16,9 @@ const assignStudent = async (req, res) => {
     if (!classData) {
       return res.status(404).json({ message: "Class không tồn tại!" });
     }
+
+
+    
     const validStudents = await Student.find({
       _id: { $in: studentIds },
       role: "Student",
@@ -57,6 +62,9 @@ const assignStudent = async (req, res) => {
     }));
 
     await AssignStudent.insertMany(assignments);
+
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message: "Successfully!", assignments: assignments });
 
     res.status(201).json({
       message: "Students assigned to class successfully!",
@@ -224,5 +232,5 @@ module.exports = {
   getStudentsByMajor,
   removeAllStudents,
   removeStudent,
-  updateAssignedStudents
+  updateAssignedStudents,
 };

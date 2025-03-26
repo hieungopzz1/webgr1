@@ -155,7 +155,6 @@ const markAttendance = async (req, res) => {
     }
 
     const assignedStudents = await AssignStudent.find({ class: schedule.class }).populate("student", "firstName lastName email");
-
     const classStudentIds = assignedStudents.map((s) => s.student._id.toString());
 
     const invalidStudents = students.filter(s => !classStudentIds.includes(s.studentId));
@@ -197,6 +196,9 @@ const markAttendance = async (req, res) => {
 
     await Attendance.insertMany(attendanceRecords);
 
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message: "Successfully!", attendanceRecords: attendanceRecords });
+    
     res.status(201).json({ 
       message: "Attendance marked successfully!", 
       attendanceCount: attendanceRecords.length 

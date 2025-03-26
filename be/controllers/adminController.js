@@ -4,20 +4,46 @@ const Tutor = require("../models/Tutor");
 const Document = require("../models/Document");
 const Blog = require("../models/Blog");
 const Class = require("../models/Class");
+const Schedule = require("../models/Schedule");
 const Attendance = require("../models/Attendance");
+const AssignStudent = require("../models/AssignStudent");
+const AssignTutor = require("../models/AssignTutor");
 const bcrypt = require("bcrypt");
 const fs = require("fs");
 const path = require("path");
 
-const getAdminDashboard = async(req, res, next) =>{
+const getAdminDashboard = async (req, res, next) => {
   try {
     const totalStudents = await Student.countDocuments();
     const totalTutors = await Tutor.countDocuments();
     const totalClasses = await Class.countDocuments();
+    const totalSchedules = await Schedule.countDocuments();
 
     const attendanceRecords = await Attendance.find();
     const presentCount = attendanceRecords.filter(a => a.status === "Present").length;
     const absentCount = attendanceRecords.filter(a => a.status === "Absent").length;
+
+    const assignedStudentIds = await AssignStudent.distinct("student");
+
+    const unassignedStudents = await Student.find({
+      _id: { $nin: assignedStudentIds },
+      role: "Student",
+    }).select("_id student_ID firstName lastName email");
+
+    const totalUnassignedStudents = unassignedStudents.length;
+    const totalAssignedStudents = assignedStudentIds.length;
+
+
+    const assignedTutorIds = await AssignTutor.distinct("tutor");
+
+    const unassignedTutors = await Tutor.find({
+      _id: { $nin: assignedTutorIds },
+      role: "Tutor",
+    }).select("_id firstName lastName email");
+
+    const totalUnassignedTutors = unassignedTutors.length;
+    const totalAssignedTutors = assignedTutorIds.length;
+
 
     const dashboardData = {
       totalStudents,
@@ -25,18 +51,20 @@ const getAdminDashboard = async(req, res, next) =>{
       totalClasses,
       presentCount,
       absentCount,
+      totalUnassignedStudents, 
+      unassignedStudents,     
+      totalAssignedStudents,
+      totalUnassignedTutors,
+      totalAssignedTutors,
+      totalSchedules
     };
-
-    // // Lấy socket.io từ app và gửi dữ liệu realtime
-    // const io = req.app.get("socketio");
-    // io.emit("dashboardData", dashboardData);
 
     res.json(dashboardData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
 
-}
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role, student_ID, major } = req.body;
@@ -87,6 +115,10 @@ const createAccount = async (req, res) => {
     }
 
     await user.save();
+
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message: "A new user is added!", user: user });
+
     res
       .status(201)
       .json({ user, message: "User created successfully", avatar });

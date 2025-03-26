@@ -29,6 +29,10 @@ const createSchedule = async (req, res) => {
     });
 
     await schedule.save();
+
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message: "Successfully!", schedule: schedule });
+
     res.status(201).json({ message: "Schedule created successfully!", schedule });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -54,6 +54,9 @@ const assignTutor = async (req, res) => {
 
     await AssignTutor.insertMany(assignments);
 
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message: "Successfully!", assignments: assignments });
+
     res
       .status(201)
       .json({

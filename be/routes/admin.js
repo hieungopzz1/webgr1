@@ -16,4 +16,7 @@ router.get("/get-user/:id",authenticateUser,authorizeRole(["Admin"]), adminContr
 
 router.get("/dashboard",authenticateUser,authorizeRole(["Admin"]), adminController.getAdminDashboard);
 
+
+
+
 module.exports = router;

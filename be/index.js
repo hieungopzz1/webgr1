@@ -1,21 +1,11 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const http = require("http"); // Import HTTP module
- const { Server } = require("socket.io"); // Import Socket.io
  const connectDB = require("./config/db");
 const emailRoutes = require("./routes/emailRoutes");
-
+const {app, server} = require("./config/socket")
 dotenv.config();
- 
- const app = express();
- const server = http.createServer(app); // Tạo HTTP server từ Express
- const io = new Server(server, {
-   cors: {
-     origin: "*",
-     methods: ["GET", "POST"],
-   },
- });
+
  
  // Kết nối MongoDB
  connectDB();
@@ -25,17 +15,7 @@ dotenv.config();
  app.use(cors());
  app.use('/uploads', express.static('uploads'));
  
- // Lưu Socket.io vào app để sử dụng trong controller
- app.set("socketio", io);
- 
- // Khi có kết nối từ client
- io.on("connection", (socket) => {
-   console.log("🔥 New client connected:", socket.id);
- 
-   socket.on("disconnect", () => {
-     console.log("❌ Client disconnected:", socket.id);
-   });
- });
+
 
 // Import Routes
  const authRoutes = require("./routes/auth");

@@ -1,24 +1,30 @@
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
 const Message = require("../models/Message");
-// const cloudinary = require("../config/ "); 
+const cloudinary = require("../config/cloudinary"); 
+const { io, userSocketMap } = require("../config/socket");
 
 
 const getUsersForSidebar = async (req, res) => {
   try {
-    const students = await Student.find(
-      {},
-      "firstName lastName email role avatar"
-    );
-    const tutors = await Tutor.find({}, "firstName lastName email role avatar");
+      const loggedInUserId = req.user._id; // Get logged-in user's ID
 
-    const users = [...students, ...tutors];
+      const students = await Student.find(
+          { _id: { $ne: loggedInUserId } }, // Exclude students with the logged-in ID
+          "firstName lastName email role avatar _id"
+      );
+      const tutors = await Tutor.find(
+          { _id: { $ne: loggedInUserId } }, // Exclude tutors with the logged-in ID
+          "firstName lastName email role avatar _id"
+      );
 
-    res.status(200).json({ message: "Success", users });
+      const users = [...students, ...tutors];
+
+      res.status(200).json(users);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error retrieving users", error: error.message });
+      res
+          .status(500)
+          .json({ message: "Error retrieving users", error: error.message });
   }
 };
   
@@ -42,34 +48,41 @@ const getUsersForSidebar = async (req, res) => {
 };
 const sendMessage = async (req, res) => {
   try {
-      const { text,image } = req.body;
-      const  {receiverId}  = req.body;
-      const{ senderId }= req.body;
-      console.log(senderId,receiverId)
-      // let imageUrl;
-      // if (image) {
-      //     const uploadResponse = await cloudinary.uploader.upload(image);
-      //     imageUrl = uploadResponse.secure_url;
-      // }
+    const { text, image, receiverId } = req.body; // Keep receiverId from body
+    const senderId = req.user._id; // Get senderId from authenticated user
 
-      const newMessage = new Message({
-          senderId,
-          receiverId,
-          text,
-          // image: imageUrl,
+    console.log(senderId, receiverId);
+    let imageUrl;
+    if (image) {
+      const uploadResponse = await cloudinary.uploader.upload(image);
+      imageUrl = uploadResponse.secure_url;
+    }
+
+    const newMessage = new Message({
+      senderId,
+      receiverId,
+      text,
+      image: imageUrl, // Uncomment this to handle image URLs
+    });
+
+    await newMessage.save();
+
+    console.log(`Emitting 'newMessage' event to receiverId: ${receiverId}`);
+
+    const receiverSocketIds = userSocketMap.get(receiverId);
+
+    if (receiverSocketIds) {
+      receiverSocketIds.forEach((socketId) => {
+        io.to(socketId).emit("newMessage", newMessage);
       });
+    } else {
+      console.log(`Receiver ${receiverId} is not connected.`);
+    }
 
-      await newMessage.save();
-
-      // const receiverSocketId = getReceiverSocketId(receiverId);
-      // if (receiverSocketId) {
-      //     io.to(receiverSocketId).emit("newMessage", newMessage);
-      // }
-      
-      res.status(201).json(newMessage);
+    res.status(201).json(newMessage);
   } catch (error) {
-      console.log("Error in sendMessage controller: ", error.message);
-      res.status(500).json({ error: "Internal server error" });
+    console.log("Error in sendMessage controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
   module.exports = { getUsersForSidebar,getMessages,sendMessage };

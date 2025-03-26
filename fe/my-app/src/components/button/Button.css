@@ -115,4 +115,18 @@
     transform: rotate(1turn);
   }
 }
+
+/* No hover effect */
+.custom-button--no-hover {
+  transition: none !important;
+}
+
+.custom-button--no-hover:hover:not(:disabled) {
+  background-color: inherit !important;
+  color: inherit !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
   

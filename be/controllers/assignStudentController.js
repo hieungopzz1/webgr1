@@ -1,6 +1,7 @@
 const AssignStudent = require("../models/AssignStudent");
 const Student = require("../models/Student");
 const Class = require("../models/Class");
+const sendEmailAllocation = require("../services/emailService");
 
 
 
@@ -64,7 +65,27 @@ const assignStudent = async (req, res) => {
     await AssignStudent.insertMany(assignments);
 
     const io = req.app.get("socketio");
-    io.emit("updateDashboard", { message: "Successfully!", assignments: assignments });
+     io.emit("updateDashboard", { message: "Successfully!", assignments: assignments });
+
+    // Gửi email thông báo
+    const studentData = await Student.find({ _id: { $in: newStudents } }, "firstName lastName email");
+
+    // Kiểm tra nếu danh sách học sinh rỗng
+    if (!studentData.length) {
+      return res.status(404).json({ error: "Không tìm thấy học sinh nào với danh sách ID đã cung cấp!" });
+    }
+
+    for (const student of studentData) {
+      const emailContent = `Xin chào ${student.firstName} ${student.lastName},\n\nBạn đã được phân bổ vào lớp ${classData.class_name}.\nHãy kiểm tra hệ thống để biết thêm chi tiết.`;
+
+      try {
+        await sendEmailAllocation(student.email, "Thông báo phân bổ lớp học", emailContent);
+        console.log(`✅ Email sent to: ${student.email}`);
+      } catch (error) {
+        console.error(`❌ Lỗi khi gửi email cho ${student.email}:`, error);
+        return res.status(500).json({ error: `Lỗi khi gửi email cho ${student.email}` });
+      }
+    }
 
     res.status(201).json({
       message: "Students assigned to class successfully!",
@@ -135,6 +156,23 @@ const removeStudent = async (req, res) => {
         .status(404)
         .json({ message: "Sinh viên này không tồn tại trong lớp!" });
     }
+
+    // Lấy thông tin sinh viên để gửi email thông báo
+    const student = await Student.findById(studentId);
+    const classData = await Class.findById(classId);
+
+    if (student && classData) {
+      const emailContent = `Xin chào ${student.firstName} ${student.lastName},\n\nBạn đã bị xóa khỏi lớp ${classData.class_name}.\nNếu có thắc mắc, vui lòng liên hệ với quản trị viên.`;
+
+      try {
+        await sendEmailAllocation(student.email, "Thông báo xóa khỏi lớp học", emailContent);
+        console.log(`✅ Email sent to: ${student.email}`);
+      } catch (error) {
+        console.error(`❌ Lỗi khi gửi email cho ${student.email}:`, error);
+        return res.status(500).json({ error: `Lỗi khi gửi email cho ${student.email}` });
+      }
+    }
+
 
     res.status(200).json({ message: "Đã xóa sinh viên khỏi lớp thành công!" });
   } catch (error) {

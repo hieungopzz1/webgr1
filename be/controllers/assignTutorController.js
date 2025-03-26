@@ -1,6 +1,8 @@
 const AssignTutor = require("../models/AssignTutor");
 const Class = require("../models/Class");
 const Tutor = require("../models/Tutor");
+const sendEmailAllocation = require("../services/emailService");
+
 const assignTutor = async (req, res) => {
   try {
     const { tutorIds, classId, adminId } = req.body;
@@ -56,6 +58,26 @@ const assignTutor = async (req, res) => {
 
     const io = req.app.get("socketio");
     io.emit("updateDashboard", { message: "Successfully!", assignments: assignments });
+
+    // Gửi email thông báo
+    // Truy vấn thông tin giảng viên dựa trên ID
+    const tutorData = await Tutor.find({ _id: { $in: newTutors } }, "firstName lastName email");
+
+    // Kiểm tra nếu danh sách giảng viên rỗng
+    if (!tutorData.length) {
+      return res.status(404).json({ message: "Không tìm thấy giảng viên nào với danh sách ID đã cung cấp!" });
+    }
+
+    // Gửi email thông báo
+    for (const tutor of tutorData) {
+      const emailContent = `Xin chào thầy/cô ${tutor.firstName} ${tutor.lastName},\n\nThầy/cô đã được xếp giảng dạy lớp ${classData.class_name}.\nKiểm tra hệ thống để biết thêm chi tiết.`;
+      try {
+        await sendEmailAllocation(tutor.email, "Thông báo cập nhật lớp giảng dạy", emailContent);
+      } catch (error) {
+        console.error(`❌ Lỗi khi gửi email đến ${tutor.email}:`, error.message);
+      }
+    }
+
 
     res
       .status(201)
@@ -143,7 +165,7 @@ const updateAssignTutor = async (req, res) => {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
 };
-const removeTutor = async (req, res) => {};
+const removeTutor = async (req, res) => { };
 module.exports = {
   assignTutor,
   getAssignTutorInClass,

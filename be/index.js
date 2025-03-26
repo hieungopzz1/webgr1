@@ -2,43 +2,44 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http"); // Import HTTP module
-const { Server } = require("socket.io"); // Import Socket.io
-const connectDB = require("./config/db");
+ const { Server } = require("socket.io"); // Import Socket.io
+ const connectDB = require("./config/db");
+const emailRoutes = require("./routes/emailRoutes");
 
 dotenv.config();
-
-const app = express();
-const server = http.createServer(app); // Tạo HTTP server từ Express
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-});
-
-// Kết nối MongoDB
-connectDB();
-
-// Middleware
-app.use(express.json());
-app.use(cors());
-app.use('/uploads', express.static('uploads'));
-
-// Lưu Socket.io vào app để sử dụng trong controller
-app.set("socketio", io);
-
-// Khi có kết nối từ client
-io.on("connection", (socket) => {
-  console.log("🔥 New client connected:", socket.id);
-
-  socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
-  });
-});
+ 
+ const app = express();
+ const server = http.createServer(app); // Tạo HTTP server từ Express
+ const io = new Server(server, {
+   cors: {
+     origin: "*",
+     methods: ["GET", "POST"],
+   },
+ });
+ 
+ // Kết nối MongoDB
+ connectDB();
+ 
+ // Middleware
+ app.use(express.json());
+ app.use(cors());
+ app.use('/uploads', express.static('uploads'));
+ 
+ // Lưu Socket.io vào app để sử dụng trong controller
+ app.set("socketio", io);
+ 
+ // Khi có kết nối từ client
+ io.on("connection", (socket) => {
+   console.log("🔥 New client connected:", socket.id);
+ 
+   socket.on("disconnect", () => {
+     console.log("❌ Client disconnected:", socket.id);
+   });
+ });
 
 // Import Routes
-const authRoutes = require("./routes/auth");
-const adminRoutes = require("./routes/admin");
+ const authRoutes = require("./routes/auth");
+ const adminRoutes = require("./routes/admin");
 const blogRoutes = require("./routes/blog");
 const meetingRoutes = require("./routes/meeting");
 const messageRoutes = require("./routes/message");
@@ -60,11 +61,11 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/notification', notificationRoutes);
 app.use('/api/attendance', attendanceRoutes);
-app.use('/api/schedule', scheduleRoutes);
-app.use('/api/assign-student', assignStudentRoutes);
-app.use('/api/assign-tutor', assignTutorRoutes);
-app.use('/api/class', classRoutes);
-app.use('/api/like', likeRoutes);
+ app.use('/api/schedule', scheduleRoutes);
+ app.use('/api/assign-student', assignStudentRoutes);
+ app.use('/api/assign-tutor', assignTutorRoutes);
+ app.use('/api/class', classRoutes);
+ app.use('/api/like', likeRoutes);
 
 // Test route
 app.get("/", (req, res) => {

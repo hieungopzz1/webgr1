@@ -6,8 +6,9 @@ const TutorSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, default: "Tutor" },
-  avatar: { type: String }
-});
+  avatar: { type: String },
+  classes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }] // Liên kết với danh sách lớp dạy
+}, { timestamps: true });
 
 const Tutor = mongoose.model("Tutor", TutorSchema);
 module.exports = Tutor;

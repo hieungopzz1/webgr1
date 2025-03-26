@@ -3,9 +3,40 @@ const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
 const Document = require("../models/Document");
 const Blog = require("../models/Blog");
+const Class = require("../models/Class");
+const Attendance = require("../models/Attendance");
 const bcrypt = require("bcrypt");
 const fs = require("fs");
 const path = require("path");
+
+const getAdminDashboard = async(req, res, next) =>{
+  try {
+    const totalStudents = await Student.countDocuments();
+    const totalTutors = await Tutor.countDocuments();
+    const totalClasses = await Class.countDocuments();
+
+    const attendanceRecords = await Attendance.find();
+    const presentCount = attendanceRecords.filter(a => a.status === "Present").length;
+    const absentCount = attendanceRecords.filter(a => a.status === "Absent").length;
+
+    const dashboardData = {
+      totalStudents,
+      totalTutors,
+      totalClasses,
+      presentCount,
+      absentCount,
+    };
+
+    // // Lấy socket.io từ app và gửi dữ liệu realtime
+    // const io = req.app.get("socketio");
+    // io.emit("dashboardData", dashboardData);
+
+    res.json(dashboardData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+
+}
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role, student_ID, major } = req.body;
@@ -153,4 +184,5 @@ module.exports = {
   deleteUser,
   getAllUsers,
   getUserById,
+  getAdminDashboard,
 };

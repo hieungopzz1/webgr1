@@ -1,6 +1,8 @@
 const Class = require('../models/Class')
 const AssignStudent = require('../models/AssignStudent')
 const AssignTutor = require('../models/AssignTutor')
+
+
 //quan ly lop hoc
 const createClass = async (req, res) => {
   try {
@@ -8,18 +10,25 @@ const createClass = async (req, res) => {
     if (!class_name || !major || !subject) {
       return res.status(400).json({ message: "All fields are required" });
     }
+
     const existingClass = await Class.findOne({ class_name });
     if (existingClass) {
       return res.status(400).json({ message: "Class already exists" });
     }
-    const newClass = new Class({ class_name, major, subject });
 
+    const newClass = new Class({ class_name, major, subject });
     await newClass.save();
+
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message: "A new class has been added!", class: newClass });
+
     res.status(201).json({ message: "Class created successfully", class: newClass });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
+};
+
+
 // const updateClass = async (req, res) => {
 //   try {
 //     const { classId } = req.params;

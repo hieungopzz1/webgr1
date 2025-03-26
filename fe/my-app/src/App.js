@@ -5,6 +5,7 @@ import AuthLayout from './layouts/authLayout/AuthLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/staff/Register';
 import AssignTutor from './pages/staff/AssignClass';
+import StaffDashboard from './pages/staff/StaffDashboard';
 import Settings from './pages/Settings/Settings';
 import Message from './pages/Message/Message';
 import Home from './pages/Home';
@@ -64,7 +65,14 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          
+                    <Route
+            path={ROUTES.DASHBOARD}
+            element={
+              <ProtectedRoute>
+                <StaffDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/assign-tutor"
             element={

@@ -15,7 +15,9 @@ const StaffDashboard = () => {
     totalAssignedStudents:0,
     totalAssignedTutors:0,
     totalUnassignedTutors:0,
-    totalSchedules:0
+    totalSchedules:0,
+    totalClassAssigned:0,
+    totalClassUnassigned:0
   });
 
   const fetchDashboardData = async () => {
@@ -56,6 +58,8 @@ const StaffDashboard = () => {
         <p><strong>Số sinh viên dã có lớp:</strong> {stats.totalAssignedStudents}</p>
         <p><strong>Số giang viên chưa có lớp:</strong> {stats.totalUnassignedTutors}</p>
         <p><strong>Số giang viên dã có lớp:</strong> {stats.totalAssignedTutors}</p>
+        <p><strong>Số lớp chưa được phân bổ:</strong> {stats.totalClassUnassigned}</p>
+        <p><strong>Số lớp đã được phân bổ:</strong> {stats.totalClassAssigned}</p>
       </div>
     </div>
   );

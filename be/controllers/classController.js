@@ -29,6 +29,22 @@ const createClass = async (req, res) => {
 };
 
 
+//lay ra cac lop chua duoc phan
+const getUnassignedClasses = async (req, res) => {
+  try {
+    // Lấy danh sách các class đã có sinh viên được gán
+    const assignedClassIds = await AssignStudent.distinct("class") && await AssignTutor.distinct("class");
+
+    // Lọc ra các class chưa được phân bổ (không có trong danh sách assignedClassIds)
+    const unassignedClasses = await Class.find({
+      _id: { $nin: assignedClassIds }
+    }).select("_id class_name major subject");
+
+    res.status(200).json({messages: "Successfully",unassignedClasses});
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 // const updateClass = async (req, res) => {
 //   try {
 //     const { classId } = req.params;
@@ -92,4 +108,4 @@ const getUsersInClass  = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-module.exports = {createClass, getAllClasses, getClassById,getUsersInClass}
+module.exports = {createClass, getAllClasses, getClassById,getUsersInClass,getUnassignedClasses}

@@ -22,28 +22,38 @@ const getAdminDashboard = async (req, res, next) => {
     const attendanceRecords = await Attendance.find();
     const presentCount = attendanceRecords.filter(a => a.status === "Present").length;
     const absentCount = attendanceRecords.filter(a => a.status === "Absent").length;
-
+    
+    //lay ra cac student co lop
     const assignedStudentIds = await AssignStudent.distinct("student");
 
     const unassignedStudents = await Student.find({
       _id: { $nin: assignedStudentIds },
       role: "Student",
-    }).select("_id student_ID firstName lastName email");
+    })
 
     const totalUnassignedStudents = unassignedStudents.length;
     const totalAssignedStudents = assignedStudentIds.length;
 
-
+    //lay ra cac tutor co lop
     const assignedTutorIds = await AssignTutor.distinct("tutor");
 
     const unassignedTutors = await Tutor.find({
       _id: { $nin: assignedTutorIds },
       role: "Tutor",
-    }).select("_id firstName lastName email");
+    })
 
     const totalUnassignedTutors = unassignedTutors.length;
     const totalAssignedTutors = assignedTutorIds.length;
 
+    //lay ra cac lop duoc phan bo
+    const assignedClassIds = await AssignStudent.distinct("class") && await AssignTutor.distinct("class")  ;
+    console.log(assignedClassIds)
+    // Lọc ra các class chưa được phân bổ (không có trong danh sách assignedClassIds)
+    const unassignedClasses = await Class.find({
+      _id: { $nin: assignedClassIds }
+    })
+    const totalClassAssigned = assignedClassIds.length;
+    const totalClassUnassigned = unassignedClasses.length;
 
     const dashboardData = {
       totalStudents,
@@ -52,11 +62,12 @@ const getAdminDashboard = async (req, res, next) => {
       presentCount,
       absentCount,
       totalUnassignedStudents, 
-      unassignedStudents,     
       totalAssignedStudents,
       totalUnassignedTutors,
       totalAssignedTutors,
-      totalSchedules
+      totalSchedules,
+      totalClassAssigned,
+      totalClassUnassigned,
     };
 
     res.json(dashboardData);

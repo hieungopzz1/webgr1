@@ -8,5 +8,7 @@ router.post("/create-class",authenticateUser,authorizeRole(["Admin"]), classCont
 router.get("/get-all-class", classController.getAllClasses);
 router.get("/get-class/:classId", classController.getClassById);
 router.get("/:classId/users", classController.getUsersInClass );
+router.get("/unassign", classController.getUnassignedClasses );
+
 
 module.exports = router;

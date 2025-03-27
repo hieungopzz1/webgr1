@@ -10,6 +10,7 @@ const Button = ({
   variant = 'primary', // primary, secondary, outline, danger
   size = 'medium', // small, medium, large
   fullWidth = false,
+  noHover = false,
   icon = null // optional icon component
 }) => {
   return (
@@ -21,6 +22,7 @@ const Button = ({
         custom-button--${variant} 
         custom-button--${size}
         ${fullWidth ? 'custom-button--full-width' : ''}
+        ${noHover ? 'custom-button--no-hover' : ''}
         ${className}
       `} 
       disabled={disabled}

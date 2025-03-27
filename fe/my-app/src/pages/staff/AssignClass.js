@@ -5,18 +5,18 @@ import InputField from '../../components/inputField/InputField';
 import Button from '../../components/button/Button';
 import Loader from '../../components/loader/Loader';
 import Modal from '../../components/modal/Modal';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
 const CreateClassForm = memo(({ onSubmit, loading }) => {
   const [className, setClassName] = useState('');
-  const [major, setMajor] = useState('');
+  const [major, setMajor] = useState('IT');
   const [subject, setSubject] = useState('');
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
     onSubmit({ className, major, subject });
-    // Reset form after submit
     setClassName('');
-    setMajor('');
+    setMajor('IT');
     setSubject('');
   }, [className, major, subject, onSubmit]);
 
@@ -35,13 +35,18 @@ const CreateClassForm = memo(({ onSubmit, loading }) => {
         </div>
         
         <div className="form-group">
-          <InputField 
-            label="Major*"
+          <label htmlFor="major">Major*</label>
+          <select 
+            id="major"
             value={major} 
             onChange={(e) => setMajor(e.target.value)}
             required
-            fullWidth
-          />
+            className="form-select"
+          >
+            <option value="IT">IT</option>
+            <option value="Business">Business</option>
+            <option value="Design">Design</option>
+          </select>
         </div>
         
         <div className="form-group">
@@ -91,7 +96,7 @@ const ClassesList = memo(({ classes, onClassClick, onDeleteClass }) => {
             <td>
               <Button 
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent row click
+                  e.stopPropagation();
                   onDeleteClass(classItem._id);
                 }}
                 variant="danger"
@@ -266,18 +271,30 @@ const ClassDetailModal = memo(({ isOpen, onClose, classData, onDeleteTutor, onDe
   const [classTutors, setClassTutors] = useState([]);
   const [classStudents, setClassStudents] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   
   useEffect(() => {
     if (isOpen && classData) {
       setDataLoading(true);
+      setFetchError(false);
+      
       Promise.all([
-        api.get(`/api/assign/get-tutors/${classData._id}`),
+        api.get(`/api/assign/get-tutors/${classData._id}`)
+          .catch(err => {
+            console.error(`Error fetching tutors: ${err.message}`, err);
+            return { data: [] };
+          }),
         api.get(`/api/assign/get-students/${classData._id}`)
+          .catch(err => {
+            console.error(`Error fetching students: ${err.message}`, err);
+            return { data: [] };
+          })
       ]).then(([tutorsResponse, studentsResponse]) => {
         setClassTutors(tutorsResponse.data || []);
         setClassStudents(studentsResponse.data || []);
       }).catch(err => {
-        console.error('Error fetching class details:', err);
+        console.error('Error in Promise.all:', err);
+        setFetchError(true);
       }).finally(() => {
         setDataLoading(false);
       });
@@ -291,6 +308,10 @@ const ClassDetailModal = memo(({ isOpen, onClose, classData, onDeleteTutor, onDe
       {dataLoading ? (
         <div className="loading-container">
           <Loader />
+        </div>
+      ) : fetchError ? (
+        <div className="error-message">
+          <p>Failed to fetch class details. Please try again later.</p>
         </div>
       ) : (
         <div className="class-details">
@@ -388,6 +409,8 @@ const AssignClass = () => {
   const [tutors, setTutors] = useState([]);
   const [students, setStudents] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedClassForTutor, setSelectedClassForTutor] = useState('');
+  const [selectedClassForStudent, setSelectedClassForStudent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -395,6 +418,9 @@ const AssignClass = () => {
   
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedClassDetail, setSelectedClassDetail] = useState(null);
+  
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState(null);
 
   const fetchClasses = useCallback(async () => {
     try {
@@ -462,9 +488,14 @@ const AssignClass = () => {
     setSuccess('');
   }, []);
 
-  const handleClassChange = useCallback((e) => {
+  const handleClassChangeForTutor = useCallback((e) => {
     const classId = e.target.value;
-    setSelectedClass(classId);
+    setSelectedClassForTutor(classId);
+  }, []);
+
+  const handleClassChangeForStudent = useCallback((e) => {
+    const classId = e.target.value;
+    setSelectedClassForStudent(classId);
   }, []);
 
   const handleCreateClass = useCallback(async (formData) => {
@@ -476,26 +507,35 @@ const AssignClass = () => {
     setLoading(true);
     setError('');
     setSuccess('');
+    
+    const payload = {
+      class_name: formData.className.trim(),
+      major: formData.major.trim(),
+      subject: formData.subject.trim()
+    };
 
     try {
-      await api.post('/api/class/create-class', {
-        class_name: formData.className,
-        major: formData.major,
-        subject: formData.subject
-      });
+      console.log('Sending class data:', payload);
+      
+      await api.post('/api/class/create-class', payload);
       
       setSuccess('Class created successfully');
-      fetchClasses();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create class');
       console.error('Error creating class:', err);
+      
     } finally {
+      try {
+        await fetchClasses();
+      } catch (fetchError) {
+        console.error('Error fetching classes after creation:', fetchError);
+      }
+      
       setLoading(false);
     }
   }, [fetchClasses]);
 
   const handleAssignTutor = useCallback(async (tutorId) => {
-    if (!selectedClass || !tutorId) {
+    if (!selectedClassForTutor || !tutorId) {
       setError('Please select a class and a tutor');
       return;
     }
@@ -509,13 +549,13 @@ const AssignClass = () => {
       
       console.log('Sending tutor assignment:', {
         tutorIds: [tutorId], 
-        classId: selectedClass,
+        classId: selectedClassForTutor,
         adminId: userData.id
       });
       
       await api.post('/api/assign/assign-tutor', {
         tutorIds: [tutorId], 
-        classId: selectedClass,
+        classId: selectedClassForTutor,
         adminId: userData.id
       });
       
@@ -538,10 +578,10 @@ const AssignClass = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedClass]);
+  }, [selectedClassForTutor]);
 
   const handleSingleAssign = useCallback(async (studentId) => {
-    if (!selectedClass || !studentId) {
+    if (!selectedClassForStudent || !studentId) {
       setError('Please select one class and one student');
       return;
     }
@@ -552,20 +592,21 @@ const AssignClass = () => {
 
     try {
       const userData = JSON.parse(localStorage.getItem('userData'));
+      
       await api.post('/api/assign/assign-student', {
-        assignedBy: userData.id,
-        classId: selectedClass,
-        studentId: studentId
+        studentIds: [studentId],
+        classId: selectedClassForStudent,
+        adminId: userData.id
       });
       
       setSuccess('Successfully assigned student to class');
     } catch (err) {
       let errorMessage = err.response?.data?.message || 'Failed to assign student to class';
       
-      if (errorMessage.includes('đã được gán vào lớp')) {
+      if (errorMessage.includes('Students have already been assigned to this class')) {
         errorMessage = 'This student has already been assigned to this class';
-      } else if (errorMessage.includes('Sinh viên không tồn tại')) {
-        errorMessage = 'Student does not exist';
+      } else if (errorMessage.includes('Some IDs are not valid Students')) {
+        errorMessage = 'Invalid student selected';
       } else if (errorMessage.includes('Class không tồn tại')) {
         errorMessage = 'Class does not exist';
       }
@@ -575,10 +616,10 @@ const AssignClass = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedClass]);
+  }, [selectedClassForStudent]);
 
   const handleMultipleAssign = useCallback(async (studentIds) => {
-    if (!selectedClass || !studentIds.length) {
+    if (!selectedClassForStudent || !studentIds.length) {
       setError('Please select one class and at least one student');
       return;
     }
@@ -591,7 +632,7 @@ const AssignClass = () => {
       const userData = JSON.parse(localStorage.getItem('userData'));
       await api.put('/api/assign/update-assign', {
         adminId: userData.id,
-        classId: selectedClass,
+        classId: selectedClassForStudent,
         addStudents: studentIds,
         removeStudents: []
       });
@@ -613,7 +654,7 @@ const AssignClass = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedClass]);
+  }, [selectedClassForStudent]);
 
   const handleDeleteAssignment = useCallback(async (assignmentId) => {
     try {
@@ -646,16 +687,19 @@ const AssignClass = () => {
   }, [isDetailModalOpen, selectedClassDetail]);
 
   const handleDeleteClass = useCallback(async (classId) => {
-    if (!window.confirm('Are you sure you want to delete this class? All assignments will be deleted too.')) {
-      return;
-    }
+    setClassToDelete(classId);
+    setIsConfirmModalOpen(true);
+  }, []);
+  
+  const confirmDeleteClass = useCallback(async () => {
+    if (!classToDelete) return;
     
     setLoading(true);
     setError('');
     setSuccess('');
     
     try {
-      await api.delete(`/api/class/delete/${classId}`);
+      await api.delete(`/api/class/delete-class/${classToDelete}`);
       setSuccess('Class deleted successfully');
       fetchClasses();
     } catch (err) {
@@ -664,9 +708,11 @@ const AssignClass = () => {
       console.error('Error deleting class:', err);
     } finally {
       setLoading(false);
+      setIsConfirmModalOpen(false);
+      setClassToDelete(null);
     }
-  }, [fetchClasses]);
-  
+  }, [classToDelete, fetchClasses]);
+
   const handleClassClick = useCallback((classData) => {
     setSelectedClassDetail(classData);
     setIsDetailModalOpen(true);
@@ -674,6 +720,9 @@ const AssignClass = () => {
   
   const handleDeleteTutorFromClass = useCallback(async (assignmentId) => {
     setLoading(true);
+    setError('');
+    setSuccess('');
+    
     try {
       await api.delete('/api/assign/remove-tutor', { 
         data: { assignmentId }
@@ -693,6 +742,7 @@ const AssignClass = () => {
         errorMessage = err.response.data.message;
       }
       setError(errorMessage);
+      console.error('Error removing tutor:', err);
     } finally {
       setLoading(false);
     }
@@ -711,8 +761,8 @@ const AssignClass = () => {
           onClassClick={handleClassClick}
           onDeleteClass={handleDeleteClass}
         />
-      </div>
-      
+            </div>
+
       <ClassDetailModal 
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
@@ -734,39 +784,69 @@ const AssignClass = () => {
     handleDeleteAssignment
   ]);
 
-  const renderAssignmentsTab = useCallback(() => (
-    <div className="assignments-tab">
+  const renderAssignTutorsTab = useCallback(() => (
+    <div className="assign-tutors-tab">
       {/* Class Selection */}
       <div className="class-selection">
         <h3>Select Class</h3>
-        <div className="form-group">
-          <select 
-            value={selectedClass} 
-            onChange={handleClassChange}
+            <div className="form-group">
+              <select 
+            value={selectedClassForTutor} 
+            onChange={handleClassChangeForTutor}
           >
             <option value="">Choose a class...</option>
             {classes.map(classItem => (
               <option key={classItem._id} value={classItem._id}>
                 {classItem.class_name}
-              </option>
-            ))}
-          </select>
+                  </option>
+                ))}
+              </select>
         </div>
-      </div>
+            </div>
 
-      {/* Assignment Forms */}
-      {selectedClass && (
+      {/* Tutor Assignment Form */}
+      {selectedClassForTutor && (
         <div className="assign-forms-container">
           <AssignTutorForm 
             tutors={tutors} 
-            selectedClass={selectedClass} 
+            selectedClass={selectedClassForTutor} 
             onSubmit={handleAssignTutor} 
             loading={loading} 
           />
+        </div>
+      )}
+    </div>
+  ), [
+    classes, tutors, selectedClassForTutor, loading,
+    handleClassChangeForTutor, handleAssignTutor
+  ]);
 
+  const renderAssignStudentsTab = useCallback(() => (
+    <div className="assign-students-tab">
+      {/* Class Selection */}
+      <div className="class-selection">
+        <h3>Select Class</h3>
+            <div className="form-group">
+              <select 
+            value={selectedClassForStudent} 
+            onChange={handleClassChangeForStudent}
+          >
+            <option value="">Choose a class...</option>
+            {classes.map(classItem => (
+              <option key={classItem._id} value={classItem._id}>
+                {classItem.class_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            </div>
+
+      {/* Student Assignment Forms */}
+      {selectedClassForStudent && (
+        <div className="assign-forms-container">
           <AssignStudentsForm 
             students={students} 
-            selectedClass={selectedClass} 
+            selectedClass={selectedClassForStudent} 
             onSingleAssign={handleSingleAssign} 
             onMultipleAssign={handleMultipleAssign} 
             loading={loading} 
@@ -775,9 +855,8 @@ const AssignClass = () => {
       )}
     </div>
   ), [
-    classes, students, tutors, selectedClass, loading,
-    handleClassChange, handleAssignTutor, handleSingleAssign, 
-    handleMultipleAssign
+    classes, students, selectedClassForStudent, loading,
+    handleClassChangeForStudent, handleSingleAssign, handleMultipleAssign
   ]);
 
   return (
@@ -787,15 +866,25 @@ const AssignClass = () => {
           className={activeTab === 'classes' ? 'active' : ''}
           onClick={() => handleTabChange('classes')}
           variant={activeTab === 'classes' ? 'primary' : 'secondary'}
+          noHover={true}
         >
           Manage Classes
         </Button>
         <Button 
-          className={activeTab === 'assignments' ? 'active' : ''}
-          onClick={() => handleTabChange('assignments')}
-          variant={activeTab === 'assignments' ? 'primary' : 'secondary'}
+          className={activeTab === 'assignTutors' ? 'active' : ''}
+          onClick={() => handleTabChange('assignTutors')}
+          variant={activeTab === 'assignTutors' ? 'primary' : 'secondary'}
+          noHover={true}
         >
-          Assign to Classes
+          Assign Tutors
+        </Button>
+        <Button 
+          className={activeTab === 'assignStudents' ? 'active' : ''}
+          onClick={() => handleTabChange('assignStudents')}
+          variant={activeTab === 'assignStudents' ? 'primary' : 'secondary'}
+          noHover={true}
+        >
+          Assign Students
         </Button>
       </div>
 
@@ -808,9 +897,20 @@ const AssignClass = () => {
         </div>
       ) : (
         <div className="tab-content">
-          {activeTab === 'classes' ? renderClassesTab() : renderAssignmentsTab()}
-        </div>
+          {activeTab === 'classes' && renderClassesTab()}
+          {activeTab === 'assignTutors' && renderAssignTutorsTab()}
+          {activeTab === 'assignStudents' && renderAssignStudentsTab()}
+      </div>
       )}
+      
+      {/* Delete Class ConfirmModal*/}
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDeleteClass}
+        title="Delete Class"
+        message="Are you sure you want to delete this class? All assignments will be deleted too."
+      />
     </div>
   );
 };

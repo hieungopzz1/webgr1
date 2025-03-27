@@ -112,64 +112,11 @@ const getAssignTutorInClass = async (req, res) => {
   }
 };
 
-const updateAssignTutor = async (req, res) => {
-  try {
-    const { classId, adminId, addTutors, removeTutors } = req.body;
 
-    if (!classId || !adminId) {
-      return res.status(400).json({ message: "Thiếu thông tin cần thiết!" });
-    }
-
-    const classData = await Class.findById(classId);
-    if (!classData) {
-      return res.status(404).json({ message: "Class không tồn tại!" });
-    }
-
-    const validTutors = await Tutor.find({
-      _id: { $in: [...addTutors, ...removeTutors] },
-    }).select("_id");
-
-    const validTutorIds = validTutors.map((t) => t._id.toString());
-
-    const invalidTutors = [...addTutors, ...removeTutors].filter(
-      (id) => !validTutorIds.includes(id)
-    );
-    if (invalidTutors.length > 0) {
-      return res.status(400).json({
-        message: "Một số Tutor không hợp lệ!",
-        invalidTutors,
-      });
-    }
-
-    if (addTutors.length > 0) {
-      const newAssignments = addTutors.map((tutorId) => ({
-        tutor: tutorId,
-        class: classId,
-        assignedBy: adminId,
-      }));
-
-      await AssignTutor.insertMany(newAssignments);
-    }
-
-    if (removeTutors.length > 0) {
-      await AssignTutor.deleteMany({
-        tutor: { $in: removeTutors },
-        class: classId,
-      });
-    }
-
-    res.status(200).json({
-      message: "Cập nhật danh sách Tutor thành công!",
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi server!", error: error.message });
-  }
-};
 const removeTutor = async (req, res) => { };
 module.exports = {
   assignTutor,
   getAssignTutorInClass,
   getAllTutors,
   removeTutor,
-  updateAssignTutor
 };

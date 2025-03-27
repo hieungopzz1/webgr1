@@ -5,7 +5,7 @@ const { authenticateUser, authorizeRole } = require("../middleware/authMiddlewar
 
 //quan ly phan bo sinh vien va tutor
 router.get("/get-all-tutors",authenticateUser,authorizeRole(["Admin"]), assignTutorController.getAllTutors);
-router.post("/assign-tutor",authenticateUser,authorizeRole(["Admin"]), assignTutorController.assignTutor);
+router.post("/",authenticateUser,authorizeRole(["Admin"]), assignTutorController.assignTutor);
 router.get("/get-tutors/:classId", authenticateUser,authorizeRole(["Admin"]),assignTutorController.getAssignTutorInClass);
 router.delete("/remove",authenticateUser,authorizeRole(["Admin"]),assignTutorController.removeTutor );
 module.exports = router;

@@ -12,7 +12,6 @@ router.post("/assign-student",authenticateUser,authorizeRole(["Admin"]), assignS
 router.get("/get-students/:classId",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getAssignStudentInClass);
 router.delete("/remove",authenticateUser,authorizeRole(["Admin"]), assignStudentController.removeStudent );
 router.delete("/remove-all/:classId",authenticateUser, authorizeRole(["Admin"]), assignStudentController.removeAllStudents);
-router.put("/update-assign",authenticateUser,authorizeRole(["Admin"]), assignStudentController.updateAssignedStudents)
 
 
 module.exports = router;

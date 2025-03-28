@@ -22,10 +22,10 @@ const StaffDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get('/api/admin/dashboard');
+      const response = await api.get('/api/dashboard/admin');
       setStats(response.data);
     } catch (err) {
-      console.error('Lỗi khi tải dữ liệu:', err);
+      console.error('Error for get data:', err);
     }
   };
 
@@ -34,7 +34,6 @@ const StaffDashboard = () => {
 
     // 🔥 Khi có sự kiện 'updateDashboard', gọi lại API
     socket.on("updateDashboard", () => {
-      console.log("🔄 Admin thêm class mới → Cập nhật Dashboard");
       fetchDashboardData();  // Gọi lại API để cập nhật dữ liệu
     });
 

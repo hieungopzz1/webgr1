@@ -12,69 +12,6 @@ const bcrypt = require("bcrypt");
 const fs = require("fs");
 const path = require("path");
 
-const getAdminDashboard = async (req, res, next) => {
-  try {
-    const totalStudents = await Student.countDocuments();
-    const totalTutors = await Tutor.countDocuments();
-    const totalClasses = await Class.countDocuments();
-    const totalSchedules = await Schedule.countDocuments();
-
-    const attendanceRecords = await Attendance.find();
-    const presentCount = attendanceRecords.filter(a => a.status === "Present").length;
-    const absentCount = attendanceRecords.filter(a => a.status === "Absent").length;
-    
-    //lay ra cac student co lop
-    const assignedStudentIds = await AssignStudent.distinct("student");
-
-    const unassignedStudents = await Student.find({
-      _id: { $nin: assignedStudentIds },
-      role: "Student",
-    })
-
-    const totalUnassignedStudents = unassignedStudents.length;
-    const totalAssignedStudents = assignedStudentIds.length;
-
-    //lay ra cac tutor co lop
-    const assignedTutorIds = await AssignTutor.distinct("tutor");
-
-    const unassignedTutors = await Tutor.find({
-      _id: { $nin: assignedTutorIds },
-      role: "Tutor",
-    })
-
-    const totalUnassignedTutors = unassignedTutors.length;
-    const totalAssignedTutors = assignedTutorIds.length;
-
-    //lay ra cac lop duoc phan bo
-    const assignedClassIds = await AssignStudent.distinct("class") && await AssignTutor.distinct("class")  ;
-    console.log(assignedClassIds)
-    // Lọc ra các class chưa được phân bổ (không có trong danh sách assignedClassIds)
-    const unassignedClasses = await Class.find({
-      _id: { $nin: assignedClassIds }
-    })
-    const totalClassAssigned = assignedClassIds.length;
-    const totalClassUnassigned = unassignedClasses.length;
-
-    const dashboardData = {
-      totalStudents,
-      totalTutors,
-      totalClasses,
-      presentCount,
-      absentCount,
-      totalUnassignedStudents, 
-      totalAssignedStudents,
-      totalUnassignedTutors,
-      totalAssignedTutors,
-      totalSchedules,
-      totalClassAssigned,
-      totalClassUnassigned,
-    };
-
-    res.json(dashboardData);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
 const createAccount = async (req, res) => {
   try {
@@ -186,46 +123,28 @@ const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    let deletedUser = await Student.findById(id);
-    if (deletedUser) {
-      const blogs = await Blog.find({ student_id: id });
-      if (blogs.length > 0) {
-        await Blog.deleteMany({ student_id: id });
-      }
-
-      const documents = await Document.find({ student_id: id });
-      if (documents.length > 0) {
-        await Document.deleteMany({ student_id: id });
-      }
-
-      await Student.findByIdAndDelete(id);
-      return res.status(200).json({ message: "Student and related data deleted", deletedUser });
+    // Xóa Student
+    const deletedStudent = await Student.findOneAndDelete({ _id: id });
+    if (deletedStudent) {
+      return res.status(200).json({ message: "Student and related data deleted", deletedUser: deletedStudent });
     }
 
-    deletedUser = await Tutor.findById(id);
-    if (deletedUser) {
-      const blogs = await Blog.find({ tutor_id: id });
-      if (blogs.length > 0) {
-        await Blog.deleteMany({ tutor_id: id });
-      }
-      const documents = await Document.find({ tutor_id: id });
-      if (documents.length > 0) {
-        await Document.deleteMany({ tutor_id: id });
-      }
-      await Tutor.findByIdAndDelete(id);
-      return res.status(200).json({ message: "Tutor and related data deleted", deletedUser });
+    // Xóa Tutor
+    const deletedTutor = await Tutor.findOneAndDelete({ _id: id });
+    if (deletedTutor) {
+      return res.status(200).json({ message: "Tutor and related data deleted", deletedUser: deletedTutor });
     }
 
-    res.status(404).json({ message: "User not found" });
+    return res.status(404).json({ message: "User not found" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 module.exports = {
   createAccount,
   deleteUser,
   getAllUsers,
   getUserById,
-  getAdminDashboard,
 };

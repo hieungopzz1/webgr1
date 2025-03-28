@@ -32,16 +32,15 @@ const toggleLike = async (req, res) => {
 
 const getLikesByBlog = async (req, res) => {
   try {
-    const { blogId } = req.params;
+    const { blogId, userId } = req.params;
+    const like = await Like.findOne({ blogId, userId });
 
-    const likes = await Like.find({ blogId }).populate(
-      "userId",
-      "firstName lastName"
-    );
+    const likeCount = await Like.countDocuments({ blogId });
 
-    res.status(200).json({ message: "Lấy danh sách like thành công!", likes });
+    res.json({ liked: !!like, likeCount });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error checking like:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 

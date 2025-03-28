@@ -68,6 +68,8 @@ const { Server } = require("socket.io");
 // Import các routes
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
+// const tutorRoutes = require("./routes/tutor");
+// const studentRoutes = require("./routes/student");
 const blogRoutes = require("./routes/blog");
 const meetingRoutes = require("./routes/meeting");
 const messageRoutes = require("./routes/message");
@@ -102,15 +104,28 @@ app.use('/uploads', express.static('uploads'));
 // Lưu Socket.io vào app để sử dụng trong controller
 app.set("socketio", io);
 
-// WebSocket: Xử lý sự kiện khi client kết nối
-// 🔥 Khi có client kết nối
+// 🔥 Quản lý user online
+const onlineUsers = new Map();
+app.set("onlineUsers", onlineUsers);
+
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+  console.log("✅ New client connected:", socket.id);
+
+  socket.on("register", (userId) => {
+    console.log(`📝 Register user: ${userId} with socket ID: ${socket.id}`);
+    onlineUsers.set(userId, socket.id);
+  });
 
   socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+    const userId = [...onlineUsers.entries()].find(([key, value]) => value === socket.id)?.[0];
+    if (userId) {
+      onlineUsers.delete(userId);
+      console.log(`❌ User ${userId} disconnected.`);
+    }
   });
 });
+
+
 // Kết nối MongoDB
 connectDB();
 
@@ -133,8 +148,9 @@ app.use('/api/assign-student', assignStudentRoutes);
 app.use('/api/assign-tutor', assignTutorRoutes);
 app.use('/api/class', classRoutes);
 app.use('/api/like', likeRoutes);
-
-
+// app.use('/api/tutor', tutorRoutes);
+// app.use('/api/student', studentRoutes);
+app.use('/api/dashboard', require("./routes/dashboard")); // Route dashboard
 
 // Chạy server
 const PORT = process.env.PORT || 5001;

@@ -48,6 +48,7 @@ const addBlog = async (req, res) => {
   try {
     const { title, content, tutor_id, student_id } = req.body;
     const image = req.file ? `/uploads/blog/${req.file.filename}` : null;
+
     if (!tutor_id && !student_id) {
       if (image) removeImage(image);
       return res.status(400).json({ message: "Either tutor_id or student_id is required" });
@@ -70,12 +71,37 @@ const addBlog = async (req, res) => {
     });
 
     await newBlog.save();
-    res.status(201).json({ message: "Blog created successfully", blog: newBlog });
+
+    // Realtime update for respective dashboards
+    const io = req.app.get("socketio");
+    const onlineUsers = req.app.get("onlineUsers");
+    
+    console.log("🟢 Current online users:", onlineUsers);
+    
+    const userId = student_id || tutor_id;
+    console.log("🟡 User ID:", userId);
+    
+    const socketId = onlineUsers.get(userId);
+    console.log("🔴 Socket ID:", socketId);
+    if (socketId) {
+      io.to(socketId).emit("updateDashboard", {
+        message: "A new blog has been added!",
+        newBlog,
+      });
+    }
+
+    const populatedBlog = await Blog.findById(newBlog._id)
+      .populate("tutor_id", "firstName lastName avatar")
+      .populate("student_id", "firstName lastName avatar");
+
+    res.status(201).json({ message: "Blog created successfully", blog: populatedBlog });
   } catch (error) {
     if (req.file) removeImage(`/uploads/blog/${req.file.filename}`);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
 const removeImage = (filePath) => {
   const fullPath = path.join(__dirname, "..", filePath);
   fs.unlink(fullPath, (err) => {
@@ -223,15 +249,19 @@ const deleteBlog = async (req, res) => {
       return res.status(404).json({ message: "Blog not exist" });
     }
 
-    const deletedComment = await Comment.deleteMany({ blog_id });
+    await Promise.all([
+      Comment.deleteMany({ blog_id }),
+      Like.deleteMany({ blog_id })
+    ]);
 
-    return res
-      .status(200)
-      .json({ message: "Blog and related comments deleted", deletedComment });
+    return res.status(200).json({ 
+      message: "Blog, likes, and comments deleted successfully!" 
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 //quan ly comment

@@ -42,9 +42,10 @@ export const ROUTES = {
   SETTINGS: '/settings',
   MESSAGES: '/messages',
   MESSAGE_DETAIL: (id) => `/messages/${id}`,
-  DASHBOARD: '/dashboard',
+  DASHBOARD: (role) => `${role}/dashboard/`,
   PROFILE: '/profile',
 };
+
 
 // User roles
 export const USER_ROLES = {

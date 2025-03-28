@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './BlogCard.css';
-import { BiDotsHorizontalRounded } from 'react-icons/bi';
-import { AiOutlineHeart, AiFillHeart } from 'react-icons/ai';
-import { FaRegComment } from 'react-icons/fa';
-import { MdEdit, MdDelete } from 'react-icons/md';
-import api from '../../utils/api';
-import ConfirmModal from '../ConfirmModal/ConfirmModal';
-import CreateBlogModal from '../CreateBlogModal/CreateBlogModal';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import "./BlogCard.css";
+import { BiDotsHorizontalRounded } from "react-icons/bi";
+import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
+import { FaRegComment } from "react-icons/fa";
+import { MdEdit, MdDelete } from "react-icons/md";
+import api from "../../utils/api";
+import ConfirmModal from "../ConfirmModal/ConfirmModal";
+import CreateBlogModal from "../CreateBlogModal/CreateBlogModal";
 
 const MAX_CONTENT_LENGTH = 300;
 
@@ -21,31 +21,53 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
   const dropdownRef = useRef(null);
 
   const shouldShowMore = blog.content.length > MAX_CONTENT_LENGTH;
-  const displayContent = isExpanded 
-    ? blog.content 
-    : blog.content.slice(0, blog.content.lastIndexOf(' ', MAX_CONTENT_LENGTH));
+  const displayContent = isExpanded
+    ? blog.content
+    : blog.content.slice(0, blog.content.lastIndexOf(" ", MAX_CONTENT_LENGTH));
 
+  // Lấy thông tin người dùng từ localStorage
   useEffect(() => {
-    // Lấy thông tin user từ localStorage
-    const userData = JSON.parse(localStorage.getItem('userData'));
+    const userData = JSON.parse(localStorage.getItem("userData"));
     setCurrentUser(userData);
-
-    // Thêm event listener để đóng dropdown khi click ra ngoài
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isAuthor = () => {
-    if (!currentUser) return false;
-    
-    const authorId = blog.student_id?._id || blog.tutor_id?._id;
-    return currentUser.id === authorId;
+  // Hàm fetch trạng thái like (dùng useCallback để tránh re-render)
+  const fetchLikeStatus = useCallback(async () => {
+    if (!currentUser || !currentUser.id) return;
+
+    try {
+      const response = await api.get(`/api/like/${blog._id}/${currentUser.id}`);
+      setLiked(response.data.liked);
+    } catch (error) {
+      console.error("Error fetching like status:", error);
+    }
+  }, [blog._id, currentUser]);
+
+  // Gọi API để lấy trạng thái like khi currentUser thay đổi
+  useEffect(() => {
+    if (currentUser) {
+      fetchLikeStatus();
+    }
+  }, [currentUser, fetchLikeStatus]);
+
+  const handleLike = async () => {
+    if (!currentUser || !currentUser.id) {
+      console.error("User is not logged in!");
+      return;
+    }
+
+    try {
+      const response = await api.post(`/api/like`, {
+        blogId: blog._id,
+        userId: currentUser.id,
+        userRole: currentUser.role,
+      });
+
+      setLiked(response.data.liked);
+      fetchLikeStatus();
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
   };
 
   const handleDelete = async () => {
@@ -59,7 +81,7 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
       if (onDelete) onDelete(blog._id);
       setShowConfirmDelete(false);
     } catch (error) {
-      console.error('Error deleting blog:', error);
+      console.error("Error deleting blog:", error);
     }
   };
 
@@ -73,30 +95,62 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
     setShowEditModal(false);
   };
 
+  const author = blog.student_id || blog.tutor_id;
+  const authorName = author
+    ? `${author.firstName} ${author.lastName}`
+    : "Unknown";
+  const authorAvatar = author?.avatar
+    ? `http://localhost:5001${author.avatar}`
+    : "/default-avatar.png";
+
+  const isAuthor = () => {
+    if (!currentUser) return false;
+    const authorId = blog.student_id?._id || blog.tutor_id?._id;
+    return currentUser.id === authorId;
+  };
+
+  // Xử lý click ngoài dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <>
       <div className="blog-card">
         <div className="blog-card__header">
           <div className="blog-card__user-info">
-            <img 
-              src={blog.authorAvatar || "/default-avatar.png"} 
-              alt="user avatar" 
+            <img
+              src={authorAvatar}
+              alt="user avatar"
               className="blog-card__avatar"
             />
-            <span className="blog-card__username">{blog.authorName}</span>
+            <span className="blog-card__username">{authorName}</span>
           </div>
-          
+
           <div className="blog-card__options" ref={dropdownRef}>
-            <BiDotsHorizontalRounded 
-              className="blog-card__more-options" 
+            <BiDotsHorizontalRounded
+              className="blog-card__more-options"
               onClick={() => setShowDropdown(!showDropdown)}
             />
             {showDropdown && isAuthor() && (
               <div className="blog-card__dropdown">
-                <button className="blog-card__dropdown-item" onClick={handleEdit}>
+                <button
+                  className="blog-card__dropdown-item"
+                  onClick={handleEdit}
+                >
                   <MdEdit /> Edit
                 </button>
-                <button className="blog-card__dropdown-item" onClick={handleDelete}>
+                <button
+                  className="blog-card__dropdown-item"
+                  onClick={handleDelete}
+                >
                   <MdDelete /> Delete
                 </button>
               </div>
@@ -106,27 +160,30 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
 
         {blog.image && (
           <div className="blog-card__image-container">
-            <img 
-              src={blog.image} 
-              alt={blog.title || 'Blog image'} 
+            <img
+              src={
+                blog.image.startsWith("http")
+                  ? blog.image
+                  : `http://localhost:5001${blog.image}`
+              }
+              alt={blog.title || "Blog image"}
               className="blog-card__image"
+              onError={(e) => (e.target.src = "/default-image.png")}
             />
           </div>
         )}
 
         <div className="blog-card__content">
-          {blog.title && (
-            <h3 className="blog-card__title">{blog.title}</h3>
-          )}
+          {blog.title && <h3 className="blog-card__title">{blog.title}</h3>}
           <div className="blog-card__description">
             <p>
               {displayContent}
               {shouldShowMore && (
-                <button 
+                <button
                   className="blog-card__show-more"
                   onClick={() => setIsExpanded(!isExpanded)}
                 >
-                  {isExpanded ? ' show less' : ' ...show more'}
+                  {isExpanded ? " show less" : " ...show more"}
                 </button>
               )}
             </p>
@@ -138,13 +195,15 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
 
         <div className="blog-card__actions">
           <div className="blog-card__action-buttons">
-            <button 
-              className="blog-card__action-btn" 
-              onClick={() => setLiked(!liked)}
-            >
-              {liked ? <AiFillHeart className="icon-filled" /> : <AiOutlineHeart />}
+            <button className="blog-card__action-btn" onClick={handleLike}>
+              {liked ? (
+                <AiFillHeart className="icon-filled" />
+              ) : (
+                <AiOutlineHeart />
+              )}
             </button>
-            <button 
+
+            <button
               className="blog-card__action-btn"
               onClick={() => setShowComments(!showComments)}
             >
@@ -172,4 +231,4 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
   );
 };
 
-export default BlogCard; 
+export default BlogCard;

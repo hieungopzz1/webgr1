@@ -1,43 +1,47 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout/MainLayout';
-import AuthLayout from './layouts/authLayout/AuthLayout';
-import Login from './pages/auth/Login';
-import Register from './pages/staff/Register';
-import AssignTutor from './pages/staff/AssignClass';
-import StaffDashboard from './pages/staff/StaffDashboard';
-import Settings from './pages/Settings/Settings';
-import Message from './pages/Message/Message';
-import Home from './pages/Home';
-import Notifications from './components/notification/Notification';
-import { ROUTES } from './utils/constants';
-import { isAuthenticated } from './utils/storage';
-import './App.css';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import MainLayout from "./layouts/MainLayout/MainLayout";
+import AuthLayout from "./layouts/authLayout/AuthLayout";
+import Login from "./pages/auth/Login";
+import Register from "./pages/staff/Register";
+import AssignTutor from "./pages/staff/AssignClass";
+import StaffDashboard from "./pages/staff/StaffDashboard";
+import TutorDashboard from "./pages/tutor/TutorDashboard";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import Settings from "./pages/Settings/Settings";
+import Message from "./pages/Message/Message";
+import Home from "./pages/Home";
+import Notifications from "./components/notification/Notification";
+import { ROUTES } from "./utils/constants";
+import { isAuthenticated } from "./utils/storage";
+import "./App.css";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
-  if (!isAuthenticated()) {
+  const user = isAuthenticated(); // Giả sử hàm này trả về user object
+  if (!user) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  return (
-    <MainLayout>
-      {children}
-    </MainLayout>
-  );
-};
+  // Nếu người dùng cố truy cập `/dashboard`, điều hướng họ đến dashboard theo role
+  if (window.location.pathname === "/dashboard") {
+    return <Navigate to={ROUTES.DASHBOARD(user.role)} replace />;
+  }
 
+  return <MainLayout>{children}</MainLayout>;
+};
 // Public Route component
 const PublicRoute = ({ children, restricted }) => {
   if (isAuthenticated() && restricted) {
     return <Navigate to={ROUTES.HOME} replace />;
   }
 
-  return (
-    <AuthLayout>
-      {children}
-    </AuthLayout>
-  );
+  return <AuthLayout>{children}</AuthLayout>;
 };
 
 const App = () => {
@@ -65,14 +69,34 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-                    <Route
-            path={ROUTES.DASHBOARD}
+          {/* Dashboard theo role */}
+          <Route
+            path={ROUTES.DASHBOARD("admin")}
             element={
               <ProtectedRoute>
                 <StaffDashboard />
               </ProtectedRoute>
             }
           />
+          <Route
+            path={ROUTES.DASHBOARD("tutor")}
+            element={
+              <ProtectedRoute>
+                <TutorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.DASHBOARD("student")}
+            element={
+              <ProtectedRoute>
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Nếu ai vào `/dashboard`, điều hướng họ đến dashboard theo role */}
+          <Route path="/dashboard" element={<ProtectedRoute />} />
           <Route
             path="/assign-tutor"
             element={

@@ -118,14 +118,103 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
     return !Object.values(newValidation).some(error => error);
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setError('');
+
+  //   if (!validateForm()) {
+  //     return;
+  //   }
+
+  //   if (!user || !user.id || !user.role) {
+  //     setError('User session invalid. Please login again.');
+  //     setTimeout(() => {
+  //       window.location.replace('/login');
+  //     }, 2000);
+  //     return;
+  //   }
+
+  //   setIsSubmitting(true);
+
+  //   try {
+  //     const token = localStorage.getItem('token');
+  //     if (!token) {
+  //       throw new Error('No authentication token found');
+  //     }
+
+  //     // Tạo form data
+  //     const formDataToSend = new FormData();
+  //     formDataToSend.append('title', formData.title.trim());
+  //     formDataToSend.append('content', formData.content.trim());
+      
+  //     if (formData.image) {
+  //       formDataToSend.append('image', formData.image);
+  //     }
+  //     console.log("formDataToSend"+formDataToSend)
+  //     // Xác định đúng role và ID field
+  //     const idField = user.role.toLowerCase() === 'student' ? 'student_id' : 'tutor_id';
+  //     formDataToSend.append(idField, user.id);
+
+  //     // Log request details
+  //     console.log('Sending request:', {
+  //       url: '/api/blog/create-blog',
+  //       userData: {
+  //         id: user.id,
+  //         role: user.role
+  //       },
+  //       formData: {
+  //         title: formData.title.trim(),
+  //         content: formData.content.trim(),
+  //         [idField]: user.id,
+  //         hasImage: !!formData.image
+  //       }
+  //     });
+
+  //     const response = await api.post('/api/blog/create-blog', formDataToSend, {
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`
+  //       }
+  //     });
+
+  //     if (response.data) {
+  //       onSuccess(response.data.blog);
+  //       handleClose();
+  //     }
+  //   } catch (err) {
+  //     console.error('Error creating blog:', {
+  //       error: err,
+  //       status: err.response?.status,
+  //       data: err.response?.data,
+  //       user: user ? { id: user.id, role: user.role } : 'No user data',
+  //       hasToken: !!localStorage.getItem('token')
+  //     });
+
+  //     if (!user || err.message === 'No authentication token found') {
+  //       setError('User session invalid. Please login again.');
+  //       setTimeout(() => {
+  //         window.location.replace('/login');
+  //       }, 2000);
+  //     } else if (err.response?.status === 401) {
+  //       setError('Your session has expired. Please login again.');
+  //       setTimeout(() => {
+  //         window.location.replace('/login');
+  //       }, 2000);
+  //     } else {
+  //       setError(err.response?.data?.message || 'Failed to create blog. Please try again.');
+  //     }
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
+  
     if (!validateForm()) {
       return;
     }
-
+  
     if (!user || !user.id || !user.role) {
       setError('User session invalid. Please login again.');
       setTimeout(() => {
@@ -133,34 +222,36 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
       }, 2000);
       return;
     }
-
+  
     setIsSubmitting(true);
-
+  
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }
-
+  
       // Tạo form data
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title.trim());
       formDataToSend.append('content', formData.content.trim());
-      
+  
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
-
+  
       // Xác định đúng role và ID field
       const idField = user.role.toLowerCase() === 'student' ? 'student_id' : 'tutor_id';
       formDataToSend.append(idField, user.id);
-
+  
       // Log request details
       console.log('Sending request:', {
         url: '/api/blog/create-blog',
         userData: {
           id: user.id,
-          role: user.role
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName
         },
         formData: {
           title: formData.title.trim(),
@@ -169,15 +260,23 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
           hasImage: !!formData.image
         }
       });
-
+  
       const response = await api.post('/api/blog/create-blog', formDataToSend, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
         }
       });
-
+  
       if (response.data) {
-        onSuccess(response.data.blog);
+        const createdBlog = response.data.blog;
+  
+        // Gọi onSuccess với dữ liệu blog bao gồm cả ảnh nếu có
+        onSuccess({
+          ...createdBlog,
+          imageUrl: createdBlog.image || null
+        });
+  
         handleClose();
       }
     } catch (err) {
@@ -188,7 +287,7 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
         user: user ? { id: user.id, role: user.role } : 'No user data',
         hasToken: !!localStorage.getItem('token')
       });
-
+  
       if (!user || err.message === 'No authentication token found') {
         setError('User session invalid. Please login again.');
         setTimeout(() => {
@@ -206,6 +305,7 @@ const CreateBlogModal = ({ isOpen, onClose, onSuccess, editBlog = null }) => {
       setIsSubmitting(false);
     }
   };
+  
 
   if (!isOpen) return null;
 

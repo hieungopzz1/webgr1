@@ -6,25 +6,25 @@ const toggleLike = async (req, res) => {
     const { blogId, userId, userRole } = req.body;
 
     if (!blogId || !userId || !userRole) {
-      return res.status(400).json({ message: "Thiếu dữ liệu đầu vào!" });
+      return res.status(400).json({ message: "All field is require!" });
     }
 
     const blog = await Blog.findById(blogId);
     if (!blog) {
-      return res.status(404).json({ message: "Bài viết không tồn tại!" });
+      return res.status(404).json({ message: "Blog not exist!" });
     }
 
     const existingLike = await Like.findOne({ blogId, userId });
 
     if (existingLike) {
       await Like.deleteOne({ _id: existingLike._id });
-      return res.status(200).json({ message: "Bỏ thích bài viết thành công!" });
+      return res.status(200).json({ message: "Cancel this blog success!" });
     }
 
     const newLike = new Like({ blogId, userId, userRole });
     await newLike.save();
 
-    res.status(200).json({ message: "Thích bài viết thành công!" });
+    res.status(200).json({ message: "Like blog success!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -52,7 +52,7 @@ const getLikeCount = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "Lấy số lượt thích thành công!", likeCount });
+      .json({ message: "Successfully!", likeCount });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

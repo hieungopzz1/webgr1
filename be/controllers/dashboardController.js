@@ -32,13 +32,6 @@ const getAdminDashboard = async (req, res) => {
         const totalAssignedStudents = assignedStudentIds.length;
     
     
-        //lay ra cac lop duoc phan bo
-        // Lọc ra các class chưa được phân bổ (không có trong danh sách assignedClassIds)
-        const unassignedClasses = await Class.find({
-          _id: { $nin: assignedClassIds }
-        })
-        const totalClassAssigned = assignedClassIds.length;
-        const totalClassUnassigned = unassignedClasses.length;
     
         const dashboardData = {
           totalStudents,
@@ -48,11 +41,7 @@ const getAdminDashboard = async (req, res) => {
           absentCount,
           totalUnassignedStudents, 
           totalAssignedStudents,
-          totalUnassignedTutors,
-          totalAssignedTutors,
           totalSchedules,
-          totalClassAssigned,
-          totalClassUnassigned,
         };
     
         res.json(dashboardData);

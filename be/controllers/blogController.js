@@ -7,43 +7,6 @@ const path = require("path");
 
 //quan ly blog
 
-// const addBlog = async (req, res) => {
-//   try {
-//     const { title, content, tutor_id, student_id } = req.body;
-//     const image = req.file ? `/uploads/blog/${req.file.filename}` : null;
-
-//     if (!tutor_id && !student_id) {
-//       if (image) removeImage(image);
-//       return res
-//         .status(400)
-//         .json({ message: "Either tutor_id or student_id is required" });
-//     }
-
-//     const tutor = tutor_id ? await Tutor.findById(tutor_id) : null;
-//     const student = student_id ? await Student.findById(student_id) : null;
-
-//     if (!tutor && !student) {
-//       if (image) removeImage(image);
-//       return res.status(404).json({ message: "Tutor or Student not found" });
-//     }
-
-//     const newBlog = new Blog({
-//       title: title || "",
-//       content,
-//       tutor_id: tutor ? tutor._id : null,
-//       student_id: student ? student._id : null,
-//       image,
-//     });
-
-//     await newBlog.save();
-//     res
-//       .status(201)
-//       .json({ message: "Blog created successfully", blog: newBlog });
-//   } catch (error) {
-//     if (req.file) removeImage(`/uploads/blog/${req.file.filename}`);
-//     res.status(500).json({ message: "Server error", error: error.message });
-//   }
-// };
 const addBlog = async (req, res) => {
   try {
     const { title, content, tutor_id, student_id } = req.body;
@@ -180,11 +143,9 @@ const updateBlog = async (req, res) => {
     const { blog_id } = req.params;
     const { title, content, removeImage } = req.body;
 
-    // Tìm blog hiện tại để lấy thông tin image cũ
     const currentBlog = await Blog.findById(blog_id);
     if (!currentBlog) return res.status(404).json({ error: "Blog not found" });
 
-    // Xử lý image
     let image = currentBlog.image;
     if (req.file) {
       // Nếu có upload image mới

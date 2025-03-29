@@ -7,10 +7,9 @@ const { authenticateUser, authorizeRole } = require("../middleware/authMiddlewar
 
 //quan ly lich hoc
 router.post("/create-schedule",authenticateUser,authorizeRole(["Admin"]), scheduleController.createSchedule);
-router.put("/edit-schedule/:scheduleId",authenticateUser,authorizeRole(["Admin"]), scheduleController.updateSchedule);
+router.put("/update-schedule/:scheduleId",authenticateUser,authorizeRole(["Admin"]), scheduleController.updateSchedule);
 router.delete("/delete-schedule/:scheduleId",authenticateUser,authorizeRole(["Admin"]), scheduleController.deleteSchedule);
 router.get("/get-all-schedule",authenticateUser,authorizeRole(["Admin"]), scheduleController.getAllSchedules);
-router.get("/get-by-class/:classId", authenticateUser,authorizeRole(["Admin"]),scheduleController.getScheduleByClass);
 
 
 module.exports = router;

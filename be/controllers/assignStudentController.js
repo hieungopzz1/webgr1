@@ -187,7 +187,7 @@ const removeAllStudents = async (req, res) => {
     res
       .status(200)
       .json({
-        message: `Delte ${deleted.deletedCount} successfully!`,
+        message: `Delete ${deleted.deletedCount} successfully!`,
       });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -203,6 +203,7 @@ const getUnassignedStudents = async (req, res) => {
       role: "Student",
     }).select("_id student_ID firstName lastName email");
 
+    
     res.json({
       totalUnassignedStudents: unassignedStudents.length,
       unassignedStudents,

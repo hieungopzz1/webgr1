@@ -1,5 +1,6 @@
 const Class = require("../models/Class");
 const Tutor = require("../models/Tutor");
+const Schedule = require("../models/Schedule");
 const AssignStudent = require("../models/AssignStudent");
 
 //quan ly lop hoc
@@ -93,6 +94,8 @@ const deleteClass = async (req, res) => {
     if (!classData) {
       return res.status(404).json({ message: "Class not found" });
     }
+
+    await Schedule.deleteMany({ class: classId });
 
     await AssignStudent.deleteMany({ class: classId });
 

@@ -1,19 +1,39 @@
 const Schedule = require("../models/Schedule");
-//quan ly lich hoc
+const Class = require("../models/Class");
+const AssignStudent = require("../models/AssignStudent");
+
 const createSchedule = async (req, res) => {
   try {
-    const { classId, date, startTime, endTime } = req.body;
+    const { classId, date, startTime, endTime, type, meetingLink } = req.body;
 
-    if (!classId || !date || !startTime || !endTime) {
+    if (!classId || !date || !startTime || !endTime || !type) {
       return res.status(400).json({ message: "All fields are required" });
     }
+
+    if (startTime === endTime) {
+      return res.status(400).json({ message: "Start time and end time cannot be the same" });
+    }
+
+    if (startTime > endTime) {
+      return res.status(400).json({ message: "Start time must be before end time" });
+    }
+
+    const classData = await Class.findById(classId);
+    if (!classData) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    if (type === "Online" && !meetingLink) {
+      return res.status(400).json({ message: "Online class must have a meeting link" });
+    }
+
+    const location = type === "Offline" ? classData.class_name : undefined;
 
     const existingSchedule = await Schedule.findOne({
       class: classId,
       date: date,
       $or: [
-        { startTime: { $lt: endTime, $gte: startTime } }, 
-        { endTime: { $gt: startTime, $lte: endTime } },   
+        { startTime: { $lt: endTime }, endTime: { $gt: startTime } },
       ],
     });
 
@@ -21,19 +41,36 @@ const createSchedule = async (req, res) => {
       return res.status(400).json({ message: "Schedule already exists for this time!" });
     }
 
-    const schedule = new Schedule({
+    const assignedStudents = await AssignStudent.findOne({ class: classId });
+    if (!assignedStudents) {
+      return res.status(400).json({ message: "Assign student to this class." });
+    }
+
+    const newSchedule = new Schedule({
       class: classId,
       date,
       startTime,
       endTime,
+      type,
+      location,
+      meetingLink: type === "Online" ? meetingLink : undefined,
     });
 
-    await schedule.save();
+    await newSchedule.save();
 
     const io = req.app.get("socketio");
-    io.emit("updateDashboard", { message: "Successfully!", schedule: schedule });
+    io.emit("updateDashboard", { message:" Add schedule successfully", newSchedule : newSchedule });
 
-    res.status(201).json({ message: "Schedule created successfully!", schedule });
+    res.status(201).json({ message: "Schedule created successfully!", newSchedule });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getAllSchedules = async (req, res) => {
+  try {
+    const schedules = await Schedule.find().populate("class", "class_name");
+    res.status(200).json(schedules);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -42,52 +79,56 @@ const createSchedule = async (req, res) => {
 const updateSchedule = async (req, res) => {
   try {
     const { scheduleId } = req.params;
-    const { classId, date, startTime, endTime } = req.body;
+    const { date, startTime, endTime, type, meetingLink } = req.body;
+
+    if (startTime === endTime) {
+      return res.status(400).json({ message: "Start time and end time cannot be the same" });
+    }
+
+    if (startTime > endTime) {
+      return res.status(400).json({ message: "Start time must be before end time" });
+    }
 
     const updatedSchedule = await Schedule.findByIdAndUpdate(
       scheduleId,
-      { class: classId, date, startTime, endTime },
+      { date, startTime, endTime, type, meetingLink },
       { new: true }
     );
-    res
-      .status(200)
-      .json({ message: "Lịch học đã được cập nhật!", updatedSchedule });
+
+    if (!updatedSchedule) {
+      return res.status(404).json({ message: "Schedule not found" });
+    }
+
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message:" Update schedule successfully", updatedSchedule : updatedSchedule });
+
+    res.status(200).json({ message: "Schedule updated successfully!", updatedSchedule });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 const deleteSchedule = async (req, res) => {
   try {
     const { scheduleId } = req.params;
     const deletedSchedule = await Schedule.findByIdAndDelete(scheduleId);
-    res.status(200).json({ message: "Lịch học đã được xóa!", deletedSchedule });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-const getScheduleByClass = async (req, res) => {
-  try {
-    const classId = req.params.classId;
-    const schedules = await Schedule.find({ class: classId })
 
-    res.status(200).json(schedules);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-const getAllSchedules = async (req, res) => {
-  try {
-    const schedules = await Schedule.find()
-    res.status(200).json({ message: "Success", schedules });
+    if (!deletedSchedule) {
+      return res.status(404).json({ message: "Schedule not found" });
+    }
+
+    const io = req.app.get("socketio");
+    io.emit("updateDashboard", { message:" Delelte class successfully", deletedSchedule : deletedSchedule });
+
+    res.status(200).json({ message: "Schedule deleted successfully!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
 module.exports = {
-  getAllSchedules,
-  getScheduleByClass,
   createSchedule,
+  getAllSchedules,
   updateSchedule,
   deleteSchedule,
 };

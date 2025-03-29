@@ -15,7 +15,7 @@ const assignStudent = async (req, res) => {
 
     const classData = await Class.findById(classId);
     if (!classData) {
-      return res.status(404).json({ message: "Class không tồn tại!" });
+      return res.status(404).json({ message: "Not Found" });
     }
 
 
@@ -67,30 +67,29 @@ const assignStudent = async (req, res) => {
     const io = req.app.get("socketio");
      io.emit("updateDashboard", { message: "Successfully!", assignments: assignments });
 
-    // Gửi email thông báo
-    const studentData = await Student.find({ _id: { $in: newStudents } }, "firstName lastName email");
-
-    // Kiểm tra nếu danh sách học sinh rỗng
-    if (!studentData.length) {
-      return res.status(404).json({ error: "Không tìm thấy học sinh nào với danh sách ID đã cung cấp!" });
-    }
-
-    for (const student of studentData) {
-      const emailContent = `Xin chào ${student.firstName} ${student.lastName},\n\nBạn đã được phân bổ vào lớp ${classData.class_name}.\nHãy kiểm tra hệ thống để biết thêm chi tiết.`;
-
-      try {
-        await sendEmailAllocation(student.email, "Thông báo phân bổ lớp học", emailContent);
-        console.log(`✅ Email sent to: ${student.email}`);
-      } catch (error) {
-        console.error(`❌ Lỗi khi gửi email cho ${student.email}:`, error);
-        return res.status(500).json({ error: `Lỗi khi gửi email cho ${student.email}` });
-      }
-    }
-
-    res.status(201).json({
-      message: "Students assigned to class successfully!",
+     res.status(201).json({
+      message: "Assign Student Successfully!",
       assigned: newStudents.length,
     });
+    // // Gửi email thông báo
+    // const studentData = await Student.find({ _id: { $in: newStudents } }, "firstName lastName email");
+
+    // // Kiểm tra nếu danh sách học sinh rỗng
+    // if (!studentData.length) {
+    //   return res.status(404).json({ error: "Không tìm thấy học sinh nào với danh sách ID đã cung cấp!" });
+    // }
+
+    // for (const student of studentData) {
+    //   const emailContent = `Xin chào ${student.firstName} ${student.lastName},\n\nBạn đã được phân bổ vào lớp ${classData.class_name}.\nHãy kiểm tra hệ thống để biết thêm chi tiết.`;
+
+    //   try {
+    //     await sendEmailAllocation(student.email, "Thông báo phân bổ lớp học", emailContent);
+    //     console.log(`✅ Email sent to: ${student.email}`);
+    //   } catch (error) {
+    //     console.error(`❌ Lỗi khi gửi email cho ${student.email}:`, error);
+    //     return res.status(500).json({ error: `Lỗi khi gửi email cho ${student.email}` });
+    //   }
+    // }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -114,7 +113,7 @@ const getAssignStudentInClass = async (req, res) => {
     const classId = req.params.classId;
     const students = await AssignStudent.find({ class: classId }).populate("student");
 
-    res.status(200).json(students);
+    res.status(200).json({ message: "Get Successfully", totalStudentInClass: students.length,students});
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -154,7 +153,7 @@ const removeStudent = async (req, res) => {
     if (!deleted) {
       return res
         .status(404)
-        .json({ message: "Sinh viên này không tồn tại trong lớp!" });
+        .json({ message: "Not found student in this class!" });
     }
 
     // Lấy thông tin sinh viên để gửi email thông báo
@@ -174,7 +173,7 @@ const removeStudent = async (req, res) => {
     }
 
 
-    res.status(200).json({ message: "Đã xóa sinh viên khỏi lớp thành công!" });
+    res.status(200).json({ message: "Delete student successfully!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -188,14 +187,30 @@ const removeAllStudents = async (req, res) => {
     res
       .status(200)
       .json({
-        message: `Đã xóa ${deleted.deletedCount} sinh viên khỏi lớp thành công!`,
+        message: `Delte ${deleted.deletedCount} successfully!`,
       });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+const getUnassignedStudents = async (req, res) => {
+  try {
+    const assignedStudentIds = await AssignStudent.distinct("student");
 
+    const unassignedStudents = await Student.find({
+      _id: { $nin: assignedStudentIds },
+      role: "Student",
+    }).select("_id student_ID firstName lastName email");
+
+    res.json({
+      totalUnassignedStudents: unassignedStudents.length,
+      unassignedStudents,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 module.exports = {
   assignStudent,
@@ -204,4 +219,5 @@ module.exports = {
   getStudentsByMajor,
   removeAllStudents,
   removeStudent,
+  getUnassignedStudents,
 };

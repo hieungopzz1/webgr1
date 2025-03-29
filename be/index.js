@@ -78,7 +78,6 @@ const notificationRoutes = require("./routes/notification");
 const attendanceRoutes = require("./routes/attendance");
 const scheduleRoutes = require("./routes/schedule");
 const assignStudentRoutes = require("./routes/assignStudent");
-const assignTutorRoutes = require("./routes/assignTutor");
 const classRoutes = require("./routes/class");
 const likeRoutes = require("./routes/like");
 
@@ -145,7 +144,6 @@ app.use('/api/notification', notificationRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/assign-student', assignStudentRoutes);
-app.use('/api/assign-tutor', assignTutorRoutes);
 app.use('/api/class', classRoutes);
 app.use('/api/like', likeRoutes);
 // app.use('/api/tutor', tutorRoutes);

@@ -4,7 +4,6 @@ const Like = require("../models/Like");
 const Schedule = require("../models/Schedule");
 const Attendance = require("../models/Attendance");
 const AssignStudent = require("../models/AssignStudent");
-const AssignTutor = require("../models/AssignTutor");
 const Class = require("../models/Class");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
@@ -32,19 +31,8 @@ const getAdminDashboard = async (req, res) => {
         const totalUnassignedStudents = unassignedStudents.length;
         const totalAssignedStudents = assignedStudentIds.length;
     
-        //lay ra cac tutor co lop
-        const assignedTutorIds = await AssignTutor.distinct("tutor");
-    
-        const unassignedTutors = await Tutor.find({
-          _id: { $nin: assignedTutorIds },
-          role: "Tutor",
-        })
-    
-        const totalUnassignedTutors = unassignedTutors.length;
-        const totalAssignedTutors = assignedTutorIds.length;
     
         //lay ra cac lop duoc phan bo
-        const assignedClassIds = await AssignStudent.distinct("class") && await AssignTutor.distinct("class")  ;
         // Lọc ra các class chưa được phân bổ (không có trong danh sách assignedClassIds)
         const unassignedClasses = await Class.find({
           _id: { $nin: assignedClassIds }

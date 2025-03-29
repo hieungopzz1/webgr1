@@ -7,7 +7,6 @@ const Class = require("../models/Class");
 const Schedule = require("../models/Schedule");
 const Attendance = require("../models/Attendance");
 const AssignStudent = require("../models/AssignStudent");
-const AssignTutor = require("../models/AssignTutor");
 const bcrypt = require("bcrypt");
 const fs = require("fs");
 const path = require("path");

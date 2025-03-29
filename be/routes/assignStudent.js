@@ -6,12 +6,14 @@ const { authenticateUser, authorizeRole } = require("../middleware/authMiddlewar
 //quan ly phan bo sinh vien 
 
 //loc major
-router.get("/seach-students-by-major",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getStudentsByMajor);
+router.get("/search-students-by-major",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getStudentsByMajor);
 router.get("/get-all-students",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getAllStudents);
 router.post("/",authenticateUser,authorizeRole(["Admin"]), assignStudentController.assignStudent);
 router.get("/get-students/:classId",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getAssignStudentInClass);
 router.delete("/remove",authenticateUser,authorizeRole(["Admin"]), assignStudentController.removeStudent );
 router.delete("/remove-all/:classId",authenticateUser, authorizeRole(["Admin"]), assignStudentController.removeAllStudents);
+router.get("/list-student-unassign",authenticateUser, authorizeRole(["Admin"]), assignStudentController.getUnassignedStudents);
+
 
 
 module.exports = router;

@@ -1,5 +1,4 @@
 import React from 'react';
-import Footer from '../../components/footer/Footer';
 import './AuthLayout.css';
 
 const AuthLayout = ({ children }) => {
@@ -8,7 +7,6 @@ const AuthLayout = ({ children }) => {
       <main className="auth-content">
         {children}
       </main>
-      <Footer />
     </div>
   );
 };

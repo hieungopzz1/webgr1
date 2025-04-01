@@ -1,30 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { io } from "socket.io-client";
 import api from '../../utils/api';
-import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement, CategoryScale } from 'chart.js';
+import { Pie, Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 
-ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale);
+// Đăng ký các thành phần của Chart.js
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 const socket = io("http://localhost:5001");
 
 const StaffDashboard = () => {
+  // Khởi tạo state cho các thống kê
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTutors: 0,
     totalClasses: 0,
     totalSchedules: 0,
-    presentCount: 0,
-    absentCount: 0,
-    totalUnassignedStudents: 0,
     totalAssignedStudents: 0,
-    totalUnassignedTutors: 0,
-    totalAssignedTutors: 0,
-    totalClassAssigned: 0,
-    totalClassUnassigned: 0,
-    // other stats ...
+    totalUnassignedStudents: 0
   });
 
+  // Hàm gọi API để lấy dữ liệu
   const fetchDashboardData = async () => {
     try {
       const response = await api.get('/api/dashboard/admin');
@@ -34,11 +30,13 @@ const StaffDashboard = () => {
     }
   };
 
+  // UseEffect để gọi API và cập nhật dữ liệu khi có sự kiện
   useEffect(() => {
     fetchDashboardData();
 
+    // 🔥 Khi có sự kiện 'updateDashboard', gọi lại API
     socket.on("updateDashboard", () => {
-      fetchDashboardData();
+      fetchDashboardData();  // Gọi lại API để cập nhật dữ liệu
     });
 
     return () => {
@@ -47,92 +45,133 @@ const StaffDashboard = () => {
 
   }, []);
 
-  // Biểu đồ Pie cho sinh viên
-  const studentPieData = {
-    labels: ['Sinh viên đã có lớp', 'Sinh viên chưa có lớp'],
+  // Dữ liệu cho Pie Chart
+  const pieChartData = {
+    labels: ['Sinh viên đã xếp lớp', 'Sinh viên chưa xếp lớp'],
     datasets: [
       {
-        label: 'Số sinh viên',
         data: [stats.totalAssignedStudents, stats.totalUnassignedStudents],
-        backgroundColor: ['#4caf50', '#ff9800'],
-        borderColor: ['#4caf50', '#ff9800'],
-        borderWidth: 1,
-      },
-    ],
+        backgroundColor: ['#3498db', '#e74c3c'], // Màu sắc cho mỗi phần
+        hoverBackgroundColor: ['#2980b9', '#c0392b'], // Màu hover
+      }
+    ]
   };
 
-  // Biểu đồ Pie cho giảng viên
-  const tutorPieData = {
-    labels: ['Giảng viên đã có lớp', 'Giảng viên chưa có lớp'],
+  // Dữ liệu cho Bar Chart (biểu đồ cột)
+  const barChartData = {
+    labels: ['Sinh viên'],
     datasets: [
       {
-        label: 'Số giảng viên',
-        data: [stats.totalAssignedTutors, stats.totalUnassignedTutors],
-        backgroundColor: ['#2196F3', '#FF5722'],
-        borderColor: ['#2196F3', '#FF5722'],
-        borderWidth: 1,
+        label: 'Đã xếp lớp',
+        data: [stats.totalAssignedStudents],
+        backgroundColor: '#3498db',
       },
-    ],
+      {
+        label: 'Chưa xếp lớp',
+        data: [stats.totalUnassignedStudents],
+        backgroundColor: '#e74c3c',
+      }
+    ]
   };
 
-  // Biểu đồ Pie cho lớp học
-  const classPieData = {
-    labels: ['Lớp đã được phân bổ', 'Lớp chưa được phân bổ'],
-    datasets: [
-      {
-        label: 'Số lớp học',
-        data: [stats.totalClassAssigned, stats.totalClassUnassigned],
-        backgroundColor: ['#8BC34A', '#FFC107'],
-        borderColor: ['#8BC34A', '#FFC107'],
-        borderWidth: 1,
+  // Cấu hình cho Pie Chart
+  const pieChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
       },
-    ],
+      tooltip: {
+        enabled: true
+      }
+    }
   };
 
-  // Biểu đồ Pie cho lịch học và điểm danh
-  const schedulePieData = {
-    labels: ['Điểm danh - Có mặt', 'Điểm danh - Vắng mặt'],
-    datasets: [
-      {
-        label: 'Điểm danh',
-        data: [stats.presentCount, stats.absentCount],
-        backgroundColor: ['#FFEB3B', '#F44336'],
-        borderColor: ['#FFEB3B', '#F44336'],
-        borderWidth: 1,
+  // Cấu hình cho Bar Chart
+  const barChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
       },
-    ],
+      tooltip: {
+        enabled: true
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    }
+  };
+
+  // Inline styles
+  const containerStyle = {
+    display: 'flex',
+    gap: '20px',  // Khoảng cách giữa các biểu đồ
+    justifyContent: 'space-between',
+    marginTop: '20px',
+  };
+
+  const statBoxStyle = {
+    backgroundColor: '#ecf0f1',
+    borderRadius: '8px',
+    padding: '20px',
+    width: '23%',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',  // Đổ bóng cho box
+    textAlign: 'center',
+  };
+
+  const statTextStyle = {
+    fontSize: '18px',
+    color: '#34495e',
+    margin: '0',
+  };
+
+  const statStrongStyle = {
+    fontWeight: 'bold',
+    color: '#2c3e50',
   };
 
   return (
     <div>
       <h2>Admin Dashboard</h2>
-      <div>
-        <p><strong>Tổng số sinh viên:</strong> {stats.totalStudents}</p>
-        <p><strong>Số sinh viên chưa có lớp:</strong> {stats.totalUnassignedStudents}</p>
-        <p><strong>Số sinh viên đã có lớp:</strong> {stats.totalAssignedStudents}</p>
 
-        {/* Các biểu đồ Pie được hiển thị trong 2 hàng */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around' }}>
-          {/* Hàng đầu tiên: 2 biểu đồ */}
-          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-            <Pie data={studentPieData} />
-            <p><strong>Sinh viên</strong></p>
-          </div>
-          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-            <Pie data={tutorPieData} />
-            <p><strong>Giảng viên</strong></p>
-          </div>
-
-          {/* Hàng thứ hai: 2 biểu đồ */}
-          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-            <Pie data={classPieData} />
-            <p><strong>Lớp học</strong></p>
-          </div>
-          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-            <Pie data={schedulePieData} />
-            <p><strong>Lịch học & Điểm danh</strong></p>
-          </div>
+      {/* Thông tin thống kê */}
+      <div style={containerStyle}>
+        <div style={statBoxStyle}>
+          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số sinh viên:</strong> {stats.totalStudents}</p>
         </div>
+        <div style={statBoxStyle}>
+          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số giảng viên:</strong> {stats.totalTutors}</p>
+        </div>
+        <div style={statBoxStyle}>
+          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số lớp học:</strong> {stats.totalClasses}</p>
+        </div>
+        <div style={statBoxStyle}>
+          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số lịch học đã tạo:</strong> {stats.totalSchedules}</p>
+        </div>
+      </div>
+
+      {/* Biểu đồ Pie và Bar trên cùng một hàng */}
+      <div style={containerStyle}>
+        <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
+          <h3>Biểu đồ phân bổ sinh viên đã xếp lớp và chưa xếp lớp (Pie Chart)</h3>
+          <Pie data={pieChartData} options={pieChartOptions} />
+        </div>
+        <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
+          <h3>Biểu đồ cột số sinh viên đã xếp lớp và chưa xếp lớp</h3>
+          <Bar data={barChartData} options={barChartOptions} />
+        </div>
+      </div>
+
+      {/* Hiển thị số liệu cho sinh viên đã xếp lớp và chưa xếp lớp */}
+      <div>
+        <p><strong>Tổng số sinh viên đã xếp lớp:</strong> {stats.totalAssignedStudents}</p>
+        <p><strong>Tổng số sinh viên chưa xếp lớp:</strong> {stats.totalUnassignedStudents}</p>
       </div>
     </div>
   );

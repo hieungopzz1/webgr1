@@ -31,7 +31,13 @@ const getAdminDashboard = async (req, res) => {
         const totalUnassignedStudents = unassignedStudents.length;
         const totalAssignedStudents = assignedStudentIds.length;
     
-    
+        const allClasses = await Class.find().select("_id class_name");
+
+        const assignedClassIds = await AssignStudent.distinct("class");
+
+        const assignedClassIdsStr = assignedClassIds.map(id => id.toString());
+         const unassignedClasses = allClasses.filter(cls => 
+          !assignedClassIdsStr.includes(cls._id.toString()));
     
         const dashboardData = {
           totalStudents,
@@ -42,6 +48,8 @@ const getAdminDashboard = async (req, res) => {
           totalUnassignedStudents, 
           totalAssignedStudents,
           totalSchedules,
+          totalClassAssign: assignedClassIds.length,
+          totalClassUnassign: unassignedClasses.length,
         };
     
         res.json(dashboardData);

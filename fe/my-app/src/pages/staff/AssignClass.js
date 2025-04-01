@@ -587,7 +587,7 @@ const AssignClass = () => {
     setError(errorMsg);
     return errorMsg;
   }, []);
-  
+
   // Callback to store the reset function
   const handleFormReset = useCallback((resetFunc) => {
     setResetCreateForm(() => resetFunc);
@@ -752,9 +752,9 @@ const AssignClass = () => {
       if (!isAuthenticated()) {
         setError('Authentication required. Please log in again.');
         setLoading(false);
-        return;
-      }
-      
+      return;
+    }
+
       await api.delete('/api/assign-student/remove', { 
         data: { 
           studentId,

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { io } from "socket.io-client";
 import api from '../../utils/api';
+import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement, CategoryScale } from 'chart.js';
+
+ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale);
 
 const socket = io("http://localhost:5001");
 
@@ -9,15 +13,16 @@ const StaffDashboard = () => {
     totalStudents: 0,
     totalTutors: 0,
     totalClasses: 0,
+    totalSchedules: 0,
     presentCount: 0,
     absentCount: 0,
-    totalUnassignedStudents:0,
-    totalAssignedStudents:0,
-    totalAssignedTutors:0,
-    totalUnassignedTutors:0,
-    totalSchedules:0,
-    totalClassAssigned:0,
-    totalClassUnassigned:0
+    totalUnassignedStudents: 0,
+    totalAssignedStudents: 0,
+    totalUnassignedTutors: 0,
+    totalAssignedTutors: 0,
+    totalClassAssigned: 0,
+    totalClassUnassigned: 0,
+    // other stats ...
   });
 
   const fetchDashboardData = async () => {
@@ -32,9 +37,8 @@ const StaffDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
 
-    // 🔥 Khi có sự kiện 'updateDashboard', gọi lại API
     socket.on("updateDashboard", () => {
-      fetchDashboardData();  // Gọi lại API để cập nhật dữ liệu
+      fetchDashboardData();
     });
 
     return () => {
@@ -43,22 +47,92 @@ const StaffDashboard = () => {
 
   }, []);
 
+  // Biểu đồ Pie cho sinh viên
+  const studentPieData = {
+    labels: ['Sinh viên đã có lớp', 'Sinh viên chưa có lớp'],
+    datasets: [
+      {
+        label: 'Số sinh viên',
+        data: [stats.totalAssignedStudents, stats.totalUnassignedStudents],
+        backgroundColor: ['#4caf50', '#ff9800'],
+        borderColor: ['#4caf50', '#ff9800'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  // Biểu đồ Pie cho giảng viên
+  const tutorPieData = {
+    labels: ['Giảng viên đã có lớp', 'Giảng viên chưa có lớp'],
+    datasets: [
+      {
+        label: 'Số giảng viên',
+        data: [stats.totalAssignedTutors, stats.totalUnassignedTutors],
+        backgroundColor: ['#2196F3', '#FF5722'],
+        borderColor: ['#2196F3', '#FF5722'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  // Biểu đồ Pie cho lớp học
+  const classPieData = {
+    labels: ['Lớp đã được phân bổ', 'Lớp chưa được phân bổ'],
+    datasets: [
+      {
+        label: 'Số lớp học',
+        data: [stats.totalClassAssigned, stats.totalClassUnassigned],
+        backgroundColor: ['#8BC34A', '#FFC107'],
+        borderColor: ['#8BC34A', '#FFC107'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  // Biểu đồ Pie cho lịch học và điểm danh
+  const schedulePieData = {
+    labels: ['Điểm danh - Có mặt', 'Điểm danh - Vắng mặt'],
+    datasets: [
+      {
+        label: 'Điểm danh',
+        data: [stats.presentCount, stats.absentCount],
+        backgroundColor: ['#FFEB3B', '#F44336'],
+        borderColor: ['#FFEB3B', '#F44336'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
   return (
     <div>
       <h2>Admin Dashboard</h2>
       <div>
         <p><strong>Tổng số sinh viên:</strong> {stats.totalStudents}</p>
-        <p><strong>Tổng số giảng viên:</strong> {stats.totalTutors}</p>
-        <p><strong>Tổng số lớp học:</strong> {stats.totalClasses}</p>
-        <p><strong>Tổng số lịch học đã tạo:</strong> {stats.totalSchedules}</p>
-        <p><strong>Điểm danh - Có mặt:</strong> {stats.presentCount}</p>
-        <p><strong>Điểm danh - Vắng mặt:</strong> {stats.absentCount}</p>
         <p><strong>Số sinh viên chưa có lớp:</strong> {stats.totalUnassignedStudents}</p>
-        <p><strong>Số sinh viên dã có lớp:</strong> {stats.totalAssignedStudents}</p>
-        <p><strong>Số giang viên chưa có lớp:</strong> {stats.totalUnassignedTutors}</p>
-        <p><strong>Số giang viên dã có lớp:</strong> {stats.totalAssignedTutors}</p>
-        <p><strong>Số lớp chưa được phân bổ:</strong> {stats.totalClassUnassigned}</p>
-        <p><strong>Số lớp đã được phân bổ:</strong> {stats.totalClassAssigned}</p>
+        <p><strong>Số sinh viên đã có lớp:</strong> {stats.totalAssignedStudents}</p>
+
+        {/* Các biểu đồ Pie được hiển thị trong 2 hàng */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around' }}>
+          {/* Hàng đầu tiên: 2 biểu đồ */}
+          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
+            <Pie data={studentPieData} />
+            <p><strong>Sinh viên</strong></p>
+          </div>
+          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
+            <Pie data={tutorPieData} />
+            <p><strong>Giảng viên</strong></p>
+          </div>
+
+          {/* Hàng thứ hai: 2 biểu đồ */}
+          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
+            <Pie data={classPieData} />
+            <p><strong>Lớp học</strong></p>
+          </div>
+          <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
+            <Pie data={schedulePieData} />
+            <p><strong>Lịch học & Điểm danh</strong></p>
+          </div>
+        </div>
       </div>
     </div>
   );

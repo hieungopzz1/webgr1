@@ -126,9 +126,45 @@ const deleteSchedule = async (req, res) => {
   }
 };
 
+
+const getStudentSchedules = async (req, res) => {
+  try {
+    const studentId = req.user.id; 
+
+    const assignedClasses = await AssignStudent.find({ student: studentId }).distinct("class");
+
+    const schedules = await Schedule.find({ class: { $in: assignedClasses } })
+      .populate("class", "class_name")
+      .sort({ date: 1, startTime: 1 });
+
+    res.status(200).json({ schedules });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getTutorSchedules = async (req, res) => {
+  try {
+    const tutorId = req.user.id;
+
+    const tutorClasses = await Class.find({ tutor: tutorId }).distinct("_id");
+
+    const schedules = await Schedule.find({ class: { $in: tutorClasses } })
+      .populate("class", "class_name")
+      .sort({ date: 1, startTime: 1 });
+
+    res.status(200).json({ schedules });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 module.exports = {
   createSchedule,
   getAllSchedules,
   updateSchedule,
   deleteSchedule,
+  getStudentSchedules,
+  getTutorSchedules
 };

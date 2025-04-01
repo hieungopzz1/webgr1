@@ -10,6 +10,8 @@ router.post("/create-schedule",authenticateUser,authorizeRole(["Admin"]), schedu
 router.put("/update-schedule/:scheduleId",authenticateUser,authorizeRole(["Admin"]), scheduleController.updateSchedule);
 router.delete("/delete-schedule/:scheduleId",authenticateUser,authorizeRole(["Admin"]), scheduleController.deleteSchedule);
 router.get("/get-all-schedule",authenticateUser,authorizeRole(["Admin"]), scheduleController.getAllSchedules);
+router.get("/schedule-tutor",authenticateUser,authorizeRole(["Tutor"]), scheduleController.getTutorSchedules);
+router.get("/schedule-student",authenticateUser,authorizeRole(["Student"]), scheduleController.getStudentSchedules);
 
 
 module.exports = router;

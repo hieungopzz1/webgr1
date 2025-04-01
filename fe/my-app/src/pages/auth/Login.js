@@ -36,10 +36,10 @@ const Login = () => {
       if (result.success) {
         navigate('/home');
       } else {
-        setError(result.message || 'Login failed. Please try again.');
+        setError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Có lỗi xảy ra. Vui lòng thử lại.');
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -47,47 +47,49 @@ const Login = () => {
   };
 
   return (
-    <div className="login-page">
-      <h2 className="login-title">Đăng nhập</h2>
-      <form onSubmit={handleSubmit} className="login-form">
-        <InputField
-          label="Email"
-          name="email"
-          type="email"
-          placeholder="Nhập email của bạn..."
-          value={formData.email}
-          onChange={handleChange}
-        />
+    <div className="login-container">
+      <div className="login-box">
+        <h2 className="login-title">Sign In</h2>
+        <form onSubmit={handleSubmit} className="login-form">
+          <InputField
+            label="Username"
+            name="email"
+            type="email"
+            placeholder="Enter your email..."
+            value={formData.email}
+            onChange={handleChange}
+          />
 
-        <PasswordInput
-          label="Mật khẩu"
-          name="password"
-          placeholder="Nhập mật khẩu của bạn..."
-          value={formData.password}
-          onChange={handleChange}
-        />
+          <PasswordInput
+            label="Password"
+            name="password"
+            placeholder="Enter your password..."
+            value={formData.password}
+            onChange={handleChange}
+          />
 
-        {error && <div className="login-error">{error}</div>}
+          {error && <div className="login-error">{error}</div>}
 
-        <Button 
-          type="submit" 
-          disabled={loading}
-          className="login-button"
-        >
-          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-        </Button>
-      </form>
+          <Button 
+            type="submit" 
+            disabled={loading}
+            className="login-button"
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </Button>
+        </form>
 
-      <div className="auth-links">
-        <Link to="/forgot-password" className="auth-link">
-          Quên mật khẩu?
-        </Link>
-        <p>
-          Chưa có tài khoản?{' '}
-          <Link to="/register" className="auth-link">
-            Đăng ký
+        <div className="auth-links">
+          <Link to="/forgot-password" className="auth-link">
+            Forgot Password?
           </Link>
-        </p>
+          <p>
+            Don't have an account?{' '}
+            <Link to="/register" className="auth-link">
+              Create one
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

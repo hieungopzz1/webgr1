@@ -1,33 +1,105 @@
-/* AuthLayout: nền của toàn trang dùng cho các trang xác thực */
+/* Nền gradient cho toàn bộ trang */
 .auth-layout {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #ffffff;
-}
-
-.auth-content {
+    background: linear-gradient(135deg, #ADD8E6, #87CEFA); /* Màu gradient xanh dương */
+  }
+  
+  /* Trung tâm form đăng nhập */
+  .auth-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 20px;
-}
-
-@media (max-width: 767px) {
-    .auth-content {
-        padding: 16px;
-    }
-}
-
-/* Vùng chứa trung tâm cho form đăng nhập, đăng ký, ... */
-.auth-layout__container {
+  }
+  
+  /* Form đăng nhập nằm trong hộp trắng */
+  .auth-layout__container {
     background-color: #ffffff;
     padding: 40px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 400px;
-}
+  }
+  
+  /* Tiêu đề form */
+  .auth-title {
+    font-size: 2.5rem;
+    color: #007bff;
+    margin-bottom: 1.5rem;
+    font-family: 'Roboto', sans-serif;
+    font-weight: bold;
+  }
+  
+  /* Các trường nhập liệu */
+  .auth-input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: #f8f9fa;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .auth-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+  }
+  
+  /* Nút đăng nhập */
+  .auth-button {
+    width: 100%;
+    padding: 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .auth-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .auth-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  /* Liên kết Quên mật khẩu và Đăng ký */
+  .auth-links {
+    margin-top: 1.5rem;
+    font-size: 1rem;
+  }
+  
+  .auth-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .auth-link:hover {
+    text-decoration: underline;
+  }
+  
+  .auth-links p {
+    margin-top: 1rem;
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  @media (max-width: 767px) {
+    .auth-content {
+      padding: 16px;
+    }
+  }
   

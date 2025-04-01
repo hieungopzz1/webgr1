@@ -9,7 +9,6 @@ import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import "./Timetable.css";
 
 const Timetable = () => {
-  // State chung
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -18,17 +17,21 @@ const Timetable = () => {
   const [classes, setClasses] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // State cho modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
 
-  // State cho filter/sort
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [studentsInClass, setStudentsInClass] = useState([]);
+  const [attendanceStatus, setAttendanceStatus] = useState({ presentStudents: [], absentStudents: [] });
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [studentAttendances, setStudentAttendances] = useState([]);
+
   const [classFilter, setClassFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [tutorClasses, setTutorClasses] = useState([]);
 
-  // Lấy thông tin user
   useEffect(() => {
     if (isAuthenticated()) {
       const userData = getUserData();
@@ -36,7 +39,6 @@ const Timetable = () => {
     }
   }, []);
 
-  // Xử lý lỗi API
   const handleApiError = useCallback((err, defaultMessage) => {
     let errorMsg = defaultMessage || "An error occurred";
     
@@ -62,8 +64,7 @@ const Timetable = () => {
     return errorMsg;
   }, []);
 
-  // Fetch tất cả lịch học
-  const fetchSchedules = useCallback(async () => {
+  const fetchSchedulesForAdmin = useCallback(async () => {
     try {
       setDataLoading(true);
       const response = await api.get("/api/schedule/get-all-schedule");
@@ -81,7 +82,64 @@ const Timetable = () => {
     }
   }, [handleApiError]);
 
-  // Fetch tất cả lớp học
+  const fetchSchedulesForStudent = useCallback(async () => {
+    try {
+      setDataLoading(true);
+      const response = await api.get("/api/schedule/schedule-student");
+      if (Array.isArray(response.data?.schedules)) {
+        setSchedules(response.data.schedules);
+      } else {
+        setSchedules([]);
+      }
+      return response;
+    } catch (err) {
+      handleApiError(err, "Failed to fetch your schedules");
+      return err;
+    } finally {
+      setDataLoading(false);
+    }
+  }, [handleApiError]);
+
+  const fetchSchedulesForTutor = useCallback(async () => {
+    try {
+      setDataLoading(true);
+      const response = await api.get("/api/schedule/schedule-tutor");
+      if (Array.isArray(response.data?.schedules)) {
+        const scheduleData = response.data.schedules;
+        setSchedules(scheduleData);
+        
+        if (scheduleData.length > 0) {
+          const uniqueClasses = [];
+          const classIds = new Set();
+          
+          scheduleData.forEach(schedule => {
+            const classId = schedule.class._id || schedule.class;
+            const className = schedule.class.class_name || "Unknown Class";
+            
+            if (!classIds.has(classId)) {
+              classIds.add(classId);
+              uniqueClasses.push({
+                _id: classId,
+                class_name: className
+              });
+            }
+          });
+          
+          setTutorClasses(uniqueClasses);
+        }
+      } else {
+        setSchedules([]);
+        setTutorClasses([]);
+      }
+      return response;
+    } catch (err) {
+      handleApiError(err, "Failed to fetch your schedules");
+      return err;
+    } finally {
+      setDataLoading(false);
+    }
+  }, [handleApiError]);
+
   const fetchClasses = useCallback(async () => {
     try {
       const response = await api.get("/api/class/get-all-class");
@@ -97,17 +155,95 @@ const Timetable = () => {
     }
   }, [handleApiError]);
 
-  // Load dữ liệu ban đầu
   useEffect(() => {
     if (!isAuthenticated()) {
       setError("Authentication required. Please log in again.");
       return;
     }
-    
-    Promise.all([fetchSchedules(), fetchClasses()]);
-  }, [fetchSchedules, fetchClasses]);
 
-  // Tạo lịch học mới
+    const userData = getUserData();
+    if (!userData) return;
+
+    if (userData.role === "Admin") {
+      fetchSchedulesForAdmin();
+      fetchClasses();
+    } else if (userData.role === "Student") {
+      fetchSchedulesForStudent();
+    } else if (userData.role === "Tutor") {
+      fetchSchedulesForTutor();
+    }
+  }, [fetchSchedulesForAdmin, fetchSchedulesForStudent, fetchSchedulesForTutor, fetchClasses]);
+
+  const fetchStudentsBySchedule = useCallback(async (scheduleId) => {
+    try {
+      setAttendanceLoading(true);
+      const response = await api.get(`/api/attendance/${scheduleId}/students`);
+      if (Array.isArray(response.data?.students)) {
+        setStudentsInClass(response.data.students);
+      } else {
+        setStudentsInClass([]);
+      }
+      return response;
+    } catch (err) {
+      handleApiError(err, "Failed to fetch students for this schedule");
+      return err;
+    } finally {
+      setAttendanceLoading(false);
+    }
+  }, [handleApiError]);
+
+  const fetchAttendanceStatus = useCallback(async (scheduleId) => {
+    try {
+      setAttendanceLoading(true);
+      const response = await api.get(`/api/attendance/${scheduleId}/status`);
+      if (response.data) {
+        setAttendanceStatus({
+          presentStudents: response.data.presentStudents || [],
+          absentStudents: response.data.absentStudents || []
+        });
+      }
+      return response;
+    } catch (err) {
+      handleApiError(err, "Failed to fetch attendance status");
+      return err;
+    } finally {
+      setAttendanceLoading(false);
+    }
+  }, [handleApiError]);
+
+  const submitAttendance = useCallback(async (scheduleId, attendanceData) => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const payload = {
+        scheduleId,
+        students: attendanceData
+      };
+      
+      const response = await api.post('/api/attendance/mark', payload);
+      setSuccess("Attendance marked successfully!");
+      setIsAttendanceModalOpen(false);
+      return response;
+    } catch (err) {
+      handleApiError(err, "Failed to mark attendance");
+      return err;
+    } finally {
+      setLoading(false);
+    }
+  }, [handleApiError]);
+
+  const handleOpenAttendanceModal = useCallback(async (schedule) => {
+    setSelectedSchedule(schedule);
+    try {
+      await fetchStudentsBySchedule(schedule._id);
+      await fetchAttendanceStatus(schedule._id);
+      setIsAttendanceModalOpen(true);
+    } catch (error) {
+      console.error("Error opening attendance modal:", error);
+    }
+  }, [fetchStudentsBySchedule, fetchAttendanceStatus]);
+
   const handleCreateSchedule = useCallback(async (formData) => {
     setLoading(true);
     setError("");
@@ -117,7 +253,7 @@ const Timetable = () => {
       const response = await api.post("/api/schedule/create-schedule", formData);
       setSuccess("Schedule created successfully!");
       setIsCreateModalOpen(false);
-      fetchSchedules();
+      fetchSchedulesForAdmin();
       return response;
     } catch (err) {
       handleApiError(err, "Failed to create schedule");
@@ -125,9 +261,8 @@ const Timetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSchedules, handleApiError]);
+  }, [fetchSchedulesForAdmin, handleApiError]);
 
-  // Cập nhật lịch học
   const handleUpdateSchedule = useCallback(async (scheduleId, formData) => {
     setLoading(true);
     setError("");
@@ -137,7 +272,7 @@ const Timetable = () => {
       const response = await api.put(`/api/schedule/update-schedule/${scheduleId}`, formData);
       setSuccess("Schedule updated successfully!");
       setIsEditModalOpen(false);
-      fetchSchedules();
+      fetchSchedulesForAdmin();
       return response;
     } catch (err) {
       handleApiError(err, "Failed to update schedule");
@@ -145,9 +280,8 @@ const Timetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSchedules, handleApiError]);
+  }, [fetchSchedulesForAdmin, handleApiError]);
 
-  // Xóa lịch học
   const handleDeleteSchedule = useCallback(async (scheduleId) => {
     setLoading(true);
     setError("");
@@ -157,7 +291,7 @@ const Timetable = () => {
       const response = await api.delete(`/api/schedule/delete-schedule/${scheduleId}`);
       setSuccess("Schedule deleted successfully!");
       setIsDeleteModalOpen(false);
-      fetchSchedules();
+      fetchSchedulesForAdmin();
       return response;
     } catch (err) {
       handleApiError(err, "Failed to delete schedule");
@@ -165,15 +299,13 @@ const Timetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSchedules, handleApiError]);
+  }, [fetchSchedulesForAdmin, handleApiError]);
 
-  // Format date from ISO string to display format
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
 
-  // Filtered schedules based on filters
   const filteredSchedules = schedules.filter(schedule => {
     let matchesClass = true;
     let matchesType = true;
@@ -189,9 +321,132 @@ const Timetable = () => {
     return matchesClass && matchesType;
   });
 
-  // ---------- Render components ----------
+  const getStudentAttendanceStatus = useCallback((studentId) => {
+    const isPresentStudent = attendanceStatus.presentStudents.some(student => student._id === studentId);
+    if (isPresentStudent) return "Present";
+    
+    const isAbsentStudent = attendanceStatus.absentStudents.some(student => student._id === studentId);
+    if (isAbsentStudent) return "Absent";
+    
+    return null;
+  }, [attendanceStatus]);
 
-  // Schedule Form Component (used in Create and Edit modals)
+  const AttendanceModal = () => {
+    const [attendanceData, setAttendanceData] = useState([]);
+    
+    useEffect(() => {
+      if (isAttendanceModalOpen && studentsInClass.length > 0) {
+        const initialAttendance = studentsInClass.map(student => {
+          const status = getStudentAttendanceStatus(student._id);
+          return {
+            studentId: student._id,
+            status: status || "Absent"
+          };
+        });
+        setAttendanceData(initialAttendance);
+      }
+    }, [isAttendanceModalOpen, studentsInClass]);
+    
+    const handleStatusChange = (studentId, status) => {
+      setAttendanceData(prev => 
+        prev.map(item => 
+          item.studentId === studentId ? { ...item, status } : item
+        )
+      );
+    };
+    
+    const handleSubmit = () => {
+      if (!selectedSchedule || !attendanceData.length) return;
+      submitAttendance(selectedSchedule._id, attendanceData);
+    };
+    
+    return (
+      <Modal
+        isOpen={isAttendanceModalOpen}
+        onClose={() => setIsAttendanceModalOpen(false)}
+        title="Mark Attendance"
+      >
+        {attendanceLoading ? (
+          <div className="attendance-loading">
+            <Loader />
+            <p>Loading students...</p>
+          </div>
+        ) : (
+          <div className="attendance-container">
+            <div className="attendance-header">
+              <p>
+                <strong>Class:</strong> {selectedSchedule?.class?.class_name}
+              </p>
+              <p>
+                <strong>Date:</strong> {selectedSchedule && formatDate(selectedSchedule.date)}
+              </p>
+              <p>
+                <strong>Time:</strong> {selectedSchedule?.startTime} - {selectedSchedule?.endTime}
+              </p>
+            </div>
+            
+            {studentsInClass.length === 0 ? (
+              <div className="no-students">
+                <p>No students assigned to this class.</p>
+              </div>
+            ) : (
+              <>
+                <div className="attendance-list">
+                  <table className="attendance-table">
+                    <thead>
+                      <tr>
+                        <th>Student Name</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {studentsInClass.map(student => (
+                        <tr key={student._id}>
+                          <td>{student.firstName} {student.lastName}</td>
+                          <td>
+                            <div className="attendance-radio-group">
+                              <label className="attendance-radio">
+                                <input
+                                  type="radio"
+                                  name={`attendance-${student._id}`}
+                                  checked={attendanceData.find(item => item.studentId === student._id)?.status === "Present"}
+                                  onChange={() => handleStatusChange(student._id, "Present")}
+                                />
+                                <span className="present-label">Present</span>
+                              </label>
+                              <label className="attendance-radio">
+                                <input
+                                  type="radio"
+                                  name={`attendance-${student._id}`}
+                                  checked={attendanceData.find(item => item.studentId === student._id)?.status === "Absent"}
+                                  onChange={() => handleStatusChange(student._id, "Absent")}
+                                />
+                                <span className="absent-label">Absent</span>
+                              </label>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="attendance-actions">
+                  <Button
+                    variant="primary"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                  >
+                    {loading ? "Submitting..." : "Submit Attendance"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
+    );
+  };
+
   const ScheduleForm = ({ onSubmit, initialData = {}, submitLabel }) => {
     const today = new Date().toISOString().split('T')[0];
     
@@ -212,7 +467,6 @@ const Timetable = () => {
         [field]: value
       }));
       
-      // Clear error for field if it has value
       if (value && errors[field]) {
         setErrors(prev => ({ ...prev, [field]: undefined }));
       }
@@ -364,7 +618,6 @@ const Timetable = () => {
     );
   };
 
-  // Create Schedule Modal
   const CreateScheduleModal = () => (
     <Modal
       isOpen={isCreateModalOpen}
@@ -378,7 +631,6 @@ const Timetable = () => {
     </Modal>
   );
 
-  // Edit Schedule Modal
   const EditScheduleModal = () => (
     <Modal
       isOpen={isEditModalOpen}
@@ -395,7 +647,6 @@ const Timetable = () => {
     </Modal>
   );
 
-  // Delete Confirmation Modal
   const DeleteScheduleModal = () => (
     <ConfirmModal
       isOpen={isDeleteModalOpen}
@@ -406,7 +657,6 @@ const Timetable = () => {
     />
   );
 
-  // Filter Panel
   const renderFilterPanel = () => (
     <div className="filter-panel">
       <div className="filter-item">
@@ -452,8 +702,7 @@ const Timetable = () => {
     </div>
   );
 
-  // Schedule Table
-  const renderScheduleTable = () => (
+  const renderScheduleTable = (showActions = true, isTutor = false, isStudent = false) => (
     <table className="schedule-table">
       <thead>
         <tr>
@@ -462,24 +711,26 @@ const Timetable = () => {
           <th>Time</th>
           <th>Type</th>
           <th>Location/Link</th>
-          <th>Actions</th>
+          {showActions && <th>Actions</th>}
+          {isTutor && <th>Attendance</th>}
+          {isStudent && <th>Attendance Status</th>}
         </tr>
       </thead>
       <tbody>
         {filteredSchedules.length === 0 ? (
           <tr>
-            <td colSpan="6" className="no-data">
+            <td colSpan={showActions ? 6 : (isTutor || isStudent ? 6 : 5)} className="no-data">
               {dataLoading ? "Loading schedules..." : "No schedules found"}
             </td>
           </tr>
         ) : (
           filteredSchedules.map(schedule => {
             const classInfo = classes.find(c => c._id === (schedule.class._id || schedule.class));
-            const className = classInfo ? classInfo.class_name : "Unknown Class";
+            const className = classInfo ? classInfo.class_name : (schedule.class.class_name || "Unknown Class");
             
             return (
               <tr key={schedule._id}>
-                <td>{schedule.class.class_name || className}</td>
+                <td>{className}</td>
                 <td>{formatDate(schedule.date)}</td>
                 <td>{schedule.startTime} - {schedule.endTime}</td>
                 <td>
@@ -496,28 +747,48 @@ const Timetable = () => {
                     schedule.location || "Not specified"
                   )}
                 </td>
-                <td className="action-buttons">
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => {
-                      setSelectedSchedule(schedule);
-                      setIsEditModalOpen(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="small"
-                    onClick={() => {
-                      setSelectedSchedule(schedule);
-                      setIsDeleteModalOpen(true);
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </td>
+                {showActions && (
+                  <td className="action-buttons">
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      onClick={() => {
+                        setSelectedSchedule(schedule);
+                        setIsEditModalOpen(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="small"
+                      onClick={() => {
+                        setSelectedSchedule(schedule);
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                )}
+                {isTutor && (
+                  <td className="attendance-cell">
+                    <Button
+                      variant="primary"
+                      size="small"
+                      onClick={() => handleOpenAttendanceModal(schedule)}
+                    >
+                      Mark Attendance
+                    </Button>
+                  </td>
+                )}
+                {isStudent && (
+                  <td className="attendance-status-cell">
+                    <span className={`attendance-badge ${getStudentAttendanceStatus(user.id)?.toLowerCase() || 'not-marked'}`}>
+                      {getStudentAttendanceStatus(user.id) || "Not Marked"}
+                    </span>
+                  </td>
+                )}
               </tr>
             );
           })
@@ -526,7 +797,71 @@ const Timetable = () => {
     </table>
   );
 
-  // Main render based on user role
+  const renderUserScheduleView = () => {
+    const isTutor = user?.role === "Tutor";
+    const isStudent = user?.role === "Student";
+    
+    return (
+      <>
+        <div className="user-timetable-header">
+          <h2>My Schedule</h2>
+          <div className="user-filters">
+            {isTutor && tutorClasses.length > 0 && (
+              <div className="filter-class">
+                <label>Filter by Class:</label>
+                <select
+                  value={classFilter}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="">All Classes</option>
+                  {tutorClasses.map(classItem => (
+                    <option key={classItem._id} value={classItem._id}>
+                      {classItem.class_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="filter-type">
+              <label>Filter by Type:</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="form-select"
+              >
+                <option value="">All Types</option>
+                <option value="Online">Online</option>
+                <option value="Offline">Offline</option>
+              </select>
+            </div>
+            {(classFilter || typeFilter) && (
+              <button
+                className="reset-filters compact"
+                onClick={() => {
+                  setClassFilter("");
+                  setTypeFilter("");
+                }}
+              >
+                Reset Filters
+              </button>
+            )}
+          </div>
+        </div>
+          
+        {dataLoading ? (
+          <div className="loading-container">
+            <Loader />
+          </div>
+        ) : (
+          renderScheduleTable(false, isTutor, isStudent)
+        )}
+        
+        {isTutor && <AttendanceModal />}
+      </>
+    );
+  };
+
   const renderContent = () => {
     if (!user) {
       return (
@@ -536,7 +871,6 @@ const Timetable = () => {
       );
     }
 
-    // For Admin role
     if (user.role === "Admin") {
       return (
         <>
@@ -557,7 +891,7 @@ const Timetable = () => {
               <Loader />
             </div>
           ) : (
-            renderScheduleTable()
+            renderScheduleTable(true)
           )}
           
           <CreateScheduleModal />
@@ -567,15 +901,17 @@ const Timetable = () => {
       );
     }
 
-    // For Student & Tutor roles (will implement later)
+    if (user.role === "Student" || user.role === "Tutor") {
+      return renderUserScheduleView();
+    }
+
     return (
       <div className="message-container">
-        <p>Timetable view for {user.role} is under development.</p>
+        <p>Timetable view for {user.role} is not available.</p>
       </div>
     );
   };
 
-  // Main component render
   return (
     <div className="timetable-container">
       {error && <div className="error-message">{error}</div>}

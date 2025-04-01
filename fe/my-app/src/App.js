@@ -10,6 +10,7 @@ import AuthLayout from "./layouts/authLayout/AuthLayout";
 import Login from "./pages/auth/Login";
 import Register from "./pages/staff/Register";
 import AssignTutor from "./pages/staff/AssignClass";
+import ClassManagement from "./pages/staff/ClassManagement";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import TutorDashboard from "./pages/tutor/TutorDashboard";
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -102,6 +103,16 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <AssignTutor />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Class Management Route */}
+          <Route
+            path="/class-management"
+            element={
+              <ProtectedRoute>
+                <ClassManagement />
               </ProtectedRoute>
             }
           />

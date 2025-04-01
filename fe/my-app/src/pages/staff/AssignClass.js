@@ -10,28 +10,59 @@ import { getUserData, isAuthenticated } from '../../utils/storage';
 
 const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }) => {
   const [className, setClassName] = useState('');
-  const [major, setMajor] = useState('IT');
+  const [major, setMajor] = useState('');
   const [subject, setSubject] = useState('');
   const [tutorId, setTutorId] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [errors, setErrors] = useState({});
+  const [majorStudents, setMajorStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
   
   const filteredStudents = useMemo(() => {
-    if (!searchQuery.trim()) return students;
+    if (!searchQuery.trim()) return majorStudents;
     
-    return students.filter(student => 
+    return majorStudents.filter(student => 
       student.student_ID?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.lastName?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [students, searchQuery]);
+  }, [majorStudents, searchQuery]);
+
+  const fetchStudentsByMajor = useCallback(async (selectedMajor) => {
+    if (!selectedMajor) {
+      setMajorStudents([]);
+      return;
+    }
+    
+    setLoadingStudents(true);
+    try {
+      const response = await api.get(`/api/assign-student/search-students-by-major?major=${selectedMajor}`);
+      if (response.data && Array.isArray(response.data.students)) {
+        setMajorStudents(response.data.students);
+      } else {
+        setMajorStudents([]);
+      }
+    } catch (err) {
+      setMajorStudents([]);
+      setErrors(prev => ({ 
+        ...prev, 
+        apiError: `Error loading students: ${err.message || 'Unknown error'}`
+      }));
+    } finally {
+      setLoadingStudents(false);
+    }
+  }, []);
 
   const validateForm = useCallback(() => {
     const newErrors = {};
     
     if (!className.trim()) {
       newErrors.className = 'Class name is required';
+    }
+    
+    if (!major) {
+      newErrors.major = 'Major is required';
     }
     
     if (!subject.trim()) {
@@ -48,7 +79,19 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [className, subject, tutorId, selectedStudents]);
+  }, [className, major, subject, tutorId, selectedStudents]);
+
+  const handleMajorChange = useCallback((e) => {
+    const newMajor = e.target.value;
+    setMajor(newMajor);
+    setSelectedStudents([]);
+    
+    fetchStudentsByMajor(newMajor);
+    
+    if (newMajor && errors.major) {
+      setErrors(prev => ({ ...prev, major: undefined }));
+    }
+  }, [errors, fetchStudentsByMajor]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
@@ -69,21 +112,27 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
   useEffect(() => {
     if (!loading && !errors) {
       setClassName('');
-      setMajor('IT');
+      setMajor('');
       setSubject('');
       setTutorId('');
       setSelectedStudents([]);
+      setMajorStudents([]);
     }
   }, [loading, errors]);
 
-  const handleStudentSelect = useCallback((e) => {
-    const value = Array.from(e.target.selectedOptions, option => option.value);
-    setSelectedStudents(value);
+  const handleStudentSelect = useCallback((studentId) => {
+    setSelectedStudents(prev => {
+      if (prev.includes(studentId)) {
+        return prev.filter(id => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
     
-    if (value.length > 0 && errors.students) {
+    if (selectedStudents.length > 0 && errors.students) {
       setErrors(prev => ({ ...prev, students: undefined }));
     }
-  }, [errors]);
+  }, [selectedStudents.length, errors]);
   
   const handleClassNameChange = useCallback((e) => {
     const value = e.target.value;
@@ -119,11 +168,12 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
   // Reset form function
   const resetForm = useCallback(() => {
     setClassName('');
-    setMajor('IT');
+    setMajor('');
     setSubject('');
     setTutorId('');
     setSelectedStudents([]);
     setSearchQuery('');
+    setMajorStudents([]);
     setErrors({});
   }, []);
   
@@ -137,6 +187,7 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
   return (
     <div className="create-class-form">
       <h3>Create New Class</h3>
+      {errors.apiError && <div className="error-message">{errors.apiError}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-row">
           <div className="form-group">
@@ -151,18 +202,20 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
           </div>
           
           <div className="form-group">
-            <label htmlFor="major">Major*</label>
+            <label htmlFor="major" className={errors.major ? 'error-label' : ''}>Major*</label>
             <select 
               id="major"
               value={major} 
-              onChange={(e) => setMajor(e.target.value)}
+              onChange={handleMajorChange}
               required
-              className="form-select"
+              className={`form-select ${errors.major ? 'error-input' : ''}`}
             >
+              <option value="">Select major...</option>
               <option value="IT">IT</option>
               <option value="Business">Business</option>
               <option value="Design">Design</option>
             </select>
+            {errors.major && <div className="error-message">{errors.major}</div>}
           </div>
         </div>
         
@@ -198,7 +251,7 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
         
         <div className="form-group student-selection">
           <label className={errors.students ? 'error-label' : ''}>
-            Assign Students* (hold Ctrl/Cmd to select multiple)
+            Assign Students*
           </label>
           
           <div className="search-container">
@@ -222,23 +275,39 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
             />
           </div>
           
-          <select 
-            multiple
-            value={selectedStudents}
-            onChange={handleStudentSelect}
-            required
-            className={`multiple-select ${errors.students ? 'error-input' : ''}`}
-            size={5}
-          >
-            {filteredStudents.map(student => (
-              <option key={student._id} value={student._id}>
-                {student.firstName} {student.lastName} ({student.student_ID || 'No ID'})
-              </option>
-            ))}
-          </select>
-          
-          {filteredStudents.length === 0 && searchQuery && (
-            <p className="no-results">No students found matching your search.</p>
+          {!major ? (
+            <div className="select-major-message">
+              Please select a major first to view available students
+            </div>
+          ) : loadingStudents ? (
+            <div className="loading-students">
+              <Loader size="small" />
+              <p>Loading students...</p>
+            </div>
+          ) : (
+            <div className="student-checkbox-list">
+              {filteredStudents.length === 0 ? (
+                <p className="no-results">
+                  {searchQuery 
+                    ? 'No students found matching your search.' 
+                    : `No students found with major "${major}".`}
+                </p>
+              ) : (
+                filteredStudents.map(student => (
+                  <div key={student._id} className="student-checkbox-item">
+                    <input
+                      type="checkbox"
+                      id={`student-${student._id}`}
+                      checked={selectedStudents.includes(student._id)}
+                      onChange={() => handleStudentSelect(student._id)}
+                    />
+                    <label htmlFor={`student-${student._id}`}>
+                      {student.firstName} {student.lastName} ({student.studentId || student.student_ID || 'No ID'})
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
           )}
           
           <div className="selection-info">
@@ -255,7 +324,7 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
         
         <Button 
           type="submit" 
-          disabled={loading || !tutorId || selectedStudents.length === 0}
+          disabled={loading || !major || !tutorId || selectedStudents.length === 0}
           variant="primary"
           fullWidth
         >
@@ -484,12 +553,48 @@ const AssignClass = () => {
   // Ref for reset form function
   const [resetCreateForm, setResetCreateForm] = useState(null);
   
+  // Utility function xử lý lỗi
+  const handleApiError = useCallback((err, defaultMessage) => {
+    let errorMsg = defaultMessage || 'An error occurred';
+    
+    if (err.response) {
+      if (err.response.status === 500) {
+        if (err.response.data && err.response.data.message) {
+          errorMsg = err.response.data.message;
+        } else if (err.response.data && err.response.data.error) {
+          errorMsg = `Server error: ${err.response.data.error}`;
+        } else {
+          errorMsg = 'Server error occurred. Please try again later.';
+        }
+      } else if (err.response.status === 400) {
+        if (err.response.data && err.response.data.message) {
+          errorMsg = err.response.data.message;
+        }
+      } else if (err.response.status === 401) {
+        errorMsg = 'Authentication required. Please log in again.';
+        window.location.href = '/login';
+      } else if (err.response.status === 403) {
+        errorMsg = 'You do not have permission to perform this action.';
+      } else if (err.response.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+    } else if (err.request) {
+      errorMsg = 'No response received from server. Please check your connection.';
+    } else {
+      errorMsg = `Error: ${err.message}`;
+    }
+    
+    setError(errorMsg);
+    return errorMsg;
+  }, []);
+  
   // Callback to store the reset function
   const handleFormReset = useCallback((resetFunc) => {
     setResetCreateForm(() => resetFunc);
   }, []);
 
-  // Fetch data
+  // Cải thiện fetchStudentsByMajor trong CreateClassForm component để loại bỏ console.error
+  // Cải thiện fetchClasses
   const fetchClasses = useCallback(async () => {
     try {
       const response = await api.get('/api/class/get-all-class');
@@ -500,9 +605,10 @@ const AssignClass = () => {
       }
       return response;
     } catch (err) {
+      handleApiError(err, 'Failed to fetch classes');
       return err;
     }
-  }, []);
+  }, [handleApiError]);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -627,41 +733,20 @@ const AssignClass = () => {
       
       fetchClasses();
     } catch (err) {
-      let errorMsg = 'Failed to create class';
-      
-      if (err.response) {
-        if (err.response.status === 500) {
-          if (err.response.data && err.response.data.message) {
-            errorMsg = err.response.data.message;
-          } else if (err.response.data && err.response.data.error) {
-            errorMsg = `Server error: ${err.response.data.error}`;
-          } else {
-            errorMsg = 'Server error occurred. Please try again later.';
-          }
-        } else if (err.response.status === 400) {
-          if (err.response.data && err.response.data.message) {
-            errorMsg = err.response.data.message;
-          }
-        } else if (err.response.status === 401) {
-          errorMsg = 'Authentication required. Please log in again.';
-          window.location.href = '/login';
-        } else if (err.response.status === 403) {
-          errorMsg = 'You do not have permission to create classes.';
-        } else if (err.response.data?.message) {
-          errorMsg = err.response.data.message;
-        }
-      }
-      
-      setError(errorMsg);
+      handleApiError(err, 'Failed to create class');
     } finally {
       setLoading(false);
     }
-  }, [fetchClasses, resetCreateForm]);
+  }, [fetchClasses, resetCreateForm, handleApiError]);
 
   const handleDeleteStudent = useCallback(async (studentId, classId) => {
+    // Tìm thông tin sinh viên và lớp để hiển thị thông báo
+    const studentData = students.find(s => s._id === studentId);
+    const studentName = studentData ? `${studentData.firstName} ${studentData.lastName}` : 'Student';
+    
     setLoading(true);
     setError('');
-    setSuccess('');
+    setSuccess(`Removing ${studentName}...`);
 
     try {
       if (!isAuthenticated()) {
@@ -677,7 +762,7 @@ const AssignClass = () => {
         } 
       });
       
-      setSuccess('Successfully removed student from class');
+      setSuccess(`${studentName} removed successfully`);
       
       if (isDetailModalOpen && selectedClassDetail) {
         setIsDetailModalOpen(false);
@@ -686,19 +771,11 @@ const AssignClass = () => {
         }, 100);
       }
     } catch (err) {
-      let errorMessage = 'Failed to remove student from class';
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      }
-      if (err.response?.status === 401) {
-        errorMessage = 'Authentication required. Please log in again.';
-        window.location.href = '/login';
-      }
-      setError(errorMessage);
+      handleApiError(err, `Failed to remove ${studentName} from class`);
     } finally {
       setLoading(false);
     }
-  }, [isDetailModalOpen, selectedClassDetail]);
+  }, [isDetailModalOpen, selectedClassDetail, students, handleApiError]);
 
   const handleDeleteClass = useCallback(async (classId) => {
     setClassToDelete(classId);
@@ -708,23 +785,31 @@ const AssignClass = () => {
   const confirmDeleteClass = useCallback(async () => {
     if (!classToDelete) return;
     
+    // Optimistic update - xóa class khỏi UI ngay lập tức
+    const classToDeleteData = classes.find(c => c._id === classToDelete);
+    const className = classToDeleteData?.class_name || 'Class';
+    
+    setClasses(prev => prev.filter(c => c._id !== classToDelete));
+    setIsConfirmModalOpen(false);
+    
+    // Hiển thị thông báo đang xử lý
     setLoading(true);
     setError('');
-    setSuccess('');
+    setSuccess(`Deleting ${className}...`);
     
     try {
       await api.delete(`/api/class/delete-class/${classToDelete}`);
-      setSuccess('Class deleted successfully');
-      fetchClasses();
+      setSuccess(`${className} deleted successfully`);
+      // Không cần fetchClasses vì đã cập nhật UI
     } catch (err) {
-      let errorMessage = err.response?.data?.message || 'Failed to delete class';
-      setError(errorMessage);
+      // Hoàn tác UI change nếu API call thất bại
+      handleApiError(err, `Failed to delete ${className}`);
+      setClasses(prev => [...prev, classToDeleteData]); 
     } finally {
       setLoading(false);
-      setIsConfirmModalOpen(false);
       setClassToDelete(null);
     }
-  }, [classToDelete, fetchClasses]);
+  }, [classToDelete, classes, handleApiError]);
 
   const handleClassClick = useCallback((classData) => {
     setSelectedClassDetail(classData);
@@ -750,24 +835,11 @@ const AssignClass = () => {
       setSuccess('Class updated successfully');
       fetchClasses();
     } catch (err) {
-      let errorMsg = 'Failed to update class';
-      
-      if (err.response) {
-        if (err.response.data && err.response.data.message) {
-          errorMsg = err.response.data.message;
-        } else if (err.response.status === 401) {
-          errorMsg = 'Authentication required. Please log in again.';
-          window.location.href = '/login';
-        } else if (err.response.status === 403) {
-          errorMsg = 'You do not have permission to update classes.';
-        }
-      }
-      
-      setError(errorMsg);
+      handleApiError(err, 'Failed to update class');
     } finally {
       setLoading(false);
     }
-  }, [fetchClasses]);
+  }, [fetchClasses, handleApiError]);
 
   return (
     <div className="assign-class-container">

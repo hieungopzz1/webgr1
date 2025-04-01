@@ -129,7 +129,7 @@ const getStudentsByMajor = async (req, res) => {
     }
 
     const students = await Student.find({ major: { $regex: new RegExp(major, "i") } })
-      .select("firstName lastName email major");
+      .select("firstName lastName email major student_ID");
 
     if (students.length === 0) {
       return res.status(404).json({ message: "No students found for this major" });

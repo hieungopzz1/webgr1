@@ -14,7 +14,7 @@ const RoleSelect = ({ value, onChange }) => (
       name="role"
       value={value}
       onChange={onChange}
-      className="role-select"
+      className="form-select"
     >
       <option value={USER_ROLES.STUDENT}>Student</option>
       <option value={USER_ROLES.TUTOR}>Tutor</option>
@@ -52,15 +52,21 @@ const StudentFields = ({ studentId, major, onChange }) => (
       required
     />
 
-    <InputField
-      label="Major"
-      name="major"
-      type="text"
-      placeholder="Enter major..."
-      value={major}
-      onChange={onChange}
-      required
-    />
+    <div className="form-group">
+      <label htmlFor="major">Major*</label>
+      <select 
+        id="major"
+        name="major"
+        value={major} 
+        onChange={onChange}
+        required
+        className="form-select"
+      >
+        <option value="IT">IT</option>
+        <option value="Business">Business</option>
+        <option value="Design">Design</option>
+      </select>
+    </div>
   </>
 );
 
@@ -102,7 +108,7 @@ const Register = () => {
     password: '',
     role: USER_ROLES.STUDENT,
     student_ID: '',
-    major: ''
+    major: 'IT'
   });
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -139,7 +145,7 @@ const Register = () => {
       password: '',
       role: USER_ROLES.STUDENT,
       student_ID: '',
-      major: ''
+      major: 'IT'
     });
     setAvatar(null);
     setAvatarPreview(null);

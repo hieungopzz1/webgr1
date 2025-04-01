@@ -33,6 +33,12 @@
   font-size: 14px;
 }
 
+/* Ngoại trừ checkbox */
+.form-group input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+}
+
 /* Form row styling */
 .form-row {
   display: flex;
@@ -290,22 +296,22 @@ table tr:hover {
 
 /* Form validation error styling */
 .error-label {
-  color: #dc3545 !important;
+  color: #ff4d4f !important;
   font-weight: 500;
 }
 
 .error-input {
-  border-color: #dc3545 !important;
-  background-color: rgba(220, 53, 69, 0.05);
+  border-color: #ff4d4f !important;
+  background-color: rgba(255, 77, 79, 0.05);
 }
 
 .error-text {
-  color: #dc3545;
+  color: #ff4d4f;
   font-weight: 500;
 }
 
 .error-message {
-  color: #dc3545;
+  color: #ff4d4f;
   font-size: 12px;
   margin-top: 4px;
   margin-bottom: 0;
@@ -320,4 +326,89 @@ table tr:hover {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
+}
+
+.select-major-message {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  color: #666;
+  text-align: center;
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+.loading-students {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 0;
+  background-color: #f8f9fa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.loading-students p {
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Styles for student checkbox list */
+.student-checkbox-list {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #fff;
+}
+
+.student-checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 5px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.student-checkbox-item:last-child {
+  border-bottom: none;
+}
+
+.student-checkbox-item input[type="checkbox"] {
+  margin-right: 10px;
+  width: auto;
+  min-width: 16px;
+  height: 16px;
+}
+
+.student-checkbox-item label {
+  cursor: pointer;
+  flex: 1;
+}
+
+.student-checkbox-item:hover {
+  background-color: #f5f5f5;
+}
+
+.major-info {
+  margin-bottom: 15px;
+  padding: 8px 12px;
+  background-color: #f0f7ff;
+  border-radius: 4px;
+  border-left: 3px solid #1890ff;
+}
+
+.major-info p {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.major-info strong {
+  font-weight: 600;
+  color: #1890ff;
 }

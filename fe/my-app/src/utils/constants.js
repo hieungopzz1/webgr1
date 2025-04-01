@@ -42,7 +42,19 @@ export const ROUTES = {
   SETTINGS: '/settings',
   MESSAGES: '/messages',
   MESSAGE_DETAIL: (id) => `/messages/${id}`,
-  DASHBOARD: (role) => `${role}/dashboard/`,
+  CLASS_MANAGEMENT: '/class-management',
+  DASHBOARD: (role) => {
+    switch (role?.toLowerCase()) {
+      case "admin":
+        return "/admin/dashboard";
+      case "tutor":
+        return "/tutor/dashboard";
+      case "student":
+        return "/student/dashboard";
+      default:
+        return "/dashboard";
+    }
+  },
   PROFILE: '/profile',
 };
 

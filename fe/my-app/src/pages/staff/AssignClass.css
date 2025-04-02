@@ -6,9 +6,30 @@
 
 .page-title {
   margin-bottom: 30px;
-  font-size: 24px;
-  color: #333;
+  font-size: 28px;
+  color: #1e88e5;
   text-align: center;
+  font-weight: 600;
+}
+
+/* Two-column layout */
+.assign-columns {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+
+.assign-left,
+.assign-right {
+  flex: 1;
+  min-width: 350px;
+}
+
+@media (max-width: 768px) {
+  .assign-columns {
+    flex-direction: column;
+  }
 }
 
 /* Form Styles */
@@ -39,7 +60,6 @@
   padding: 0;
 }
 
-/* Form row styling */
 .form-row {
   display: flex;
   gap: 20px;
@@ -51,7 +71,16 @@
   margin-bottom: 0;
 }
 
-/* Student selection in create class form */
+/* Form card */
+.create-class-form {
+  background-color: #f4faff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dbe9f5;
+  box-shadow: 0 2px 6px rgba(30, 136, 229, 0.1);
+}
+
+/* Student selection */
 .student-selection {
   margin-top: 20px;
   margin-bottom: 25px;
@@ -71,10 +100,6 @@
   font-weight: 500;
 }
 
-.multiple-select {
-  height: 200px;
-}
-
 /* Classes Tab */
 .classes-content {
   display: flex;
@@ -82,26 +107,20 @@
   gap: 30px;
 }
 
-.create-class-form {
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #eee;
-}
-
 .classes-list-container {
-  margin-top: 20px;
-  background-color: #fff;
+  background-color: #ffffff;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .classes-list-container h3 {
   margin-bottom: 15px;
-  color: #333;
+  color: #1e88e5;
   border-bottom: 1px solid #eee;
   padding-bottom: 10px;
+  font-size: 20px;
 }
 
 /* Tables */
@@ -119,12 +138,13 @@ table td {
 }
 
 table th {
-  background-color: #f2f2f2;
+  background-color: #e3f2fd;
   font-weight: bold;
+  color: #0d47a1;
 }
 
 table tr:hover {
-  background-color: #f9f9f9;
+  background-color: #f1faff;
 }
 
 /* Messages */
@@ -162,7 +182,7 @@ table tr:hover {
 }
 
 .clickable-row:hover {
-  background-color: #f5f5f5;
+  background-color: #e3f2fd;
 }
 
 /* Class details modal */
@@ -173,7 +193,7 @@ table tr:hover {
 }
 
 .class-info {
-  background-color: #f8f9fa;
+  background-color: #f0f7ff;
   padding: 15px;
   border-radius: 5px;
   margin-bottom: 10px;
@@ -272,7 +292,6 @@ table tr:hover {
   background-clip: padding-box;
   border: 1px solid #ced4da;
   border-radius: 4px;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
@@ -281,17 +300,9 @@ table tr:hover {
 }
 
 .form-select:focus {
-  border-color: #4a90e2;
+  border-color: #1e88e5;
   outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
-}
-
-/* Responsive styles */
-@media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-    gap: 15px;
-  }
+  box-shadow: 0 0 0 0.2rem rgba(30, 136, 229, 0.25);
 }
 
 /* Form validation error styling */
@@ -308,13 +319,6 @@ table tr:hover {
 .error-text {
   color: #ff4d4f;
   font-weight: 500;
-}
-
-.error-message {
-  color: #ff4d4f;
-  font-size: 12px;
-  margin-top: 4px;
-  margin-bottom: 0;
 }
 
 .edit-class-form {
@@ -399,7 +403,7 @@ table tr:hover {
   padding: 8px 12px;
   background-color: #f0f7ff;
   border-radius: 4px;
-  border-left: 3px solid #1890ff;
+  border-left: 3px solid #1e88e5;
 }
 
 .major-info p {
@@ -410,5 +414,5 @@ table tr:hover {
 
 .major-info strong {
   font-weight: 600;
-  color: #1890ff;
+  color: #1e88e5;
 }

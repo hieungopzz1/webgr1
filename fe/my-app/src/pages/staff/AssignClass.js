@@ -843,53 +843,60 @@ const AssignClass = () => {
 
   return (
     <div className="assign-class-container">
-      <h2 className="page-title">Class Management</h2>
+  <h2 className="page-title">Class Management</h2>
 
-      {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
+  {error && <div className="error-message">{error}</div>}
+  {success && <div className="success-message">{success}</div>}
 
-      {!isDataLoaded ? (
-        <div className="loading-container">
-          <Loader />
-        </div>
-      ) : (
-        <div className="classes-content">
-          <CreateClassForm 
-            onSubmit={handleCreateClass} 
-            loading={loading}
-            tutors={tutors}
-            students={students}
-            onSuccess={handleFormReset}
-          />
-
-          <div className="classes-list-container">
-            <h3>Available Classes</h3>
-            <ClassesList 
-              classes={classes} 
-              onClassClick={handleClassClick}
-              onDeleteClass={handleDeleteClass}
-            />
-          </div>
-
-          <EditClassModal 
-            isOpen={isDetailModalOpen}
-            onClose={() => setIsDetailModalOpen(false)}
-            classData={selectedClassDetail}
-            tutors={tutors}
-            loading={loading}
-            onSave={handleUpdateClass}
-          />
-      </div>
-      )}
-      
-      <ConfirmModal
-        isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
-        onConfirm={confirmDeleteClass}
-        title="Delete Class"
-        message="Are you sure you want to delete this class? All related schedules and assignments will be deleted too."
-      />
+  {!isDataLoaded ? (
+    <div className="loading-container">
+      <Loader />
     </div>
+  ) : (
+    <div className="assign-columns">
+      {/* Left Column: Form */}
+      <div className="assign-left">
+        <CreateClassForm 
+          onSubmit={handleCreateClass} 
+          loading={loading}
+          tutors={tutors}
+          students={students}
+          onSuccess={handleFormReset}
+        />
+      </div>
+
+      {/* Right Column: List */}
+      <div className="assign-right">
+        <div className="classes-list-container">
+          <h3>Available Classes</h3>
+          <ClassesList 
+            classes={classes} 
+            onClassClick={handleClassClick}
+            onDeleteClass={handleDeleteClass}
+          />
+        </div>
+
+        <EditClassModal 
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          classData={selectedClassDetail}
+          tutors={tutors}
+          loading={loading}
+          onSave={handleUpdateClass}
+        />
+      </div>
+    </div>
+  )}
+
+  <ConfirmModal
+    isOpen={isConfirmModalOpen}
+    onClose={() => setIsConfirmModalOpen(false)}
+    onConfirm={confirmDeleteClass}
+    title="Delete Class"
+    message="Are you sure you want to delete this class? All related schedules and assignments will be deleted too."
+  />
+</div>
+
   );
 };
 

@@ -27,8 +27,9 @@
 }
 
 .logo-link img {
-  height: 99px;
+  height: 80px;
   width: auto;
+  border-radius: 10px;
 }
 
 /* Navigation */

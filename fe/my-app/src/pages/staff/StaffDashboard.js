@@ -156,17 +156,24 @@ const StaffDashboard = () => {
         </div>
       </div>
 
-      {/* Biểu đồ Pie và Bar trên cùng một hàng */}
-      <div style={containerStyle}>
-        <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-          <h3>Biểu đồ phân bổ sinh viên đã xếp lớp và chưa xếp lớp (Pie Chart)</h3>
-          <Pie data={pieChartData} options={pieChartOptions} />
-        </div>
-        <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-          <h3>Biểu đồ cột số sinh viên đã xếp lớp và chưa xếp lớp</h3>
-          <Bar data={barChartData} options={barChartOptions} />
-        </div>
-      </div>
+
+{/* Di chuyển biểu đồ cột xuống dưới */}
+<div style={{ display: 'flex', gap: '20px', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '20px' }}>
+  <div style={{ width: '30%', margin: '10px', textAlign: 'center' }}>
+    <h3>Biểu đồ phân bổ sinh viên đã xếp lớp và chưa xếp lớp (Pie Chart)</h3>
+    <Pie data={pieChartData} options={pieChartOptions} />
+  </div>
+
+  <div style={{ width: '30%', margin: '10px', textAlign: 'center' }}>
+    <h3>Biểu đồ cột số sinh viên đã xếp lớp và chưa xếp lớp</h3>
+    <Bar data={barChartData} options={barChartOptions} />
+  </div>
+
+  <div style={{ width: '30%', margin: '10px', textAlign: 'center' }}>
+    <h3>Biểu đồ cột số sinh viên đã xếp lớp và chưa xếp lớp</h3>
+    <Bar data={barChartData} options={barChartOptions} />
+  </div>
+</div>
 
       {/* Hiển thị số liệu cho sinh viên đã xếp lớp và chưa xếp lớp */}
       <div>

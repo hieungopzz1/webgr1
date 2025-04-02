@@ -160,4 +160,21 @@ const getAttendanceStatus = async (req, res) => {
   }
 };
 
-module.exports = { getStudentsBySchedule, getAttendanceStatus , markAttendance };
+
+const getStudentAttendance = async (req, res) => {
+  try {
+    const studentId = req.user.id; 
+
+    const attendanceRecords = await Attendance.find({ student: studentId })
+      .populate("schedule", "class date") 
+      .sort({ createdAt: -1 }) 
+      .lean();
+
+    res.status(200).json({ attendanceRecords });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+module.exports = { getStudentsBySchedule, getAttendanceStatus , markAttendance,getStudentAttendance };

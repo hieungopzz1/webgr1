@@ -10,4 +10,8 @@ router.post("/mark", authenticateUser, authorizeRole(["Tutor", "Admin"]), attend
 
 router.get("/:scheduleId/status",authenticateUser,authorizeRole(["Admin","Tutor"]), attendanceController.getAttendanceStatus );
 
+router.get("/student-status",authenticateUser,authorizeRole(["Admin","Student"]), attendanceController.getStudentAttendance );
+
+
+
 module.exports = router;

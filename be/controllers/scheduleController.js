@@ -104,6 +104,15 @@ const createSchedule = async (req, res) => {
       const existingSchedule = await Schedule.find({ date, slot: slotNumber });
       const existingClassIds = existingSchedule.map((s) => s.class.toString());
 
+      const classesAlreadyScheduled = classes.filter((classId) => existingClassIds.includes(classId));
+
+      if (classesAlreadyScheduled.length > 0) {
+        return res.status(400).json({
+          message: "Some classes are already scheduled in this slot",
+          classesAlreadyScheduled,
+        });
+      }
+
       const classesToAdd = classes.filter((classId) => !existingClassIds.includes(classId));
       for (const classId of classesToAdd) {
         const newSchedule = new Schedule({ class: classId, date, slot: slotNumber });

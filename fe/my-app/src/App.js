@@ -17,11 +17,11 @@ import StudentDashboard from "./pages/student/StudentDashboard";
 import Settings from "./pages/Settings/Settings";
 import Message from "./pages/Message/Message";
 import Home from "./pages/Home";
-import Timetable from "./pages/Timetable";
 import Notifications from "./components/notification/Notification";
 import { ROUTES } from "./utils/constants";
 import { isAuthenticated } from "./utils/storage";
 import "./App.css";
+import Timetable from "./pages/Timetable";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -118,7 +118,6 @@ const App = () => {
             }
           />
 
-          {/* Timetable Route */}
           <Route
             path="/timetable"
             element={

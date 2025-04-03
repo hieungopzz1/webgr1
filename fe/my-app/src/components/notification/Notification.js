@@ -42,13 +42,6 @@ const NotificationItem = ({ notification, onClose }) => {
         )}
         <p className="notification-message">{notification.message}</p>
       </div>
-      <button
-        className="notification-close"
-        onClick={() => onClose(notification.id)}
-        aria-label="Close notification"
-      >
-        <i className="bi bi-x"></i>
-      </button>
     </div>
   );
 };

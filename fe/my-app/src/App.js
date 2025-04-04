@@ -22,6 +22,7 @@ import { ROUTES } from "./utils/constants";
 import { isAuthenticated } from "./utils/storage";
 import "./App.css";
 import Timetable from "./pages/Timetable";
+import UserTimetable from "./pages/userTimetable";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -123,6 +124,15 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Timetable />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/user-timetable"
+            element={
+              <ProtectedRoute>
+                <UserTimetable />
               </ProtectedRoute>
             }
           />

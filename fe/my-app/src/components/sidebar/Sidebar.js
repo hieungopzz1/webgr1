@@ -40,10 +40,11 @@ const MENU_ITEMS = {
       label: "Notifications",
     },
     {
-      to: "/timetable",
+      type: "dynamic",
       icon: <i className="bi bi-calendar2-event" />,
       activeIcon: <i className="bi bi-calendar2-event-fill" />,
       label: "Timetable",
+      getTo: (role) => role === USER_ROLES.ADMIN ? "/timetable" : "/user-timetable",
     },
     // {
     //   to: ROUTES.DASHBOARD,
@@ -82,6 +83,8 @@ const BOTTOM_MENU = {
 
 const NavItem = ({ item }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { user } = useAuth();
+  const userRole = user?.role || USER_ROLES.STUDENT;
 
   if (item.type === "dropdown") {
     return (
@@ -130,6 +133,25 @@ const NavItem = ({ item }) => {
             </ul>
           </div>
         )}
+      </li>
+    );
+  }
+
+  if (item.type === "dynamic") {
+    const linkTo = item.getTo(userRole);
+    return (
+      <li>
+        <NavLink
+          to={linkTo}
+          end={item.end}
+          className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+        >
+          <div className="nav-icon-wrapper">
+            <span className="icon-normal">{item.icon}</span>
+            <span className="icon-active">{item.activeIcon}</span>
+          </div>
+          <span className="nav-label">{item.label}</span>
+        </NavLink>
       </li>
     );
   }

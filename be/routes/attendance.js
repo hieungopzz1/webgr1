@@ -8,7 +8,7 @@ router.get("/:scheduleId/students",authenticateUser,authorizeRole(["Admin","Tuto
 
 router.post("/mark", authenticateUser, authorizeRole(["Tutor", "Admin"]), attendanceController.markAttendance);
 
-router.get("/:scheduleId/status",authenticateUser,authorizeRole(["Admin","Tutor"]), attendanceController.getAttendanceStatus );
+router.get("/:scheduleId/status",authenticateUser,authorizeRole(["Admin","Tutor","Student"]), attendanceController.getAttendanceStatus );
 
 router.get("/student-status",authenticateUser,authorizeRole(["Admin","Student"]), attendanceController.getStudentAttendance );
 

@@ -221,7 +221,14 @@ const getStudentSchedules = async (req, res) => {
     }).distinct("class");
 
     const schedules = await Schedule.find({ class: { $in: assignedClasses } })
-      .populate("class", "class_name")
+      .populate({
+        path: "class",
+        select: "class_name subject tutor",
+        populate: {
+          path: "tutor",
+          select: "firstName lastName"
+        }
+      })
       .sort({ date: 1, startTime: 1 });
 
     res.status(200).json({ schedules });

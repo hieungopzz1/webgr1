@@ -6,6 +6,20 @@ import Button from "../components/button/Button";
 import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import { useNotification } from "../context/NotificationContext";
+import { 
+  getWeek, 
+  startOfWeek, 
+  endOfWeek, 
+  eachDayOfInterval, 
+  format, 
+  getWeeksInYear, 
+  getYear,
+  addDays,
+  setWeek,
+  startOfYear,
+  endOfYear 
+} from 'date-fns';
+import { vi } from 'date-fns/locale';
 import "./userTimetable.css";
 
 const UserTimetable = () => {
@@ -15,7 +29,6 @@ const UserTimetable = () => {
   const [success, setSuccess] = useState("");
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [tutors, setTutors] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
@@ -25,31 +38,24 @@ const UserTimetable = () => {
   const [studentAttendances, setStudentAttendances] = useState([]);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
 
-  // Lọc theo tuần và năm
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedWeek, setSelectedWeek] = useState(getWeekNumber(new Date()));
+  const currentDate = new Date();
+  const [selectedYear, setSelectedYear] = useState(getYear(currentDate));
+  const [selectedWeek, setSelectedWeek] = useState(getWeek(currentDate, { weekStartsOn: 1 }));
   
   const [classFilter, setClassFilter] = useState("");
   const [tutorClasses, setTutorClasses] = useState([]);
   const [dateFilter, setDateFilter] = useState("");
-  const [tutorFilter, setTutorFilter] = useState("");
 
-  // Initialize the notification hook
+  const [studentAttendanceMap, setStudentAttendanceMap] = useState({});
+
   const { success: showSuccess, error: showError } = useNotification();
   
-  // Create ref for notification functions to avoid dependency cycles
   const notificationRef = useRef();
   notificationRef.current = { showSuccess, showError };
 
-  // Thêm ref cho classes
   const classesRef = useRef();
   classesRef.current = classes;
-  
-  // Thêm ref cho tutors
-  const tutorsRef = useRef();
-  tutorsRef.current = tutors;
 
-  // Define slot labels for easy reference
   const slotLabels = {
     1: "07:00 - 08:30",
     2: "08:45 - 10:15", 
@@ -61,80 +67,76 @@ const UserTimetable = () => {
 
   const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-  // Hàm lấy số tuần trong năm
-  function getWeekNumber(date) {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-  }
-
-  // Lấy ngày đầu tuần từ tuần và năm
-  function getFirstDayOfWeek(year, week) {
-    const firstDayOfYear = new Date(year, 0, 1);
-    const daysOffset = (week - 1) * 7 - firstDayOfYear.getDay() + 1;
-    return new Date(year, 0, daysOffset);
-  }
-
-  // Tạo mảng các ngày trong tuần từ ngày đầu tuần
-  function getDaysOfWeek(firstDay) {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(firstDay);
-      day.setDate(firstDay.getDate() + i);
-      days.push(day);
-    }
-    return days;
-  }
-
-  // Format date to locale date string
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return format(date, 'dd/MM/yyyy');
   };
 
-  // Format theo định dạng DD/MM
   const formatShortDate = (date) => {
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    return format(date, 'dd/MM');
   };
 
-  // Lấy danh sách các tuần trong năm
-  const getWeeksInYear = (year) => {
+  const getAvailableWeeksInYear = (year) => {
     const weeks = [];
-    const firstDayOfYear = new Date(year, 0, 1);
+    
     const lastDayOfYear = new Date(year, 11, 31);
+    const totalDays = lastDayOfYear.getDate() + 
+      (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30);
     
-    const firstWeek = getWeekNumber(firstDayOfYear);
-    const lastWeek = getWeekNumber(lastDayOfYear);
+    const totalWeeks = Math.ceil(totalDays / 7) + 1;
     
-    for (let week = firstWeek; week <= lastWeek; week++) {
-      const firstDay = getFirstDayOfWeek(year, week);
-      const lastDay = new Date(firstDay);
-      lastDay.setDate(firstDay.getDate() + 6);
+    for (let weekNum = 1; weekNum <= totalWeeks; weekNum++) {
+      const dayOfYear = (weekNum - 1) * 7 + 1;
+      let weekStart = new Date(year, 0, dayOfYear);
+      
+      const dayOfWeek = weekStart.getDay();
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      weekStart.setDate(weekStart.getDate() + diff);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      
+      if (weekEnd.getFullYear() < year) continue;
+      if (weekStart.getFullYear() > year) break;
       
       weeks.push({
-        week,
-        label: `${formatDate(firstDay)} - ${formatDate(lastDay)}`
+        week: weekNum,
+        label: `${format(weekStart, 'dd/MM/yyyy')} - ${format(weekEnd, 'dd/MM/yyyy')}`
       });
     }
     
     return weeks;
   };
 
-  // Danh sách các năm để hiển thị trong dropdown
   const yearOptions = useMemo(() => {
-    const currentYear = new Date().getFullYear();
+    const currentYear = getYear(new Date());
     return [currentYear - 1, currentYear, currentYear + 1];
   }, []);
 
-  // Danh sách các tuần trong năm đã chọn
   const weekOptions = useMemo(() => {
-    return getWeeksInYear(selectedYear);
+    return getAvailableWeeksInYear(selectedYear);
   }, [selectedYear]);
 
-  // Lấy các ngày trong tuần đã chọn
   const daysInSelectedWeek = useMemo(() => {
-    const firstDay = getFirstDayOfWeek(selectedYear, selectedWeek);
-    return getDaysOfWeek(firstDay);
+    const firstDayOfYear = new Date(selectedYear, 0, 1);
+    
+    const dayOfYear = (selectedWeek - 1) * 7 + 1;
+    const dateOfFirstDayOfWeek = new Date(selectedYear, 0, dayOfYear);
+    
+    const dayOfWeek = dateOfFirstDayOfWeek.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    
+    const weekStartDate = new Date(dateOfFirstDayOfWeek);
+    weekStartDate.setDate(dateOfFirstDayOfWeek.getDate() + diff);
+    
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(weekStartDate);
+      day.setDate(weekStartDate.getDate() + i);
+      days.push(day);
+    }
+    
+    return days;
   }, [selectedYear, selectedWeek]);
 
   useEffect(() => {
@@ -170,10 +172,29 @@ const UserTimetable = () => {
     return errorMsg;
   }, []);
 
+  const fetchClasses = useCallback(async () => {
+    try {
+      const response = await api.get("/api/class/get-all-class");
+      
+      if (response.data && Array.isArray(response.data.classes)) {
+        setClasses(response.data.classes);
+      } else if (response.data && Array.isArray(response.data)) {
+        setClasses(response.data);
+      } else {
+        setClasses([]);
+      }
+      return response;
+    } catch (err) {
+      handleApiError(err, "Failed to fetch classes");
+      return err;
+    }
+  }, [handleApiError]);
+
   const fetchSchedulesForStudent = useCallback(async () => {
     try {
       setDataLoading(true);
       const response = await api.get("/api/schedule/schedule-student");
+      
       if (Array.isArray(response.data?.schedules)) {
         setSchedules(response.data.schedules);
       } else {
@@ -192,6 +213,7 @@ const UserTimetable = () => {
     try {
       setDataLoading(true);
       const response = await api.get("/api/schedule/schedule-tutor");
+      
       if (Array.isArray(response.data?.schedules)) {
         const scheduleData = response.data.schedules;
         setSchedules(scheduleData);
@@ -228,53 +250,18 @@ const UserTimetable = () => {
     }
   }, [handleApiError]);
 
-  const fetchTutors = useCallback(async () => {
-    try {
-      const response = await api.get('/api/admin/get-users');
-      const tutorsList = response.data.users.filter(user => user.role === 'Tutor');
-      setTutors(tutorsList);
-      return response;
-    } catch (err) {
-      handleApiError(err, "Failed to fetch tutors");
-      return err;
-    }
-  }, [handleApiError]);
-
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      setError("Authentication required. Please log in again.");
-      return;
-    }
-
-    const userData = getUserData();
-    if (!userData) return;
-
-    if (userData.role === "Student") {
-      Promise.all([
-        fetchSchedulesForStudent(),
-        fetchTutors()
-      ]).finally(() => {
-        setDataLoading(false);
-      });
-    } else if (userData.role === "Tutor") {
-      Promise.all([
-        fetchSchedulesForTutor(),
-        fetchTutors()
-      ]).finally(() => {
-        setDataLoading(false);
-      });
-    }
-  }, [fetchSchedulesForStudent, fetchSchedulesForTutor, fetchTutors]);
-
   const fetchStudentsBySchedule = useCallback(async (scheduleId) => {
     try {
       setAttendanceLoading(true);
+      
       const response = await api.get(`/api/attendance/${scheduleId}/students`);
+      
       if (Array.isArray(response.data?.students)) {
         setStudentsInClass(response.data.students);
       } else {
         setStudentsInClass([]);
       }
+      
       return response;
     } catch (err) {
       handleApiError(err, "Failed to fetch students for this schedule");
@@ -303,6 +290,103 @@ const UserTimetable = () => {
     }
   }, [handleApiError]);
 
+  const filteredSchedulesByWeek = useMemo(() => {
+    if (!daysInSelectedWeek.length) return [];
+    
+    const startDate = daysInSelectedWeek[0];
+    const endDate = daysInSelectedWeek[6];
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return schedules.filter(schedule => {
+      const scheduleDate = new Date(schedule.date);
+      return scheduleDate >= startDate && scheduleDate <= endOfDay;
+    });
+  }, [schedules, daysInSelectedWeek]);
+
+  const schedulesGroupedByDayAndSlot = useMemo(() => {
+    const groupedSchedules = {};
+    
+    for (let slot = 1; slot <= 6; slot++) {
+      groupedSchedules[slot] = {};
+      daysInSelectedWeek.forEach((day) => {
+        const dateKey = format(day, 'yyyy-MM-dd');
+        groupedSchedules[slot][dateKey] = [];
+      });
+    }
+    
+    filteredSchedulesByWeek.forEach(schedule => {
+      const dateKey = format(new Date(schedule.date), 'yyyy-MM-dd');
+      const slot = schedule.slot;
+      
+      if (groupedSchedules[slot] && groupedSchedules[slot][dateKey]) {
+        groupedSchedules[slot][dateKey].push(schedule);
+      }
+    });
+    
+    return groupedSchedules;
+  }, [filteredSchedulesByWeek, daysInSelectedWeek]);
+
+  const fetchStudentAttendanceData = useCallback(async () => {
+    if (user?.role !== "Student" || !filteredSchedulesByWeek.length) return;
+    
+    try {
+      const newAttendanceMap = {};
+      
+      for (const schedule of filteredSchedulesByWeek) {
+        try {
+          const response = await api.get(`/api/attendance/${schedule._id}/status`);
+          const data = response.data;
+          
+          const isPresentStudent = data.presentStudents.some(student => student._id === user.id);
+          const isAbsentStudent = data.absentStudents.some(student => student._id === user.id);
+          
+          if (isPresentStudent) {
+            newAttendanceMap[schedule._id] = "Present";
+          } else if (isAbsentStudent) {
+            newAttendanceMap[schedule._id] = "Absent";
+          } else {
+            newAttendanceMap[schedule._id] = null;
+          }
+        } catch (err) {
+          console.error(`Error fetching attendance for schedule ${schedule._id}:`, err);
+        }
+      }
+      
+      setStudentAttendanceMap(newAttendanceMap);
+    } catch (err) {
+      console.error("Error fetching student attendance data:", err);
+    }
+  }, [user, filteredSchedulesByWeek]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      setError("Authentication required. Please log in again.");
+      return;
+    }
+
+    const userData = getUserData();
+    if (!userData) return;
+
+    fetchClasses();
+
+    if (userData.role === "Student") {
+      fetchSchedulesForStudent().finally(() => {
+        setDataLoading(false);
+      });
+    } else if (userData.role === "Tutor") {
+      fetchSchedulesForTutor().finally(() => {
+        setDataLoading(false);
+      });
+    }
+  }, [fetchSchedulesForStudent, fetchSchedulesForTutor, fetchClasses]);
+
+  useEffect(() => {
+    if (user?.role === "Student") {
+      fetchStudentAttendanceData();
+    }
+  }, [filteredSchedulesByWeek, fetchStudentAttendanceData, user]);
+
   const submitAttendance = useCallback(async (scheduleId, attendanceData) => {
     try {
       setLoading(true);
@@ -317,6 +401,13 @@ const UserTimetable = () => {
       const successMessage = "Attendance marked successfully!";
       setSuccess(successMessage);
       notificationRef.current.showSuccess(successMessage);
+      
+      if (user?.role === "Student") {
+        fetchStudentAttendanceData();
+      } else if (selectedSchedule) {
+        await fetchAttendanceStatus(selectedSchedule._id);
+      }
+      
       setIsAttendanceModalOpen(false);
       return response;
     } catch (err) {
@@ -325,7 +416,7 @@ const UserTimetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [handleApiError]);
+  }, [handleApiError, fetchStudentAttendanceData, fetchAttendanceStatus, selectedSchedule, user]);
 
   const handleOpenAttendanceModal = useCallback(async (schedule) => {
     setSelectedSchedule(schedule);
@@ -338,47 +429,11 @@ const UserTimetable = () => {
     }
   }, [fetchStudentsBySchedule, fetchAttendanceStatus]);
 
-  // Lọc lịch học theo khoảng thời gian của tuần đã chọn
-  const filteredSchedulesByWeek = useMemo(() => {
-    if (!daysInSelectedWeek.length) return [];
-    
-    const startDate = daysInSelectedWeek[0];
-    const endDate = daysInSelectedWeek[6];
-    endDate.setHours(23, 59, 59, 999);
-    
-    return schedules.filter(schedule => {
-      const scheduleDate = new Date(schedule.date);
-      return scheduleDate >= startDate && scheduleDate <= endDate;
-    });
-  }, [schedules, daysInSelectedWeek]);
-
-  // Nhóm lịch học theo ngày và slot
-  const schedulesGroupedByDayAndSlot = useMemo(() => {
-    const groupedSchedules = {};
-    
-    // Khởi tạo cấu trúc dữ liệu
-    for (let slot = 1; slot <= 6; slot++) {
-      groupedSchedules[slot] = {};
-      daysInSelectedWeek.forEach((day, dayIndex) => {
-        const dateKey = day.toISOString().split('T')[0];
-        groupedSchedules[slot][dateKey] = [];
-      });
+  const getStudentAttendanceStatus = useCallback((studentId, scheduleId) => {
+    if (user?.role === "Student" && studentId === user.id && scheduleId) {
+      return studentAttendanceMap[scheduleId];
     }
     
-    // Phân loại lịch học
-    filteredSchedulesByWeek.forEach(schedule => {
-      const dateKey = new Date(schedule.date).toISOString().split('T')[0];
-      const slot = schedule.slot;
-      
-      if (groupedSchedules[slot] && groupedSchedules[slot][dateKey]) {
-        groupedSchedules[slot][dateKey].push(schedule);
-      }
-    });
-    
-    return groupedSchedules;
-  }, [filteredSchedulesByWeek, daysInSelectedWeek]);
-
-  const getStudentAttendanceStatus = useCallback((studentId) => {
     const isPresentStudent = attendanceStatus.presentStudents.some(student => student._id === studentId);
     if (isPresentStudent) return "Present";
     
@@ -386,7 +441,266 @@ const UserTimetable = () => {
     if (isAbsentStudent) return "Absent";
     
     return null;
-  }, [attendanceStatus]);
+  }, [attendanceStatus, studentAttendanceMap, user]);
+
+  const [tutorCache, setTutorCache] = useState({});
+
+  const TutorName = ({ tutorData }) => {
+    const [tutorName, setTutorName] = useState("Not Assigned");
+    
+    useEffect(() => {
+      if (!tutorData) {
+        setTutorName("Not Assigned");
+        return;
+      }
+      
+      if (typeof tutorData === 'string') {
+        setTutorName(tutorData);
+        return;
+      }
+      
+      if (tutorData.firstName && tutorData.lastName) {
+        setTutorName(`${tutorData.firstName} ${tutorData.lastName}`);
+        return;
+      }
+      
+      if (tutorData.tutor_name) {
+        setTutorName(tutorData.tutor_name);
+        return;
+      }
+      
+      if (tutorData.name) {
+        setTutorName(tutorData.name);
+        return;
+      }
+      
+      setTutorName("Not Assigned");
+    }, [tutorData]);
+    
+    return <>{tutorName}</>;
+  };
+
+  const renderScheduleCell = (schedules, dayKey, isTutor, isStudent) => {
+    if (!schedules || schedules.length === 0) {
+      return <div className="empty-cell"></div>;
+    }
+
+    return (
+      <div className="schedule-cells">
+        {schedules.map(schedule => {
+          console.log("Rendering schedule:", schedule);
+          
+          let classData = null;
+          if (typeof schedule.class === 'object' && schedule.class) {
+            classData = schedule.class;
+          } else if (schedule.class) {
+            classData = classes.find(c => c._id === schedule.class) || { class_name: "Unknown Class" };
+          }
+          
+          const className = classData?.class_name || "Unknown Class";
+          const subject = classData?.subject || "Unknown Subject";
+          
+          let tutorData = null;
+          
+          if (classData?.tutor) {
+            tutorData = classData.tutor;
+          } else if (classData?.tutor_name) {
+            tutorData = classData.tutor_name;
+          } else if (schedule.tutor) {
+            tutorData = schedule.tutor;
+          } else if (schedule.tutor_name) {
+            tutorData = schedule.tutor_name;
+          }
+          
+          console.log("Tutor data:", tutorData);
+
+          let attendanceStatus = '';
+          let attendanceClass = '';
+          
+          if (isStudent) {
+            const status = getStudentAttendanceStatus(user.id, schedule._id);
+            if (status === "Present") {
+              attendanceStatus = '(attended)';
+              attendanceClass = 'attended';
+            } else if (status === "Absent") {
+              attendanceStatus = '(absent)';
+              attendanceClass = 'absent';
+            } else {
+              attendanceStatus = '(Not yet)';
+              attendanceClass = 'not-yet';
+            }
+          }
+
+          return (
+            <div key={schedule._id} className={`schedule-cell ${attendanceClass}`}>
+              <div className="class-name">{className}</div>
+              <div className="class-details">
+                <span className="major-badge">{subject}</span>
+                {isStudent && (
+                  <span className="tutor-name">
+                    <TutorName tutorData={tutorData} />
+                  </span>
+                )}
+              </div>
+              
+              {isStudent && (
+                <div className="attendance-status">
+                  {attendanceStatus}
+                </div>
+              )}
+              
+              {isTutor && (
+                <div className="attendance-actions">
+                  <Button
+                    variant="primary"
+                    size="small"
+                    onClick={() => handleOpenAttendanceModal(schedule)}
+                  >
+                    Mark Attendance
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderTimetable = (isTutor = false, isStudent = false) => {
+    return (
+      <div className="timetable-grid">
+        <table className="timetable">
+          <thead>
+            <tr>
+              <th className="time-column">Slot / Day</th>
+              {daysInSelectedWeek.map((day, index) => (
+                <th key={index} className="day-column">
+                  <div className="day-header">
+                    <div className="day-name">{weekDays[index]}</div>
+                    <div className="day-date">{formatShortDate(day)}</div>
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(slotLabels).map(slot => {
+              const slotNumber = parseInt(slot);
+              return (
+                <tr key={slot} className="time-slot">
+                  <td className="slot-info">
+                    <div className="slot-number">Slot {slot}</div>
+                    <div className="slot-time">{slotLabels[slot]}</div>
+                  </td>
+                  
+                  {daysInSelectedWeek.map((day, dayIndex) => {
+                    const dateKey = format(day, 'yyyy-MM-dd');
+                    const daySchedules = schedulesGroupedByDayAndSlot[slotNumber]?.[dateKey] || [];
+                    
+                    return (
+                      <td key={dateKey} className="day-slot">
+                        {renderScheduleCell(daySchedules, dateKey, isTutor, isStudent)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderWeekSelector = () => {
+    return (
+      <div className="timetable-week-controls">
+        <div className="week-selector">
+          <div className="filter-item">
+            <label>Year:</label>
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="form-select"
+            >
+              {yearOptions.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="filter-item">
+            <label>Week:</label>
+            <select 
+              value={selectedWeek} 
+              onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+              className="form-select"
+            >
+              {weekOptions.map(weekOption => (
+                <option key={weekOption.week} value={weekOption.week}>
+                  Week {weekOption.week}: {weekOption.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        {user?.role === "Tutor" && tutorClasses.length > 0 && (
+          <div className="filter-item">
+            <label>Filter by Class:</label>
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="form-select"
+            >
+              <option value="">All Classes</option>
+              {tutorClasses.map(classItem => (
+                <option key={classItem._id} value={classItem._id}>
+                  {classItem.class_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderContent = () => {
+    if (!user) {
+      return (
+        <div className="loading-container">
+          <Loader />
+        </div>
+      );
+    }
+
+    const isTutor = user.role === "Tutor";
+    const isStudent = user.role === "Student";
+    
+    const isLoading = dataLoading || classes.length === 0;
+
+    return (
+      <>
+        <div className="user-timetable-header">
+          <h2>My Schedule</h2>
+          {renderWeekSelector()}
+        </div>
+          
+        {isLoading ? (
+          <div className="loading-container">
+            <Loader />
+            <p>Loading class data...</p>
+          </div>
+        ) : (
+          renderTimetable(isTutor, isStudent)
+        )}
+        
+        {isTutor && <AttendanceModal />}
+      </>
+    );
+  };
 
   const AttendanceModal = () => {
     const [attendanceData, setAttendanceData] = useState([]);
@@ -394,7 +708,7 @@ const UserTimetable = () => {
     useEffect(() => {
       if (isAttendanceModalOpen && studentsInClass.length > 0) {
         const initialAttendance = studentsInClass.map(student => {
-          const status = getStudentAttendanceStatus(student._id);
+          const status = getStudentAttendanceStatus(student._id, selectedSchedule?._id);
           return {
             studentId: student._id,
             status: status || "Absent"
@@ -452,6 +766,7 @@ const UserTimetable = () => {
                   <table className="attendance-table">
                     <thead>
                       <tr>
+                        <th>Student ID</th>
                         <th>Student Name</th>
                         <th>Status</th>
                       </tr>
@@ -459,6 +774,9 @@ const UserTimetable = () => {
                     <tbody>
                       {studentsInClass.map(student => (
                         <tr key={student._id}>
+                          <td className="student-id" title={student.email || "No email available"}>
+                            {student.student_ID || "ID không có sẵn"}
+                          </td>
                           <td>{student.firstName} {student.lastName}</td>
                           <td>
                             <div className="attendance-radio-group">
@@ -501,221 +819,6 @@ const UserTimetable = () => {
           </div>
         )}
       </Modal>
-    );
-  };
-
-  // Hiển thị thông tin lớp học trong ô lịch
-  const renderScheduleCell = (schedules, dayKey, isTutor, isStudent) => {
-    if (!schedules || schedules.length === 0) {
-      return <div className="empty-cell"></div>;
-    }
-
-    return (
-      <div className="schedule-cells">
-        {schedules.map(schedule => {
-          const classInfo = classes.find(c => c._id === (schedule.class._id || schedule.class));
-          const className = classInfo ? classInfo.class_name : (schedule.class.class_name || "Unknown Class");
-          const major = classInfo ? classInfo.major : (schedule.class.major || "Unknown Major");
-          
-          // Cách lấy tên tutor
-          let tutorName = "Not Assigned";
-          const tutorId = classInfo?.tutor_id || classInfo?.tutor || schedule.class.tutor_id || schedule.class.tutor;
-          
-          if (tutorId) {
-            const tutorInfo = tutors.find(t => t._id === tutorId);
-            if (tutorInfo) {
-              tutorName = `${tutorInfo.firstName} ${tutorInfo.lastName}`;
-            } else if (classInfo?.tutor_name) {
-              tutorName = classInfo.tutor_name;
-            } else if (schedule.class.tutor_name) {
-              tutorName = schedule.class.tutor_name;
-            }
-          } else if (classInfo?.tutor_name) {
-            tutorName = classInfo.tutor_name;
-          } else if (schedule.class.tutor_name) {
-            tutorName = schedule.class.tutor_name;
-          }
-
-          // Xác định trạng thái điểm danh
-          let attendanceStatus = '';
-          let attendanceClass = '';
-          
-          if (isStudent) {
-            const status = getStudentAttendanceStatus(user.id);
-            if (status === "Present") {
-              attendanceStatus = '(attended)';
-              attendanceClass = 'attended';
-            } else if (status === "Absent") {
-              attendanceStatus = '(absent)';
-              attendanceClass = 'absent';
-            } else {
-              attendanceStatus = '(Not yet)';
-              attendanceClass = 'not-yet';
-            }
-          }
-
-          return (
-            <div key={schedule._id} className={`schedule-cell ${attendanceClass}`}>
-              <div className="class-name">{className}</div>
-              <div className="class-details">
-                <span className="major-badge">{major}</span>
-                <span className="tutor-name">• {tutorName}</span>
-              </div>
-              
-              {isStudent && (
-                <div className="attendance-status">
-                  {attendanceStatus}
-                </div>
-              )}
-              
-              {isTutor && (
-                <div className="attendance-actions">
-                  <Button
-                    variant="primary"
-                    size="small"
-                    onClick={() => handleOpenAttendanceModal(schedule)}
-                  >
-                    Mark Attendance
-                  </Button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const renderTimetable = (isTutor = false, isStudent = false) => {
-    return (
-      <div className="timetable-grid">
-        <table className="timetable">
-          <thead>
-            <tr>
-              <th className="time-column">Slot / Day</th>
-              {daysInSelectedWeek.map((day, index) => (
-                <th key={index} className="day-column">
-                  <div className="day-header">
-                    <div className="day-name">{weekDays[index]}</div>
-                    <div className="day-date">{formatShortDate(day)}</div>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(slotLabels).map(slot => {
-              const slotNumber = parseInt(slot);
-              return (
-                <tr key={slot} className="time-slot">
-                  <td className="slot-info">
-                    <div className="slot-number">Slot {slot}</div>
-                    <div className="slot-time">{slotLabels[slot]}</div>
-                  </td>
-                  
-                  {daysInSelectedWeek.map((day, dayIndex) => {
-                    const dateKey = day.toISOString().split('T')[0];
-                    const daySchedules = schedulesGroupedByDayAndSlot[slotNumber]?.[dateKey] || [];
-                    
-                    return (
-                      <td key={dateKey} className="day-slot">
-                        {renderScheduleCell(daySchedules, dateKey, isTutor, isStudent)}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  const renderFilters = () => {
-    return (
-      <div className="timetable-filters">
-        <div className="week-selector">
-          <div className="filter-item">
-            <label>Year:</label>
-            <select 
-              value={selectedYear} 
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="form-select"
-            >
-              {yearOptions.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="filter-item">
-            <label>Week:</label>
-            <select 
-              value={selectedWeek} 
-              onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-              className="form-select"
-            >
-              {weekOptions.map(weekOption => (
-                <option key={weekOption.week} value={weekOption.week}>
-                  Week {weekOption.week}: {weekOption.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        {/* Các bộ lọc bổ sung */}
-        {user?.role === "Tutor" && tutorClasses.length > 0 && (
-          <div className="filter-item">
-            <label>Filter by Class:</label>
-            <select
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              className="form-select"
-            >
-              <option value="">All Classes</option>
-              {tutorClasses.map(classItem => (
-                <option key={classItem._id} value={classItem._id}>
-                  {classItem.class_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderContent = () => {
-    if (!user) {
-      return (
-        <div className="loading-container">
-          <Loader />
-        </div>
-      );
-    }
-
-    const isTutor = user.role === "Tutor";
-    const isStudent = user.role === "Student";
-
-    return (
-      <>
-        <div className="user-timetable-header">
-          <h2>My Schedule</h2>
-          {renderFilters()}
-        </div>
-          
-        {dataLoading ? (
-          <div className="loading-container">
-            <Loader />
-          </div>
-        ) : (
-          renderTimetable(isTutor, isStudent)
-        )}
-        
-        {isTutor && <AttendanceModal />}
-      </>
     );
   };
 

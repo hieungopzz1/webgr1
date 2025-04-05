@@ -7,6 +7,7 @@ import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import { useNotification } from "../context/NotificationContext";
+import { format } from 'date-fns';
 import "./Timetable.css";
 
 const Timetable = () => {
@@ -18,33 +19,26 @@ const Timetable = () => {
   const [classes, setClasses] = useState([]);
   const [tutors, setTutors] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
-
+  
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
-  const [selectedDate, setSelectedDate] = useState("");
-
+  
   const [classFilter, setClassFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [tutorFilter, setTutorFilter] = useState("");
 
-  // Initialize the notification hook
   const { success: showSuccess, error: showError } = useNotification();
-  
-  // Create ref for notification functions to avoid dependency cycles
   const notificationRef = useRef();
   notificationRef.current = { showSuccess, showError };
-
-  // Thêm ref cho classes
+  
   const classesRef = useRef();
   classesRef.current = classes;
   
-  // Thêm ref cho tutors
   const tutorsRef = useRef();
   tutorsRef.current = tutors;
 
-  // Define slot labels for easy reference
   const slotLabels = {
     1: "07:00 - 08:30",
     2: "08:45 - 10:15", 
@@ -58,7 +52,6 @@ const Timetable = () => {
     if (isAuthenticated()) {
       const userData = getUserData();
       
-      // Chỉ cho phép Admin truy cập trang này
       if (userData && userData.role !== "Admin") {
         window.location.href = "/user-timetable";
         return;
@@ -75,10 +68,8 @@ const Timetable = () => {
       if (err.response.data?.message) {
         errorMsg = err.response.data.message;
         
-        // Special handling for class scheduling conflicts
         if (err.response.data.message === "Some classes are already scheduled in this slot" && 
             err.response.data.classesAlreadyScheduled) {
-          // Get class names from the class IDs if possible - using classesRef instead of classes
           const classIds = err.response.data.classesAlreadyScheduled;
           const classNames = classIds.map(id => {
             const classInfo = classesRef.current.find(c => c._id === id);
@@ -90,7 +81,6 @@ const Timetable = () => {
           }
         }
         
-        // Special handling for classes with no students
         if (err.response.data.message === "Some classes have no students assigned and cannot be scheduled" && 
             err.response.data.classWithNoStudents) {
           const classIds = err.response.data.classWithNoStudents;
@@ -121,17 +111,13 @@ const Timetable = () => {
     setError(errorMsg);
     notificationRef.current.showError(errorMsg);
     return errorMsg;
-  }, []); // Loại bỏ classes khỏi dependency array
+  }, []);
 
   const fetchSchedulesForAdmin = useCallback(async () => {
     try {
       setDataLoading(true);
       const response = await api.get("/api/schedule/get-all-schedule");
-      if (Array.isArray(response.data)) {
-        setSchedules(response.data);
-      } else {
-        setSchedules([]);
-      }
+      setSchedules(Array.isArray(response.data) ? response.data : []);
       return response;
     } catch (err) {
       handleApiError(err, "Failed to fetch schedules");
@@ -144,11 +130,7 @@ const Timetable = () => {
   const fetchClasses = useCallback(async () => {
     try {
       const response = await api.get("/api/class/get-all-class");
-      if (Array.isArray(response.data)) {
-        setClasses(response.data);
-      } else {
-        setClasses([]);
-      }
+      setClasses(Array.isArray(response.data) ? response.data : []);
       return response;
     } catch (err) {
       handleApiError(err, "Failed to fetch classes");
@@ -249,17 +231,11 @@ const Timetable = () => {
     }
   }, [fetchSchedulesForAdmin, handleApiError]);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
+  const formatDate = (dateString) => format(new Date(dateString), 'dd/MM/yyyy');
 
-  // Lọc ra danh sách tutors đã được chia lịch
   const scheduledTutors = useMemo(() => {
-    // Tạo Set để lưu trữ unique tutor IDs
     const tutorIds = new Set();
     
-    // Lặp qua tất cả các lịch học để lấy tutor_id
     schedules.forEach(schedule => {
       const classInfo = classes.find(c => c._id === (schedule.class._id || schedule.class));
       const tutorId = classInfo?.tutor_id || classInfo?.tutor || schedule.class.tutor_id || schedule.class.tutor;
@@ -269,7 +245,6 @@ const Timetable = () => {
       }
     });
     
-    // Lọc danh sách tutors chỉ lấy những tutor có trong lịch học
     return tutors.filter(tutor => tutorIds.has(tutor._id));
   }, [schedules, classes, tutors]);
 
@@ -283,7 +258,7 @@ const Timetable = () => {
     }
     
     if (dateFilter) {
-      const scheduleDate = new Date(schedule.date).toISOString().split('T')[0];
+      const scheduleDate = format(new Date(schedule.date), 'yyyy-MM-dd');
       matchesDate = scheduleDate === dateFilter;
     }
     
@@ -297,10 +272,10 @@ const Timetable = () => {
   });
 
   const ScheduleForm = ({ onSubmit, initialData = {}, submitLabel }) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd');
     
     const [formData, setFormData] = useState({
-      date: initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : today,
+      date: initialData.date ? format(new Date(initialData.date), 'yyyy-MM-dd') : today,
       classId: initialData.classId || "",
       selectedSlots: initialData.selectedSlots || []
     });
@@ -312,7 +287,6 @@ const Timetable = () => {
         ...prev,
         date: value
       }));
-      setSelectedDate(value);
       
       if (value && errors.date) {
         setErrors(prev => ({ ...prev, date: undefined }));
@@ -323,7 +297,6 @@ const Timetable = () => {
       setFormData(prev => ({
         ...prev,
         classId: value,
-        // Reset selected slots when class changes
         selectedSlots: []
       }));
       
@@ -338,10 +311,8 @@ const Timetable = () => {
         let newSelectedSlots;
         
         if (isSelected) {
-          // Remove slot if already selected
           newSelectedSlots = prev.selectedSlots.filter(slot => slot !== slotNumber);
         } else {
-          // Add slot if not selected
           newSelectedSlots = [...prev.selectedSlots, slotNumber];
         }
         
@@ -379,7 +350,6 @@ const Timetable = () => {
       e.preventDefault();
       
       if (validateForm()) {
-        // Prepare data for API submission - format to match backend expectations
         const submissionData = {
           date: formData.date,
           slots: formData.selectedSlots.map(slotNumber => ({
@@ -392,7 +362,6 @@ const Timetable = () => {
       }
     };
     
-    // Đã chọn lớp học và ngày chưa
     const isInitialSelectionComplete = formData.classId && formData.date;
     
     return (
@@ -473,49 +442,47 @@ const Timetable = () => {
     );
   };
 
-  const CreateScheduleModal = () => (
-    <Modal
-      isOpen={isCreateModalOpen}
-      onClose={() => setIsCreateModalOpen(false)}
-      title="Create Schedule"
-      maxWidth="800px"
-    >
-      <ScheduleForm
-        onSubmit={handleCreateSchedule}
-        submitLabel="Create Schedule"
-      />
-    </Modal>
-  );
-
-  const EditScheduleModal = () => (
-    <Modal
-      isOpen={isEditModalOpen}
-      onClose={() => setIsEditModalOpen(false)}
-      title="Edit Schedule"
-      maxWidth="800px"
-    >
-      {selectedSchedule && (
+  const renderModals = () => (
+    <>
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Create Schedule"
+        maxWidth="800px"
+      >
         <ScheduleForm
-          initialData={{
-            date: selectedSchedule.date,
-            classId: selectedSchedule.class._id || selectedSchedule.class,
-            selectedSlots: [selectedSchedule.slot]
-          }}
-          onSubmit={(formData) => handleUpdateSchedule(selectedSchedule._id, formData)}
-          submitLabel="Update Schedule"
+          onSubmit={handleCreateSchedule}
+          submitLabel="Create Schedule"
         />
-      )}
-    </Modal>
-  );
+      </Modal>
 
-  const DeleteScheduleModal = () => (
-    <ConfirmModal
-      isOpen={isDeleteModalOpen}
-      onClose={() => setIsDeleteModalOpen(false)}
-      onConfirm={() => handleDeleteSchedule(selectedSchedule._id)}
-      title="Delete Schedule"
-      message="Are you sure you want to delete this schedule? This action cannot be undone."
-    />
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Schedule"
+        maxWidth="800px"
+      >
+        {selectedSchedule && (
+          <ScheduleForm
+            initialData={{
+              date: selectedSchedule.date,
+              classId: selectedSchedule.class._id || selectedSchedule.class,
+              selectedSlots: [selectedSchedule.slot]
+            }}
+            onSubmit={(formData) => handleUpdateSchedule(selectedSchedule._id, formData)}
+            submitLabel="Update Schedule"
+          />
+        )}
+      </Modal>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => handleDeleteSchedule(selectedSchedule._id)}
+        title="Delete Schedule"
+        message="Are you sure you want to delete this schedule? This action cannot be undone."
+      />
+    </>
   );
 
   const renderFilterPanel = () => (
@@ -606,14 +573,10 @@ const Timetable = () => {
             const className = classInfo ? classInfo.class_name : (schedule.class.class_name || "Unknown Class");
             const major = classInfo ? classInfo.major : (schedule.class.major || "Unknown Major");
             
-            // Cách lấy tên tutor được cải thiện
             let tutorName = "Not Assigned";
-            
-            // Kiểm tra tutor_id trong class
             const tutorId = classInfo?.tutor_id || classInfo?.tutor || schedule.class.tutor_id || schedule.class.tutor;
             
             if (tutorId) {
-              // Tìm tutor từ danh sách tutors
               const tutorInfo = tutors.find(t => t._id === tutorId);
               if (tutorInfo) {
                 tutorName = `${tutorInfo.firstName} ${tutorInfo.lastName}`;
@@ -697,9 +660,7 @@ const Timetable = () => {
             renderScheduleTable()
           )}
           
-          <CreateScheduleModal />
-          <EditScheduleModal />
-          <DeleteScheduleModal />
+          {renderModals()}
         </>
       )}
     </div>

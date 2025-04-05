@@ -13,7 +13,7 @@ const getStudentsBySchedule = async (req, res) => {
 
     const students = await AssignStudent.find({
       class: schedule.class,
-    }).populate("student", "firstName lastName");
+    }).populate("student", "firstName lastName student_ID email");
 
 
     res.status(200).json({
@@ -114,7 +114,7 @@ const getAttendanceStatus = async (req, res) => {
     }
 
     const studentsInClass = await AssignStudent.find({ class: schedule.class })
-      .populate("student", "firstName lastName email role");
+      .populate("student", "firstName lastName email role student_ID");
 
     const allStudents = studentsInClass.map(s => ({
       _id: s.student._id.toString(),
@@ -122,9 +122,10 @@ const getAttendanceStatus = async (req, res) => {
       lastName: s.student.lastName,
       email: s.student.email,
       role: s.student.role,
+      student_ID: s.student.student_ID
     }));
 
-    const attendanceRecords = await Attendance.find({ schedule: scheduleId }).populate("student", "firstName lastName email role");
+    const attendanceRecords = await Attendance.find({ schedule: scheduleId }).populate("student", "firstName lastName email role student_ID");
 
     const presentStudents = [];
     const absentStudents = [];

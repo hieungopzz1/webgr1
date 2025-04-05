@@ -4,6 +4,7 @@ import InputField from '../../components/inputField/InputField';
 import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
 import useAuth from '../../hooks/useAuth';
+import { useNotification } from '../../context/NotificationContext';
 import './Login.css';
 
 const Login = () => {
@@ -11,11 +12,11 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { error: showError } = useNotification();
 
   const handleChange = (e) => {
     setFormData({
@@ -26,7 +27,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -36,10 +36,10 @@ const Login = () => {
       if (result.success) {
         navigate('/home');
       } else {
-        setError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+        showError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } catch (err) {
-      setError('Có lỗi xảy ra. Vui lòng thử lại.');
+      showError('Có lỗi xảy ra. Vui lòng thử lại.');
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -67,8 +67,6 @@ const Login = () => {
             value={formData.password}
             onChange={handleChange}
           />
-
-          {error && <div className="login-error">{error}</div>}
 
           <Button 
             type="submit" 

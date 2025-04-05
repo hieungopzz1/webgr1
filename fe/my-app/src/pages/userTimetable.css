@@ -30,8 +30,8 @@
   font-size: 24px;
 }
 
-/* Filter Controls */
-.timetable-filters {
+/* Week Schedule Controls */
+.timetable-week-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
@@ -74,8 +74,6 @@
   background-color: #fff;
   box-sizing: border-box;
   appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
 }
 
 .filter-item select {
@@ -109,6 +107,7 @@
   border: 1px solid #e0e0e0;
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  table-layout: fixed;
 }
 
 .timetable th,
@@ -117,8 +116,12 @@
   padding: 0;
 }
 
+.timetable tr {
+  height: 100px;
+}
+
 .time-column {
-  width: 120px;
+  width: 150px;
   background-color: #f5f7fa;
   font-weight: 600;
   text-align: center;
@@ -126,7 +129,7 @@
 }
 
 .day-column {
-  width: calc((100% - 120px) / 7);
+  width: calc((100% - 150px) / 7);
   height: 50px;
   background-color: #f5f7fa;
 }
@@ -148,53 +151,76 @@
 }
 
 .slot-info {
-  padding: 10px;
-  height: 80px;
+  padding: 12px 15px;
   background-color: #f5f7fa;
   text-align: center;
-  vertical-align: middle;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  min-height: 130px;
+  box-sizing: border-box;
 }
 
 .slot-number {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   margin-bottom: 5px;
+  color: #1565c0;
 }
 
 .slot-time {
-  font-size: 12px;
-  color: #666;
+  font-size: 13px;
+  color: #555;
+  white-space: nowrap;
 }
 
 .day-slot {
-  height: 80px;
   vertical-align: top;
   padding: 0;
   width: 14%;
+  min-height: 100px;
+  height: auto;
+  position: relative;
 }
 
 .schedule-cells {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 2px;
-  padding: 1px;
+  gap: 5px;
+  padding: 5px;
+  max-height: 190px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.schedule-cells::-webkit-scrollbar {
+  width: 6px;
+}
+
+.schedule-cells::-webkit-scrollbar-thumb {
+  background-color: #bbbbbb;
+  border-radius: 3px;
+}
+
+.schedule-cells::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
 }
 
 .schedule-cell {
-  padding: 8px;
+  padding: 6px;
   background-color: #e3f2fd;
   border-radius: 4px;
-  flex: 1;
   display: flex;
   flex-direction: column;
   font-size: 12px;
-  min-height: 60px;
   position: relative;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   border-left: 4px solid #2196f3;
-  max-width: 200px;
-  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 3px;
 }
 
 .empty-cell {
@@ -207,6 +233,9 @@
   font-size: 13px;
   margin-bottom: 4px;
   color: #1565c0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .class-details {
@@ -276,9 +305,23 @@
 }
 
 .attendance-container {
-  padding: 0 10px;
+  padding: 0 15px;
   max-height: 75vh;
   overflow-y: auto;
+  width: 100%;
+  min-width: 600px;
+  box-sizing: border-box;
+}
+
+/* Customize Modal for Attendance */
+.modal-container {
+  width: auto !important;
+  min-width: 650px !important;
+  max-width: 90vw !important;
+}
+
+.modal-content {
+  width: 100% !important;
 }
 
 .attendance-header {
@@ -307,23 +350,55 @@
 .attendance-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
+  margin-top: 15px;
+  table-layout: fixed;
 }
 
-.attendance-table th,
+.attendance-table th, 
 .attendance-table td {
-  padding: 12px 10px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
   text-align: left;
-  border-bottom: 1px solid #eee;
 }
 
 .attendance-table th {
-  background-color: #f8f9fa;
+  background-color: #f5f7fa;
   font-weight: 600;
-  color: #333;
-  position: sticky;
-  top: 0;
-  z-index: 1;
+}
+
+.attendance-table th:nth-child(1) {
+  width: 40%;
+}
+
+.attendance-table th:nth-child(2) {
+  width: 30%;
+}
+
+.attendance-table th:nth-child(3) {
+  width: 30%;
+}
+
+.student-id {
+  font-family: monospace;
+  font-size: 0.85em;
+  color: #555;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  position: relative;
+}
+
+.student-id:hover {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-all;
+  z-index: 10;
+  background-color: #f5f7fa;
+  padding: 5px;
+  border-radius: 3px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  position: absolute;
 }
 
 .attendance-radio-group {
@@ -375,8 +450,31 @@
     min-width: 120px;
   }
   
-  .timetable-filters {
+  .timetable-week-controls {
     flex-direction: column;
     gap: 10px;
+  }
+  
+  .schedule-cells {
+    max-height: 150px;
+    padding: 3px;
+  }
+  
+  .schedule-cell {
+    font-size: 10px;
+    padding: 4px;
+  }
+  
+  .class-name {
+    font-size: 11px;
+  }
+  
+  .modal-container {
+    min-width: 95vw !important;
+  }
+  
+  .attendance-container {
+    min-width: auto;
+    padding: 0 5px;
   }
 } 

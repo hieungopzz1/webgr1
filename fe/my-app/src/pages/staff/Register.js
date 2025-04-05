@@ -5,6 +5,7 @@ import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
 import api from '../../utils/api';
 import { USER_ROLES } from '../../utils/constants';
+import { useNotification } from '../../context/NotificationContext';
 import './Register.css';
 
 const RoleSelect = ({ value, onChange }) => (
@@ -70,27 +71,27 @@ const StudentFields = ({ studentId, major, onChange }) => (
   </>
 );
 
-const useFormValidation = (formData, setError) => {
+const useFormValidation = (formData, showError) => {
   const validate = () => {
     const { firstName, lastName, email, password, role, student_ID, major } = formData;
 
     if (!firstName || !lastName || !email || !password || !role) {
-      setError('Please fill in all required fields.');
+      showError('Please fill in all required fields.');
       return false;
     }
 
     if (role === USER_ROLES.STUDENT && (!student_ID || !major)) {
-      setError('Student ID and Major are required for student accounts.');
+      showError('Student ID and Major are required for student accounts.');
       return false;
     }
 
     if (!email.includes('@')) {
-      setError('Invalid email address.');
+      showError('Invalid email address.');
       return false;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      showError('Password must be at least 6 characters.');
       return false;
     }
 
@@ -112,11 +113,10 @@ const Register = () => {
   });
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-  const { validate } = useFormValidation(formData, setError);
+  const { success: showSuccess, error: showError } = useNotification();
+  const { validate } = useFormValidation(formData, showError);
 
   const handleChange = (e) => {
     setFormData({
@@ -153,8 +153,6 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
     
     if (!validate()) {
       return;
@@ -187,12 +185,8 @@ const Register = () => {
         }
       });
 
-      setSuccess(`Successfully created ${role} account for ${email}`);
+      showSuccess(`Successfully created ${role} account for ${email}`);
       resetForm();
-
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
 
     } catch (err) {
       console.error('Error creating account:', err);
@@ -202,18 +196,11 @@ const Register = () => {
         || err.message 
         || 'Failed to create account. Please try again.';
       
-      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-
-  const StatusMessage = () => (
-    <>
-      {error && <div className="register-error" role="alert">{error}</div>}
-      {success && <div className="register-success" role="status">{success}</div>}
-    </>
-  );
 
   return (
     <div className="register-page">
@@ -276,17 +263,12 @@ const Register = () => {
           required
         />
 
-        <StatusMessage />
-
         <Button 
           type="submit" 
           disabled={loading}
-          variant="primary"
-          size="medium"
-          fullWidth
           className="register-button"
         >
-          {loading ? 'Creating Account...' : 'Create Account'}
+          {loading ? 'Creating...' : 'Create Account'}
         </Button>
       </form>
     </div>

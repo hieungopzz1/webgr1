@@ -349,13 +349,11 @@ const UserTimetable = () => {
             newAttendanceMap[schedule._id] = null;
           }
         } catch (err) {
-          console.error(`Error fetching attendance for schedule ${schedule._id}:`, err);
         }
       }
       
       setStudentAttendanceMap(newAttendanceMap);
     } catch (err) {
-      console.error("Error fetching student attendance data:", err);
     }
   }, [user, filteredSchedulesByWeek]);
 
@@ -425,7 +423,6 @@ const UserTimetable = () => {
       await fetchAttendanceStatus(schedule._id);
       setIsAttendanceModalOpen(true);
     } catch (error) {
-      console.error("Error opening attendance modal:", error);
     }
   }, [fetchStudentsBySchedule, fetchAttendanceStatus]);
 
@@ -488,8 +485,6 @@ const UserTimetable = () => {
     return (
       <div className="schedule-cells">
         {schedules.map(schedule => {
-          console.log("Rendering schedule:", schedule);
-          
           let classData = null;
           if (typeof schedule.class === 'object' && schedule.class) {
             classData = schedule.class;
@@ -512,8 +507,6 @@ const UserTimetable = () => {
             tutorData = schedule.tutor_name;
           }
           
-          console.log("Tutor data:", tutorData);
-
           let attendanceStatus = '';
           let attendanceClass = '';
           

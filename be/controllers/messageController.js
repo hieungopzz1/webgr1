@@ -1,57 +1,57 @@
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
 const Message = require("../models/Message");
-const cloudinary = require("../config/cloudinary"); 
-const { io, userSocketMap } = require("../config/socket");
-
+const cloudinary = require("../config/cloudinary");
+// const { io, userSocketMap } = require("../config/socket");
 
 const getUsersForSidebar = async (req, res) => {
   try {
-      const loggedInUserId = req.user._id; // Get logged-in user's ID
+    const loggedInUserId = req.user._id; // Get logged-in user's ID
 
-      const students = await Student.find(
-          { _id: { $ne: loggedInUserId } }, // Exclude students with the logged-in ID
-          "firstName lastName email role avatar _id"
-      );
-      const tutors = await Tutor.find(
-          { _id: { $ne: loggedInUserId } }, // Exclude tutors with the logged-in ID
-          "firstName lastName email role avatar _id"
-      );
+    const students = await Student.find(
+      { _id: { $ne: loggedInUserId } }, // Exclude students with the logged-in ID
+      "firstName lastName email role avatar _id"
+    );
+    const tutors = await Tutor.find(
+      { _id: { $ne: loggedInUserId } }, // Exclude tutors with the logged-in ID
+      "firstName lastName email role avatar _id"
+    );
 
-      const users = [...students, ...tutors];
+    const users = [...students, ...tutors];
 
-      res.status(200).json(users);
+    res.status(200).json(users);
   } catch (error) {
-      res
-          .status(500)
-          .json({ message: "Error retrieving users", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error retrieving users", error: error.message });
   }
 };
-  
-  const getMessages = async (req, res) => {
-    try {
-        const { id: userToChatId } = req.params;
-        const myId = req.user._id;
 
-        const messages = await Message.find({
-            $or: [
-                { senderId: myId, receiverId: userToChatId },
-                { senderId: userToChatId, receiverId: myId },
-            ],
-        }).sort({ createdAt: 1 }); // Sort messages by creation time
+const getMessages = async (req, res) => {
+  try {
+    const { id: userToChatId } = req.params;
+    const myId = req.user._id;
 
-        res.status(200).json(messages);
-    } catch (error) {
-        console.log("Error in getMessages controller: ", error.message);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    const messages = await Message.find({
+      $or: [
+        { senderId: myId, receiverId: userToChatId },
+        { senderId: userToChatId, receiverId: myId },
+      ],
+    }).sort({ createdAt: 1 }); // Sort messages by creation time
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.log("Error in getMessages controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 const sendMessage = async (req, res) => {
   try {
-    const { text, image, receiverId } = req.body; // Keep receiverId from body
-    const senderId = req.user._id; // Get senderId from authenticated user
+    const { text, image, receiverId } = req.body; // Lấy dữ liệu từ body
+    const senderId = req.user._id; // Lấy senderId từ user đã xác thực
 
-    console.log(senderId, receiverId);
+    console.log("Sender ID:", senderId , "Receiver ID:", receiverId);
+
     let imageUrl;
     if (image) {
       const uploadResponse = await cloudinary.uploader.upload(image);
@@ -62,27 +62,87 @@ const sendMessage = async (req, res) => {
       senderId,
       receiverId,
       text,
-      image: imageUrl, // Uncomment this to handle image URLs
+      image: imageUrl, // Lưu URL ảnh nếu có
     });
 
     await newMessage.save();
 
-    console.log(`Emitting 'newMessage' event to receiverId: ${receiverId}`);
+    // Real-time update qua Socket.IO
+    const io = req.app.get("socketio"); // Lấy instance Socket.IO
+    const onlineUsers = req.app.get("onlineUsers"); // Lấy danh sách người online
 
-    const receiverSocketIds = userSocketMap.get(receiverId);
+    console.log('🟢 Current online users:', onlineUsers);
 
-    if (receiverSocketIds) {
-      receiverSocketIds.forEach((socketId) => {
-        io.to(socketId).emit("newMessage", newMessage);
-      });
-    } else {
-      console.log(`Receiver ${receiverId} is not connected.`);
+    // Gửi tin nhắn đến người nhận
+    const receiverSocketId = onlineUsers?.get(receiverId)?.socketId;
+    console.log("🔴 Receiver Socket ID:", receiverSocketId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
+
+    // Gửi tin nhắn đến người gửi (để cập nhật giao diện của họ)
+    const senderSocketId = onlineUsers?.get(senderId)?.socketId;
+    console.log("🟡 Sender Socket ID:", senderSocketId);
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("newMessage", newMessage);
     }
 
     res.status(201).json(newMessage);
   } catch (error) {
-    console.log("Error in sendMessage controller: ", error.message);
+    console.error("Error in sendMessage controller:", error.message);
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+// const Tutor = require("../models/Tutor");
+// const Student = require("../models/Student");
+const getOnlineUsers = async (req, res) => {
+  try {
+    const onlineUsers = req.app.get("onlineUsers");
+    if (!onlineUsers || onlineUsers.size === 0) {
+      return res.json([]);
+    }
+    const tutorIds = [];
+    const studentIds = [];
+    onlineUsers.forEach((info, userId) => {
+      if (info.role === "Tutor") tutorIds.push(userId);
+      else if (info.role === "Student") studentIds.push(userId);
+    });
+
+    const tutors = await Tutor.find(
+      { _id: { $in: tutorIds } },
+      "firstName lastName email"
+    );
+    const students = await Student.find(
+      { _id: { $in: studentIds } },
+      "firstName lastName email"
+    );
+    const userMap = [...tutors, ...students].reduce((acc, user) => {
+      acc[user._id] = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      };
+      return acc;
+    }, {});
+
+    const onlineList = Array.from(onlineUsers.entries()).map(([id]) => ({
+      id,
+      firstName: userMap[id]?.firstName || "Unknown",
+      lastName: userMap[id]?.lastName || "",
+      email: userMap[id]?.email || "",
+    }));
+
+    res.json(onlineList);
+  } catch (error) {
+    console.error("Error in getOnlineUsers:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
-  module.exports = { getUsersForSidebar,getMessages,sendMessage };
+module.exports = {
+  getUsersForSidebar,
+  getMessages,
+  sendMessage,
+  getOnlineUsers,
+};

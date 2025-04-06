@@ -46,6 +46,13 @@ const MENU_ITEMS = {
       label: "Timetable",
       getTo: (role) => role === USER_ROLES.ADMIN ? "/timetable" : "/user-timetable",
     },
+    {
+      type: "dynamic",
+      icon: <i className="bi bi-file-earmark-text" />,
+      activeIcon: <i className="bi bi-file-earmark-text-fill" />,
+      label: "Documents",
+      getTo: (role) => role === USER_ROLES.ADMIN ? "/document" : "/user-document",
+    },
     // {
     //   to: ROUTES.DASHBOARD,
     //   icon: <i className="bi bi-bar-chart" />,

@@ -23,6 +23,8 @@ import { isAuthenticated } from "./utils/storage";
 import "./App.css";
 import Timetable from "./pages/Timetable";
 import UserTimetable from "./pages/userTimetable";
+import Document from "./pages/Document";
+import UserDocument from "./pages/userDocument";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -133,6 +135,25 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <UserTimetable />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Document Routes */}
+          <Route
+            path="/document"
+            element={
+              <ProtectedRoute>
+                <Document />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/user-document"
+            element={
+              <ProtectedRoute>
+                <UserDocument />
               </ProtectedRoute>
             }
           />

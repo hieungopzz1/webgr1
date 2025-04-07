@@ -126,8 +126,8 @@ const createSchedule = async (req, res) => {
         createdSchedules.push(newSchedule);
       }
 
-      const classesToRemove = existingClassIds.filter((classId) => !classes.includes(classId));
-      await Schedule.deleteMany({ date, slot: slotNumber, class: { $in: classesToRemove } });
+      // const classesToRemove = existingClassIds.filter((classId) => !classes.includes(classId));
+      // await Schedule.deleteMany({ date, slot: slotNumber, class: { $in: classesToRemove } });
     }
 
     const updatedSchedules = await Schedule.find({ date });

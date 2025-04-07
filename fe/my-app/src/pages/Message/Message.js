@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import InputField from '../../components/inputField/InputField';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -9,7 +9,7 @@ import useAuth from '../../hooks/useAuth';
 
 const Message = () => {
     const { id } = useParams();
-    const navigate = useNavigate(); // Initialize useNavigate
+    const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [users, setUsers] = useState([]);
@@ -17,187 +17,120 @@ const Message = () => {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const [selectedFile, setSelectedFile] = useState(null);
-    const [loggedInUserId, setLoggedInUserId] = useState(null);
     const { user } = useAuth();
+    const loggedInUserId = user?.id;
 
-
-    const fetchLoggedInUser = useCallback(async () => {
-      try {
-          const response = await api.get('/api/auth/me');
-          if (response.data && response.data.id) { // Access 'id' directly from response.data
-              setLoggedInUserId(response.data.id);
-          } else {
-              console.error('Could not fetch logged-in user ID');
-          }
-      } catch (error) {
-          console.error('Error fetching logged-in user:', error);
-      }
-  }, []);
-
-    const fetchUsers = useCallback(async () => {
-      try {
-          const response = await api.get('/api/messages/users');
-          if (response.data && Array.isArray(response.data)) {
-              console.log('Fetched Users:', response.data); // ADD THIS LINE
-              setUsers(response.data);
-              if (id) {
-                  const selected = response.data.find(user => user._id === id);
-                  setSelectedUser(selected || null);
-              }
-          }
-      } catch (error) {
-          console.error('Error fetching users:', error);
-      }
-  }, [id]);
-
-    const fetchMessages = useCallback(async (userId) => {
+    const fetchOnlineUsers = async () => {
         try {
-            const response = await api.get(`/api/messages/${userId}`);
+            const response = await api.get('/api/messages/online-users');
+            console.log('API /api/online-users response:', response.data);
+            if (response.data && Array.isArray(response.data)) {
+                const filteredUsers = response.data.filter((u) => u.id !== loggedInUserId);
+                setUsers(filteredUsers);
+                if (id) {
+                    const selected = filteredUsers.find((u) => u.id === id);
+                    setSelectedUser(selected || null);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching online users:', error.response?.data || error.message);
+        }
+    };
+
+    const fetchMessages = async (receiverId) => {
+        try {
+            const response = await api.get(`/api/messages/${receiverId}`);
+            console.log('Fetched messages:', response.data);
             if (response.data && Array.isArray(response.data)) {
                 setMessages(response.data);
             }
         } catch (error) {
-            console.error('Error fetching messages:', error);
+            console.error('Error fetching messages:', error.response?.data || error.message);
         }
-    }, []);
-    useEffect(() => {
-      const connectSocket = () => {
-          console.log('Attempting to connect socket. loggedInUserId:', loggedInUserId);
-          if (loggedInUserId) {
-              console.log('Socket object before setting query:', socket);
-              socket.io.opts.query = { userId: loggedInUserId }; // This line is correct
-              console.log('Socket options after setting query:', socket.io.opts);
-              socket.connect();
-              console.log('Socket connected or attempting to connect.');
-  
-              socket.on('newMessage', (newMessageData) => {
-                  if (
-                      (newMessageData.senderId === id && newMessageData.receiverId === loggedInUserId) ||
-                      (newMessageData.senderId === loggedInUserId && newMessageData.receiverId === id)
-                  ) {
-                      setMessages((prevMessages) => [...prevMessages, newMessageData]);
-                  }
-              });
-  
-              return () => {
-                  console.log('Disconnecting socket.');
-                  socket.off('newMessage');
-                  socket.disconnect();
-              };
-          } else {
-              console.log('loggedInUserId is not yet available, delaying socket connection.');
-              return undefined;
-          }
-      };
-  
-      fetchLoggedInUser();
-      fetchUsers();
-      console.log('Logged-in User ID outside connectSocket:', loggedInUserId);
-      if (id) {
-          fetchMessages(id);
-      }
-  
-      return connectSocket();
-  }, [id, fetchUsers, fetchMessages, loggedInUserId, fetchLoggedInUser]);
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     useEffect(() => {
-        scrollToBottom();
+        if (!loggedInUserId) {
+            console.log('Waiting for loggedInUserId...');
+            return;
+        }
+
+        console.log('Connecting Socket.IO with userId:', loggedInUserId);
+        socket.io.opts.query = { userId: loggedInUserId };
+        socket.connect();
+
+        socket.on('connect', () => {
+            console.log('Socket connected. Socket ID:', socket.id);
+            socket.emit('register', { userId: loggedInUserId, role: user.role, firstName: user.firstName, lastName: user.lastName });
+        });
+
+        socket.on('onlineUsers', (onlineUsers) => {
+            console.log('Socket received online users:', onlineUsers);
+            fetchOnlineUsers();
+        });
+
+        socket.on('newMessage', (newMessageData) => {
+            console.log('New message received:', newMessageData);
+            if (
+                (newMessageData.senderId === id && newMessageData.receiverId === loggedInUserId) ||
+                (newMessageData.senderId === loggedInUserId && newMessageData.receiverId === id)
+            ) {
+                setMessages((prev) => [...prev, newMessageData]);
+            }
+        });
+
+        fetchOnlineUsers();
+        if (id) {
+            fetchMessages(id);
+        }
+
+        return () => {
+            console.log('Disconnecting Socket.IO');
+            socket.off('connect');
+            socket.off('onlineUsers');
+            socket.off('newMessage');
+            socket.disconnect();
+        };
+    }, [id, loggedInUserId, user?.role, user?.firstName, user?.lastName]);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // const handleSendMessage = async (e) => {
-    //   e.preventDefault();
-    //   if (!newMessage.trim() && !selectedFile && !selectedUser?._id) return;
-  
-    //   try {
-    //     const formData = new FormData();
-    //     if (newMessage.trim()) {
-    //       formData.append('text', newMessage.trim());
-    //     }
-    //     if (selectedFile) {
-    //       formData.append('image', selectedFile);
-    //     }
-    //     if (selectedUser?._id) {
-    //       console.log('Sending receiverId:', selectedUser._id);
-    //       formData.append('receiverId', selectedUser._id);
-    //     } else {
-    //       console.error('selectedUser or selectedUser._id is missing!');
-    //       return;
-    //     }
-  
-    //     const response = await api.post(`/api/messages/send`, formData, {
-    //       headers: {
-    //         'Content-Type': 'multipart/form-data',
-    //       },
-    //     });
-  
-    //     if (response.data) {
-    //       // The 'newMessage' event will be emitted by the backend and handled by the socket listener
-    //       setNewMessage('');
-    //       setSelectedFile(null);
-    //     }
-    //   } catch (error) {
-    //     console.error('Error sending message:', error);
-    //   }
-    // };
-
     const handleSendMessage = async (e) => {
-      e.preventDefault();
-      if (!newMessage.trim() && !selectedFile && !selectedUser?._id) return;
+        e.preventDefault();
+        if (!newMessage.trim() && !selectedFile && !selectedUser?.id) return;
 
-      try {
-          const formData = new FormData();
-          if (newMessage.trim()) {
-              formData.append('text', newMessage.trim());
-          }
-          if (selectedFile) {
-              formData.append('image', selectedFile);
-          }
-          if (selectedUser?._id) {
-              console.log('Sending receiverId:', selectedUser._id);
-              formData.append('receiverId', selectedUser._id);
-          } else {
-              console.error('selectedUser or selectedUser._id is missing!');
-              return;
-          }
+        try {
+            const formData = new FormData();
+            if (newMessage.trim()) formData.append('text', newMessage.trim());
+            if (selectedFile) formData.append('image', selectedFile);
+            if (selectedUser?.id) formData.append('receiverId', selectedUser.id);
 
-          // Optimistic UI Update: Add the message to the local state immediately
-          const tempMessage = {
-              _id: `temp-${Date.now()}`, // Temporary ID for the optimistic update
-              senderId: loggedInUserId,
-              receiverId: selectedUser._id,
-              text: newMessage.trim(),
-              image: selectedFile ? URL.createObjectURL(selectedFile) : null, // Preview local image
-              createdAt: new Date(),
-          };
-          setMessages(prev => [...prev, tempMessage]);
-          setNewMessage('');
-          setSelectedFile(null);
+            const tempMessage = {
+                _id: `temp-${Date.now()}`,
+                senderId: loggedInUserId,
+                receiverId: selectedUser.id,
+                text: newMessage.trim() || '',
+                image: selectedFile ? URL.createObjectURL(selectedFile) : null,
+                timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, tempMessage]);
+            setNewMessage('');
+            setSelectedFile(null);
 
-          // Now, make the API call to the backend
-          const response = await api.post(`/api/messages/send`, formData, {
-              headers: {
-                  'Content-Type': 'multipart/form-data',
-              },
-          });
+            const response = await api.post('/api/messages/send', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            console.log('Message sent successfully:', response.data);
+        } catch (error) {
+            console.error('Error sending message:', error.response?.data || error.message);
+        }
+    };
 
-          if (response.data) {
-              // The 'newMessage' event will be emitted by the backend and handled by the socket listener
-              console.log('Message sent successfully to backend:', response.data);
-          }
-      } catch (error) {
-          console.error('Error sending message:', error);
-          // Optionally, you could remove the optimistically added message from the state on error
-      }
-  };
-  
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-        }
+        if (file) setSelectedFile(file);
     };
 
     return (
@@ -209,17 +142,17 @@ const Message = () => {
                 <div className="message-sidebar__users">
                     {users.map((user) => (
                         <div
-                            key={user._id}
-                            className={`message-sidebar__user ${selectedUser?._id === user._id ? 'active' : ''}`}
+                            key={user.id}
+                            className={`message-sidebar__user ${selectedUser?.id === user.id ? 'active' : ''}`}
                             onClick={() => {
                                 setSelectedUser(user);
-                                navigate(`/messages/${user._id}`); // Update the URL here
-                                console.log('Selected User in Sidebar:', user); 
+                                navigate(`/messages/${user.id}`);
+                                fetchMessages(user.id);
                             }}
                         >
                             <div className="message-sidebar__user-avatar">
                                 {user.avatar ? (
-                                    <img src={user.avatar} alt={user.firstName || 'User'} />
+                                    <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
                                 ) : (
                                     <div className="avatar-placeholder">
                                         {(user.firstName || 'U')[0]}
@@ -242,7 +175,7 @@ const Message = () => {
                             <div className="message-content__user-info">
                                 <div className="message-content__user-avatar">
                                     {selectedUser.avatar ? (
-                                        <img src={selectedUser.avatar} alt={selectedUser.firstName || 'User'} />
+                                        <img src={selectedUser.avatar} alt={`${selectedUser.firstName} ${selectedUser.lastName}`} />
                                     ) : (
                                         <div className="avatar-placeholder">
                                             {(selectedUser.firstName || 'U')[0]}

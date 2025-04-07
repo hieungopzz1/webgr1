@@ -20,6 +20,7 @@ const scheduleRoutes = require("./routes/schedule");
 const assignStudentRoutes = require("./routes/assignStudent");
 const classRoutes = require("./routes/class");
 const likeRoutes = require("./routes/like");
+const searchRoutes = require("./routes/search");
 
 dotenv.config();
 
@@ -116,6 +117,7 @@ app.use("/api/schedule", scheduleRoutes);
 app.use("/api/assign-student", assignStudentRoutes);
 app.use("/api/class", classRoutes);
 app.use("/api/like", likeRoutes);
+app.use("/api/search", searchRoutes);
 // app.use('/api/tutor', tutorRoutes);
 // app.use('/api/student', studentRoutes);
 app.use("/api/dashboard", require("./routes/dashboard")); // Route dashboard

@@ -47,9 +47,13 @@ api.interceptors.response.use(
       data: error.response?.data,
     });
 
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && 
+        !error.config?.url.includes('/api/auth/login') && 
+        !error.config?.url.includes('/api/auth/me')) {
       clearAuthData();
-      window.location.href = ROUTES.LOGIN;
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = ROUTES.LOGIN;
+      }
     }
 
     return Promise.reject(error);

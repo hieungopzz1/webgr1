@@ -5,7 +5,8 @@ import {
   saveToken, 
   saveUserData, 
   getUserData, 
-  clearAuthData 
+  clearAuthData,
+  getToken 
 } from '../utils/storage';
 
 export const AuthContext = createContext();
@@ -13,9 +14,17 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
+      const token = getToken();
+      if (!token) {
+        setLoading(false);
+        setAuthCheckComplete(true);
+        return;
+      }
+
       try {
         const userData = getUserData();
 
@@ -32,10 +41,19 @@ export const AuthProvider = ({ children }) => {
         clearAuthData();
       } finally {
         setLoading(false);
+        setAuthCheckComplete(true);
       }
     };
 
     loadUserData();
+    
+    const intervalId = setInterval(() => {
+      if (getToken()) {
+        loadUserData();
+      }
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const login = async (email, password) => {
@@ -47,6 +65,7 @@ export const AuthProvider = ({ children }) => {
         saveToken(token);
         saveUserData(userData);
         setUser(userData);
+        setAuthCheckComplete(true);
         return { success: true };
       } else {
         throw new Error('Invalid response format');
@@ -66,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, authCheckComplete }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import InputField from '../../components/inputField/InputField';
 import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
 import useAuth from '../../hooks/useAuth';
-import { useNotification } from '../../context/NotificationContext';
+import { useNotifications } from '../../context/NotificationContext';
+import { isAuthenticated } from '../../utils/storage';
 import './Login.css';
 
 const Login = () => {
@@ -16,7 +17,13 @@ const Login = () => {
   
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { error: showError } = useNotification();
+  const { showError } = useNotifications();
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate('/home', { replace: true });
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -27,6 +34,12 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (isAuthenticated()) {
+      navigate('/home', { replace: true });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -34,7 +47,7 @@ const Login = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        navigate('/home');
+        navigate('/home', { replace: true });
       } else {
         showError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }

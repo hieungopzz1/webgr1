@@ -31,6 +31,11 @@ export const API_ROUTES = {
     GET_CONVERSATION: (userId) => `/api/messages/${userId}`,
     SEND: '/api/messages/send',
   },
+  NOTIFICATION: {
+    GET_ALL: '/api/notification/notifications',
+    MARK_READ: (id) => `/api/notification/mark-read/${id}`,
+    MARK_ALL_READ: '/api/notification/mark-all-read',
+  },
 };
 
 // Routes

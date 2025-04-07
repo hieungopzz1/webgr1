@@ -286,27 +286,70 @@ exports.getStudentClassesWithDocuments = async (req, res) => {
   try {
     const { studentId } = req.params;
     
+    console.log(`Getting classes for student ID: ${studentId}`);
+    
+    // Validate student ID format
+    if (!studentId || studentId.length < 12) {
+      console.error(`Invalid student ID format: ${studentId}`);
+      return res.status(400).json({ 
+        message: 'Invalid student ID format',
+        studentId: studentId
+      });
+    }
+    
     // Find classes where student is assigned
+    console.log(`Finding assignments for student: ${studentId}`);
     const assignments = await AssignStudent.find({ student: studentId })
       .populate('class');
     
+    console.log(`Found ${assignments.length} class assignments for student`);
+    
     if (assignments.length === 0) {
-      return res.status(200).json({ classes: [] });
+      return res.status(200).json({ 
+        classes: [],
+        message: 'No classes found for this student'
+      });
     }
     
-    const classes = assignments.map(a => a.class);
+    // Filter out assignments with null class (in case of corrupted data)
+    const validAssignments = assignments.filter(a => a.class);
+    console.log(`Found ${validAssignments.length} valid assignments with class data`);
+    
+    if (validAssignments.length === 0) {
+      return res.status(200).json({ 
+        classes: [],
+        message: 'No valid class data found for this student' 
+      });
+    }
+    
+    const classes = validAssignments.map(a => a.class);
     const classIds = classes.map(c => c._id);
+    
+    console.log(`Found these class IDs: ${classIds.join(', ')}`);
     
     // Find documents for these classes
     const documents = await Document.find({ class_id: { $in: classIds } })
       .populate('class_id', 'class_name subject')
       .populate('tutor_id', 'firstName lastName');
     
+    console.log(`Found ${documents.length} documents for these classes`);
+    
     // Group documents by class
     const result = classes.map(cls => {
+      // Ensure class has valid _id
+      if (!cls || !cls._id) {
+        console.log('Skipping class with invalid ID');
+        return null;
+      }
+      
+      const clsId = cls._id.toString();
+      console.log(`Processing class: ${clsId}, ${cls.class_name || 'Unknown'}`);
+      
       const classDocuments = documents.filter(doc => 
-        doc.class_id && doc.class_id._id.toString() === cls._id.toString()
+        doc.class_id && doc.class_id._id && doc.class_id._id.toString() === clsId
       );
+      
+      console.log(`Found ${classDocuments.length} documents for class ${clsId}`);
       
       return {
         class: cls,
@@ -316,12 +359,17 @@ exports.getStudentClassesWithDocuments = async (req, res) => {
           doc.student_id && doc.student_id.toString() === studentId
         )
       };
-    });
+    }).filter(Boolean); // Remove null results
     
+    console.log(`Returning ${result.length} classes with documents`);
     res.status(200).json({ classes: result });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error fetching student classes', error: err });
+    console.error('Error in getStudentClassesWithDocuments:', err);
+    res.status(500).json({ 
+      message: 'Error fetching student classes', 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+    });
   }
 };
 

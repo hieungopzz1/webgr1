@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { getUserData } from '../utils/storage';
-import { UI } from '../utils/constants';
+import { UI, API_ROUTES } from '../utils/constants';
 
 // Create context
 const NotificationContext = createContext();
@@ -17,29 +17,41 @@ export const NotificationProvider = ({ children }) => {
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
+      const userData = getUserData();
+      if (!userData || !userData.id) {
+        console.log('User not authenticated, skipping notification fetch');
+        setNotifications([]);
+        setUnreadCount(0);
+        return [];
+      }
+      
       setLoading(true);
       setErrorMsg(null);
       
-      const response = await api.get('/api/notification/notifications');
+      const response = await api.get(API_ROUTES.NOTIFICATION.GET_ALL);
       const notificationData = response.data || [];
       
       setNotifications(notificationData);
       
       // Count unread notifications
-      const userData = getUserData();
-      const userId = userData?.id;
-      
-      if (userId) {
-        const unreadNotifications = notificationData.filter(
-          notification => !notification.readBy || !notification.readBy.includes(userId)
-        );
-        setUnreadCount(unreadNotifications.length);
-      }
+      const userId = userData.id;
+      const unreadNotifications = notificationData.filter(
+        notification => !notification.readBy || !notification.readBy.includes(userId)
+      );
+      setUnreadCount(unreadNotifications.length);
       
       return notificationData;
     } catch (err) {
       console.error('Error fetching notifications:', err);
-      setErrorMsg('Failed to load notifications');
+      
+      if (err.response && err.response.status === 401) {
+        console.log('Authorization error when fetching notifications');
+        setNotifications([]);
+        setUnreadCount(0);
+      } else {
+        setErrorMsg('Failed to load notifications');
+      }
+      
       return [];
     } finally {
       setLoading(false);
@@ -55,7 +67,7 @@ export const NotificationProvider = ({ children }) => {
       if (!userId) return false;
       
       // Make API call to mark as read
-      await api.post(`/api/notification/mark-read/${notificationId}`);
+      await api.post(API_ROUTES.NOTIFICATION.MARK_READ(notificationId));
       
       // Update local state
       setNotifications(prev => {
@@ -93,7 +105,7 @@ export const NotificationProvider = ({ children }) => {
       if (!userId) return false;
       
       // Make API call to mark all as read
-      await api.post('/api/notification/mark-all-read');
+      await api.post(API_ROUTES.NOTIFICATION.MARK_ALL_READ);
       
       // Update local state
       setNotifications(prev => 
@@ -115,14 +127,18 @@ export const NotificationProvider = ({ children }) => {
 
   // Initialize by fetching notifications once
   useEffect(() => {
-    fetchNotifications();
-    
-    // Poll for new notifications every minute
-    const intervalId = setInterval(() => {
+    if (getUserData()) {
       fetchNotifications();
-    }, 60000); // 60 seconds
-    
-    return () => clearInterval(intervalId);
+      
+      // Poll for new notifications every minute
+      const intervalId = setInterval(() => {
+        if (getUserData()) {
+          fetchNotifications();
+        }
+      }, 60000); 
+      
+      return () => clearInterval(intervalId);
+    }
   }, [fetchNotifications]);
 
   const addNotification = (notification) => {

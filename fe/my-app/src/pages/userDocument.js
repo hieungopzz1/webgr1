@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { format } from 'date-fns';
 import api from "../utils/api";
 import { getUserData, isAuthenticated } from "../utils/storage";
 import Button from "../components/button/Button";
 import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
-import { useNotification } from "../context/NotificationContext";
-import { format } from 'date-fns';
+import { useNotifications } from "../context/NotificationContext";
 import "./userDocument.css";
 
 const UserDocument = () => {
+  // State
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedClassDetail, setSelectedClassDetail] = useState(null);
@@ -23,10 +23,17 @@ const UserDocument = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
   
-  const { success: showSuccess, error: showError } = useNotification();
-  const notificationRef = useRef({ showSuccess, showError });
+  // Refs
+  const { success, showError } = useNotifications();
+  const notificationRef = useRef({ success, showError });
   const fileInputRef = useRef(null);
 
+  // Keep notification ref updated
+  useEffect(() => {
+    notificationRef.current = { success, showError };
+  }, [success, showError]);
+
+  // Utility functions
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + ' B';
     else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
@@ -37,6 +44,7 @@ const UserDocument = () => {
     return dateString ? format(new Date(dateString), 'dd/MM/yyyy HH:mm') : 'N/A';
   };
 
+  // Error handling
   const handleApiError = useCallback((err, defaultMessage = "An error occurred") => {
     let errorMsg = defaultMessage;
     
@@ -62,6 +70,7 @@ const UserDocument = () => {
     return errorMsg;
   }, []);
 
+  // Fetch classes data
   const fetchUserClasses = useCallback(async () => {
     if (!user) return;
     
@@ -78,27 +87,48 @@ const UserDocument = () => {
       }
       
       if (response.data && response.data.classes) {
-        setClasses(response.data.classes);
+        const receivedClasses = response.data.classes;
         
-        const docsObj = {};
-        response.data.classes.forEach(cls => {
-          docsObj[cls.class._id] = {
-            assignments: cls.assignments || [],
-            submissions: user.role === "Student" 
-              ? (cls.studentSubmissions || []) 
-              : (cls.submissions || [])
-          };
-        });
-        
-        setDocuments(docsObj);
+        if (Array.isArray(receivedClasses)) {
+          setClasses(receivedClasses);
+          
+          const docsObj = {};
+          receivedClasses.forEach(cls => {
+            if (cls && cls.class && cls.class._id) {
+              docsObj[cls.class._id] = {
+                assignments: cls.assignments || [],
+                submissions: user.role === "Student" 
+                  ? (cls.studentSubmissions || []) 
+                  : (cls.submissions || [])
+              };
+            }
+          });
+          
+          setDocuments(docsObj);
+        } else {
+          notificationRef.current.showError("Invalid data format received from server");
+        }
+      } else if (response.data && response.data.message) {
+        setClasses([]);
+        setDocuments({});
+      } else {
+        notificationRef.current.showError("Invalid response format received from server");
       }
     } catch (err) {
-      handleApiError(err, "Failed to fetch your classes");
+      if (err.response && err.response.status === 400 && err.response.data?.message) {
+        notificationRef.current.showError(err.response.data.message);
+      } else {
+        handleApiError(err, "Failed to fetch your classes");
+      }
+      
+      setClasses([]);
+      setDocuments({});
     } finally {
       setDataLoading(false);
     }
   }, [user, handleApiError]);
 
+  // Upload document
   const handleUploadDocument = useCallback(async () => {
     if (!uploadFile || !selectedClass || !user) return;
     
@@ -112,12 +142,10 @@ const UserDocument = () => {
       formData.append('documentType', user.role === "Tutor" ? "assignment" : "submission");
       
       await api.post('/api/documents/upload-document', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      notificationRef.current.showSuccess("Document uploaded successfully");
+      notificationRef.current.success("Document uploaded successfully");
       setIsUploadModalOpen(false);
       setUploadFile(null);
       if (fileInputRef.current) {
@@ -132,6 +160,7 @@ const UserDocument = () => {
     }
   }, [uploadFile, selectedClass, user, fetchUserClasses, handleApiError]);
 
+  // Delete document
   const handleDeleteDocument = useCallback(async (documentId) => {
     if (!documentId || !user) return;
     
@@ -142,7 +171,7 @@ const UserDocument = () => {
         data: { userId: user.id, userRole: user.role }
       });
       
-      notificationRef.current.showSuccess("Document deleted successfully");
+      notificationRef.current.success("Document deleted successfully");
       setIsDeleteModalOpen(false);
       
       fetchUserClasses();
@@ -153,6 +182,7 @@ const UserDocument = () => {
     }
   }, [user, fetchUserClasses, handleApiError]);
 
+  // Download document
   const downloadDocument = async (fileUrl, fileName) => {
     try {
       setLoading(true);
@@ -174,15 +204,15 @@ const UserDocument = () => {
       document.body.removeChild(anchor);
       
       setTimeout(() => URL.revokeObjectURL(url), 100);
-      notificationRef.current.showSuccess("Download started");
+      notificationRef.current.success("Download started");
     } catch (error) {
       notificationRef.current.showError(`Download failed: ${error.message}`);
-      console.error("Download error:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  // UI helpers
   const closeUploadModal = () => {
     setIsUploadModalOpen(false);
     setUploadFile(null);
@@ -191,12 +221,14 @@ const UserDocument = () => {
     }
   };
 
+  // Load user data on mount
   useEffect(() => {
     if (isAuthenticated()) {
       setUser(getUserData());
     }
   }, []);
 
+  // Fetch classes when user is available
   useEffect(() => {
     if (!isAuthenticated()) {
       notificationRef.current.showError("Authentication required. Please log in again.");
@@ -208,6 +240,7 @@ const UserDocument = () => {
     }
   }, [user, fetchUserClasses]);
 
+  // Update selected class detail when class changes
   useEffect(() => {
     if (selectedClass) {
       setSelectedClassDetail(classes.find(c => c.class._id === selectedClass));
@@ -216,6 +249,7 @@ const UserDocument = () => {
     }
   }, [selectedClass, classes]);
 
+  // Render upload modal
   const renderUploadModal = () => (
     <Modal
       isOpen={isUploadModalOpen}
@@ -263,6 +297,7 @@ const UserDocument = () => {
     </Modal>
   );
 
+  // Render assignments list
   const renderAssignments = () => {
     if (!selectedClass || !documents[selectedClass]) {
       return <div className="no-documents"><p>No assignments available</p></div>;
@@ -321,6 +356,7 @@ const UserDocument = () => {
     );
   };
 
+  // Render submissions list
   const renderSubmissions = () => {
     if (!selectedClass || !documents[selectedClass]) {
       return null;
@@ -388,6 +424,7 @@ const UserDocument = () => {
     );
   };
 
+  // Render documents content
   const renderDocumentsContent = () => {
     if (dataLoading) {
       return <div className="loading-container"><Loader /></div>;
@@ -421,6 +458,7 @@ const UserDocument = () => {
     );
   };
 
+  // Main component render
   return (
     <div className="user-document-container">
       {!user ? (

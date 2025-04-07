@@ -41,7 +41,12 @@ const ProtectedRoute = ({ children }) => {
 };
 // Public Route component
 const PublicRoute = ({ children, restricted }) => {
-  if (isAuthenticated() && restricted) {
+  const token = localStorage.getItem('token');
+  const userData = localStorage.getItem('userData');
+  const isUserAuthenticated = !!token && !!userData;
+  
+  if (isUserAuthenticated && restricted) {
+    console.log('User is authenticated, redirecting from public route...');
     return <Navigate to={ROUTES.HOME} replace />;
   }
 

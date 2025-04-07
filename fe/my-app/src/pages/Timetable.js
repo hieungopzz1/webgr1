@@ -208,11 +208,15 @@ const Timetable = () => {
         await fetchSchedulesForAdmin();
       }
       
-      const successMessage = "Schedule created successfully!";
+      // Điều chỉnh thông báo thành công dựa trên loại lịch học
+      const scheduleType = formData.classType || "Offline";
+      const successMessage = scheduleType === "Online" 
+        ? "Online schedule with Google Meet link created successfully!" 
+        : "Schedule created successfully!";
+        
       setSuccess(successMessage);
       notificationRef.current.showSuccess(successMessage);
       setIsCreateModalOpen(false);
-      fetchSchedulesForAdmin();
       return response;
     } catch (err) {
       handleApiError(err, "Failed to create schedule");
@@ -271,7 +275,7 @@ const Timetable = () => {
     
     try {
       const response = await api.post(`/api/schedule/create-meet/${scheduleId}`);
-      const successMessage = "Google Meet link created successfully!";
+      const successMessage = "Schedule updated to online with Google Meet link";
       setSuccess(successMessage);
       notificationRef.current.showSuccess(successMessage);
       

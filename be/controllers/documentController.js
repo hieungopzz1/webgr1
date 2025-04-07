@@ -5,6 +5,7 @@ const Tutor = require('../models/Tutor');
 const Student = require('../models/Student');
 const Class = require('../models/Class');
 const AssignStudent = require('../models/AssignStudent');
+const Notification = require('../models/Notification');
 
 // Upload document
 exports.uploadDocument = async (req, res) => {
@@ -86,6 +87,41 @@ exports.uploadDocument = async (req, res) => {
     });
 
     await newDocument.save();
+
+    // Send notification based on document type
+    if (documentType === 'assignment' && tutor_id) {
+      // Assignment uploaded by tutor - notify all students in this class
+      const studentsInClass = await AssignStudent.find({ class: classId });
+      const studentIds = studentsInClass.map(record => record.student.toString());
+      
+      if (studentIds.length > 0) {
+        const notification = new Notification({
+          title: "New Assignment Uploaded",
+          content: `A new assignment has been uploaded to ${classExists.class_name} by your tutor.`,
+          senderId: tutor_id,
+          recipientIds: studentIds
+        });
+        
+        await notification.save();
+      }
+    } else if (documentType === 'submission' && student_id) {
+      // Submission uploaded by student - notify the tutor
+      if (classExists.tutor) {
+        const studentInfo = await Student.findById(student_id);
+        const studentName = studentInfo ? 
+          `${studentInfo.firstName} ${studentInfo.lastName}` : 
+          'A student';
+          
+        const notification = new Notification({
+          title: "New Submission Received",
+          content: `${studentName} has submitted an assignment for ${classExists.class_name}.`,
+          senderId: student_id,
+          recipientIds: [classExists.tutor.toString()]
+        });
+        
+        await notification.save();
+      }
+    }
 
     res.status(200).json({
       message: 'Document uploaded successfully',

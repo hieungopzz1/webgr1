@@ -28,12 +28,14 @@
 
 
 const express = require('express');
-const { sendNotification, getNotifications } = require('../controllers/notificationController');
+const { sendNotification, getNotifications, markAsRead, markAllAsRead } = require('../controllers/notificationController');
 const { authenticateUser, authorizeRole } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 router.post('/notifications/send',authenticateUser,authorizeRole(["Admin"]), sendNotification); // Chỉ admin gọi được
-router.get('/notifications',authenticateUser,authorizeRole(["Admin"]), getNotifications); // Lấy thông báo của user
+router.get('/notifications',authenticateUser,authorizeRole(["Admin", "Student", "Tutor"]), getNotifications);
+router.post('/mark-read/:notificationId', authenticateUser, authorizeRole(["Admin", "Student", "Tutor"]), markAsRead);
+router.post('/mark-all-read', authenticateUser, authorizeRole(["Admin", "Student", "Tutor"]), markAllAsRead); 
 
 module.exports = router;

@@ -158,3 +158,32 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Notification badge */
+.notification-button {
+  position: relative;
+}
+
+.notification-count {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background-color: #f44336;
+  color: white;
+  border-radius: 50%;
+  min-width: 14px;
+  height: 14px;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: bold;
+  border: 1px solid white;
+}
+
+.sidebar.collapsed .notification-count {
+  right: 50%;
+  transform: translateX(8px);
+}

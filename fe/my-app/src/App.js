@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -17,7 +16,7 @@ import StudentDashboard from "./pages/student/StudentDashboard";
 import Settings from "./pages/Settings/Settings";
 import Message from "./pages/Message/Message";
 import Home from "./pages/Home";
-import Notifications from "./components/notification/Notification";
+// import Notifications from "./components/notification/Notification";
 import { ROUTES } from "./utils/constants";
 import { isAuthenticated } from "./utils/storage";
 import "./App.css";
@@ -52,144 +51,142 @@ const PublicRoute = ({ children, restricted }) => {
 const App = () => {
   return (
     <>
-      <Notifications />
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route
-            path={ROUTES.LOGIN}
-            element={
-              <PublicRoute restricted={true}>
-                <Login />
-              </PublicRoute>
-            }
-          />
+      {/* <Notifications /> */}
+      <Routes>
+        {/* Public Routes */}
+        <Route
+          path={ROUTES.LOGIN}
+          element={
+            <PublicRoute restricted={true}>
+              <Login />
+            </PublicRoute>
+          }
+        />
 
-          {/* Protected Routes */}
-          <Route
-            path={ROUTES.REGISTER}
-            element={
-              <ProtectedRoute>
-                <Register />
-              </ProtectedRoute>
-            }
-          />
-          {/* Dashboard theo role */}
-          <Route
-            path={ROUTES.DASHBOARD("admin")}
-            element={
-              <ProtectedRoute>
-                <StaffDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path={ROUTES.DASHBOARD("tutor")}
-            element={
-              <ProtectedRoute>
-                <TutorDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path={ROUTES.DASHBOARD("student")}
-            element={
-              <ProtectedRoute>
-                <StudentDashboard />
-              </ProtectedRoute>
-            }
-          />
+        {/* Protected Routes */}
+        <Route
+          path={ROUTES.REGISTER}
+          element={
+            <ProtectedRoute>
+              <Register />
+            </ProtectedRoute>
+          }
+        />
+        {/* Dashboard theo role */}
+        <Route
+          path={ROUTES.DASHBOARD("admin")}
+          element={
+            <ProtectedRoute>
+              <StaffDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.DASHBOARD("tutor")}
+          element={
+            <ProtectedRoute>
+              <TutorDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.DASHBOARD("student")}
+          element={
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Nếu ai vào `/dashboard`, điều hướng họ đến dashboard theo role */}
-          <Route path="/dashboard" element={<ProtectedRoute />} />
-          <Route
-            path="/assign-tutor"
-            element={
-              <ProtectedRoute>
-                <AssignTutor />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Class Management Route */}
-          <Route
-            path="/class-management"
-            element={
-              <ProtectedRoute>
-                <ClassManagement />
-              </ProtectedRoute>
-            }
-          />
+        {/* Nếu ai vào `/dashboard`, điều hướng họ đến dashboard theo role */}
+        <Route path="/dashboard" element={<ProtectedRoute />} />
+        <Route
+          path="/assign-tutor"
+          element={
+            <ProtectedRoute>
+              <AssignTutor />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Class Management Route */}
+        <Route
+          path="/class-management"
+          element={
+            <ProtectedRoute>
+              <ClassManagement />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/timetable"
-            element={
-              <ProtectedRoute>
-                <Timetable />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/timetable"
+          element={
+            <ProtectedRoute>
+              <Timetable />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/user-timetable"
-            element={
-              <ProtectedRoute>
-                <UserTimetable />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/user-timetable"
+          element={
+            <ProtectedRoute>
+              <UserTimetable />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Document Routes */}
-          <Route
-            path="/document"
-            element={
-              <ProtectedRoute>
-                <Document />
-              </ProtectedRoute>
-            }
-          />
+        {/* Document Routes */}
+        <Route
+          path="/document"
+          element={
+            <ProtectedRoute>
+              <Document />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/user-document"
-            element={
-              <ProtectedRoute>
-                <UserDocument />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/user-document"
+          element={
+            <ProtectedRoute>
+              <UserDocument />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path={ROUTES.SETTINGS}
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path={ROUTES.SETTINGS}
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path={`${ROUTES.MESSAGES}/:id?`}
-            element={
-              <ProtectedRoute>
-                <Message />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path={`${ROUTES.MESSAGES}/:id?`}
+          element={
+            <ProtectedRoute>
+              <Message />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Default route */}
-          <Route
-            path={ROUTES.HOME}
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
+        {/* Default route */}
+        <Route
+          path={ROUTES.HOME}
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-        </Routes>
-      </Router>
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+      </Routes>
     </>
   );
 };

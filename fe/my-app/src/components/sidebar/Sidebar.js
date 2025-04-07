@@ -3,7 +3,9 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useSidebar } from "../../context/SidebarContext";
 import { ROUTES, USER_ROLES } from "../../utils/constants";
 import useAuth from "../../hooks/useAuth";
+import NotificationModal from "../notification/NotificationModal";
 import "./Sidebar.css";
+import useNotifications from "../../hooks/useNotifications";
 
 const MENU_ITEMS = {
   common: [
@@ -34,7 +36,7 @@ const MENU_ITEMS = {
       label: "Messages",
     },
     {
-      to: "/notifications",
+      type: "notification",
       icon: <i className="bi bi-bell" />,
       activeIcon: <i className="bi bi-bell-fill" />,
       label: "Notifications",
@@ -88,7 +90,7 @@ const BOTTOM_MENU = {
   },
 };
 
-const NavItem = ({ item }) => {
+const NavItem = ({ item, openNotificationModal, unreadCount }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { user } = useAuth();
   const userRole = user?.role || USER_ROLES.STUDENT;
@@ -140,6 +142,26 @@ const NavItem = ({ item }) => {
             </ul>
           </div>
         )}
+      </li>
+    );
+  }
+
+  if (item.type === "notification") {
+    return (
+      <li>
+        <button 
+          className="nav-link notification-button" 
+          onClick={openNotificationModal}
+        >
+          <div className="nav-icon-wrapper">
+            <span className="icon-normal">{item.icon}</span>
+            <span className="icon-active">{item.activeIcon}</span>
+            {unreadCount > 0 && (
+              <span className="notification-count">{unreadCount}</span>
+            )}
+          </div>
+          <span className="nav-label">{item.label}</span>
+        </button>
       </li>
     );
   }
@@ -200,6 +222,23 @@ const Sidebar = () => {
   const location = useLocation();
   const { expanded } = useSidebar();
   const isMessagesPage = location.pathname.startsWith("/messages");
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const { unreadCount, fetchNotifications } = useNotifications();
+
+  const openNotificationModal = () => setIsNotificationModalOpen(true);
+  const closeNotificationModal = () => {
+    setIsNotificationModalOpen(false);
+    
+    const fetchData = async () => {
+      try {
+        await fetchNotifications();
+      } catch (error) {
+        console.error("Error fetching notifications after closing modal:", error);
+      }
+    };
+    
+    fetchData();
+  };
 
   const roleSpecificItems = MENU_ITEMS[userRole] || [];
   const dashboardItem = {
@@ -212,25 +251,38 @@ const Sidebar = () => {
   const menuItems = [...MENU_ITEMS.common, dashboardItem, ...roleSpecificItems];
 
   return (
-    <aside
-      className={`sidebar ${isMessagesPage || !expanded ? "collapsed" : ""}`}
-    >
-      <div className="sidebar__logo">
-        <NavLink to={ROUTES.HOME} className="logo-link">
-          <img src="/logo192.png" alt="eTutoring Logo" />
-        </NavLink>
-      </div>
-      <nav className="sidebar__nav">
-        <ul className="sidebar__main-menu">
-          {menuItems.map((item, index) => (
-            <NavItem key={index} item={item} />
-          ))}
-        </ul>
-        <ul className="sidebar__bottom-menu">
-          <NavItem item={BOTTOM_MENU.settings} />
-        </ul>
-      </nav>
-    </aside>
+    <>
+      <aside
+        className={`sidebar ${isMessagesPage || !expanded ? "collapsed" : ""}`}
+      >
+        <div className="sidebar__logo">
+          <NavLink to={ROUTES.HOME} className="logo-link">
+            <img src="/logo192.png" alt="eTutoring Logo" />
+          </NavLink>
+        </div>
+        <nav className="sidebar__nav">
+          <ul className="sidebar__main-menu">
+            {menuItems.map((item, index) => (
+              <NavItem 
+                key={index} 
+                item={item} 
+                openNotificationModal={openNotificationModal}
+                unreadCount={item.type === "notification" ? unreadCount : 0}
+              />
+            ))}
+          </ul>
+          <ul className="sidebar__bottom-menu">
+            <NavItem item={BOTTOM_MENU.settings} />
+          </ul>
+        </nav>
+      </aside>
+
+      {/* Notification Modal */}
+      <NotificationModal 
+        isOpen={isNotificationModalOpen} 
+        onClose={closeNotificationModal}
+      />
+    </>
   );
 };
 

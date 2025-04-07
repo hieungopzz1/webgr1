@@ -1,6 +1,7 @@
 const Schedule = require("../models/Schedule");
 const Class = require("../models/Class");
 const AssignStudent = require("../models/AssignStudent");
+const Notification = require("../models/Notification");
 const { createGoogleMeeting } = require("../services/googleMeet/meetingService");
 
 // const createSchedule = async (req, res) => {
@@ -71,12 +72,14 @@ const { createGoogleMeeting } = require("../services/googleMeet/meetingService")
 const createSchedule = async (req, res) => {
   try {
     const { date, slots, classType } = req.body;
+    const adminId = req.user.id;
 
     if (!date || !slots || slots.length === 0) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     let createdSchedules = [];
+    const notifiedClasses = new Set();
 
     for (const slot of slots) {
       const { slot: slotNumber, classes } = slot;
@@ -124,10 +127,60 @@ const createSchedule = async (req, res) => {
         });
         await newSchedule.save();
         createdSchedules.push(newSchedule);
+        notifiedClasses.add(classId);
       }
 
       // const classesToRemove = existingClassIds.filter((classId) => !classes.includes(classId));
       // await Schedule.deleteMany({ date, slot: slotNumber, class: { $in: classesToRemove } });
+    }
+
+    // Send notifications
+    if (notifiedClasses.size > 0) {
+      // Get the date in readable format
+      const dateObj = new Date(date);
+      const formattedDate = dateObj.toDateString();
+      
+      // For each class, notify the assigned students and tutor
+      for (const classId of notifiedClasses) {
+        const classInfo = await Class.findById(classId);
+        
+        // Get students assigned to this class
+        const assignedStudents = await AssignStudent.find({ class: classId });
+        const studentIds = assignedStudents.map(assignment => assignment.student.toString());
+        
+        // Add tutor to recipients if available
+        const recipientIds = [...studentIds];
+        if (classInfo && classInfo.tutor) {
+          recipientIds.push(classInfo.tutor.toString());
+        }
+        
+        // Create notification
+        if (recipientIds.length > 0) {
+          const scheduleType = classType || "Offline";
+          const notificationTitle = scheduleType === "Online" ? "New Online Class with Google Meet" : "New Class Schedule";
+          const notificationContent = `A new ${scheduleType.toLowerCase()} class schedule has been created for ${classInfo.class_name || 'your class'} on ${formattedDate}`;
+          
+          if (scheduleType === "Online") {
+            const notification = new Notification({
+              title: notificationTitle,
+              content: `${notificationContent}. You can access Google Meet when the class starts.`,
+              senderId: adminId,
+              recipientIds,
+            });
+            
+            await notification.save();
+          } else {
+            const notification = new Notification({
+              title: notificationTitle,
+              content: notificationContent,
+              senderId: adminId,
+              recipientIds,
+            });
+            
+            await notification.save();
+          }
+        }
+      }
     }
 
     const updatedSchedules = await Schedule.find({ date });
@@ -265,15 +318,16 @@ const getTutorSchedules = async (req, res) => {
 const createMeetLink = async (req, res) => {
   try {
     const { scheduleId } = req.params;
+    const userId = req.user.id;
     
     const schedule = await Schedule.findById(scheduleId).populate("class", "class_name subject");
     if (!schedule) {
-      return res.status(404).json({ message: "Lịch học không tồn tại" });
+      return res.status(404).json({ message: "Schedule not found" });
     }
     
     if (schedule.meetingLink) {
       return res.status(200).json({ 
-        message: "Liên kết Google Meet đã tồn tại", 
+        message: "Google Meet link already exists", 
         meetLink: schedule.meetingLink 
       });
     }
@@ -295,8 +349,8 @@ const createMeetLink = async (req, res) => {
     const endTime = new Date(`${dateStr}T${slotTime.end}:00+07:00`);
     
     const meetingInfo = {
-      summary: `Lớp: ${schedule.class.class_name}`,
-      description: `Môn học: ${schedule.class.subject || 'Không có thông tin'}`,
+      summary: `Class: ${schedule.class.class_name}`,
+      description: `Subject: ${schedule.class.subject || 'No information'}`,
       startTime,
       endTime
     };
@@ -305,6 +359,36 @@ const createMeetLink = async (req, res) => {
     
     schedule.meetingLink = meetLink;
     await schedule.save();
+    
+    // Send notification about the Google Meet link only if this is not an online class
+    // For online classes, the notification was already sent during schedule creation
+    if (schedule.class && schedule.type !== "Online") {
+      // Get students assigned to this class
+      const assignedStudents = await AssignStudent.find({ class: schedule.class._id });
+      const studentIds = assignedStudents.map(assignment => assignment.student.toString());
+      
+      // Get class information
+      const classInfo = await Class.findById(schedule.class._id);
+      
+      // Add tutor to recipients if available
+      const recipientIds = [...studentIds];
+      if (classInfo && classInfo.tutor) {
+        recipientIds.push(classInfo.tutor.toString());
+      }
+      
+      // Create notification
+      if (recipientIds.length > 0) {
+        const formattedDate = dateObj.toDateString();
+        const notification = new Notification({
+          title: "Google Meet Link Created",
+          content: `A Google Meet link has been created for ${schedule.class.class_name || 'your class'} on ${formattedDate}. Click on the schedule to join the meeting.`,
+          senderId: userId,
+          recipientIds,
+        });
+        
+        await notification.save();
+      }
+    }
     
     const io = req.app.get("socketio");
     if (io) {
@@ -315,14 +399,14 @@ const createMeetLink = async (req, res) => {
     }
     
     res.status(200).json({ 
-      message: "Tạo liên kết Google Meet thành công", 
+      message: "Google Meet link created successfully", 
       meetLink 
     });
     
   } catch (error) {
-    console.error("Lỗi khi tạo Google Meet:", error);
+    console.error("Error creating Google Meet:", error);
     res.status(500).json({ 
-      error: "Không thể tạo Google Meet",
+      error: "Cannot create Google Meet",
       details: error.message 
     });
   }

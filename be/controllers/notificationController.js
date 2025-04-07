@@ -275,4 +275,56 @@ const getNotifications = async (req, res) => {
   }
 };
 
-module.exports = { sendNotification, getNotifications };
+const markAsRead = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.id;
+    
+    const notification = await Notification.findById(notificationId);
+    
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+    
+    if (!notification.readBy) {
+      notification.readBy = [userId];
+    } else if (!notification.readBy.includes(userId)) {
+      notification.readBy.push(userId);
+    }
+    
+    await notification.save();
+    
+    res.status(200).json({ message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Error in markAsRead:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const markAllAsRead = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Find all notifications for this user
+    const notifications = await Notification.find({ recipientIds: userId });
+    
+    // Update each notification to add userId to readBy
+    const updatePromises = notifications.map(notification => {
+      if (!notification.readBy) {
+        notification.readBy = [userId];
+      } else if (!notification.readBy.includes(userId)) {
+        notification.readBy.push(userId);
+      }
+      return notification.save();
+    });
+    
+    await Promise.all(updatePromises);
+    
+    res.status(200).json({ message: 'All notifications marked as read' });
+  } catch (error) {
+    console.error('Error in markAllAsRead:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+module.exports = { sendNotification, getNotifications, markAsRead, markAllAsRead };

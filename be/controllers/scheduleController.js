@@ -1,6 +1,7 @@
 const Schedule = require("../models/Schedule");
 const Class = require("../models/Class");
 const AssignStudent = require("../models/AssignStudent");
+const { createGoogleMeeting } = require("../services/googleMeet/meetingService");
 
 // const createSchedule = async (req, res) => {
 //   try {
@@ -69,7 +70,7 @@ const AssignStudent = require("../models/AssignStudent");
 
 const createSchedule = async (req, res) => {
   try {
-    const { date, slots } = req.body;
+    const { date, slots, classType } = req.body;
 
     if (!date || !slots || slots.length === 0) {
       return res.status(400).json({ message: "All fields are required" });
@@ -115,7 +116,12 @@ const createSchedule = async (req, res) => {
 
       const classesToAdd = classes.filter((classId) => !existingClassIds.includes(classId));
       for (const classId of classesToAdd) {
-        const newSchedule = new Schedule({ class: classId, date, slot: slotNumber });
+        const newSchedule = new Schedule({ 
+          class: classId, 
+          date, 
+          slot: slotNumber,
+          type: classType || "Offline" 
+        });
         await newSchedule.save();
         createdSchedules.push(newSchedule);
       }
@@ -244,12 +250,81 @@ const getTutorSchedules = async (req, res) => {
     const tutorClasses = await Class.find({ tutor: tutorId }).distinct("_id");
 
     const schedules = await Schedule.find({ class: { $in: tutorClasses } })
-      .populate("class", "class_name")
+      .populate({
+        path: "class",
+        select: "class_name subject major"
+      })
       .sort({ date: 1, startTime: 1 });
 
     res.status(200).json({ schedules });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+const createMeetLink = async (req, res) => {
+  try {
+    const { scheduleId } = req.params;
+    
+    const schedule = await Schedule.findById(scheduleId).populate("class", "class_name subject");
+    if (!schedule) {
+      return res.status(404).json({ message: "Lịch học không tồn tại" });
+    }
+    
+    if (schedule.meetingLink) {
+      return res.status(200).json({ 
+        message: "Liên kết Google Meet đã tồn tại", 
+        meetLink: schedule.meetingLink 
+      });
+    }
+    
+    const slotTimes = {
+      1: { start: "07:00", end: "08:30" },
+      2: { start: "08:45", end: "10:15" },
+      3: { start: "10:30", end: "12:00" },
+      4: { start: "13:00", end: "14:30" },
+      5: { start: "14:45", end: "16:15" },
+      6: { start: "16:30", end: "18:00" }
+    };
+    
+    const dateObj = new Date(schedule.date);
+    const dateStr = dateObj.toISOString().split('T')[0];
+    const slotTime = slotTimes[schedule.slot];
+    
+    const startTime = new Date(`${dateStr}T${slotTime.start}:00+07:00`);
+    const endTime = new Date(`${dateStr}T${slotTime.end}:00+07:00`);
+    
+    const meetingInfo = {
+      summary: `Lớp: ${schedule.class.class_name}`,
+      description: `Môn học: ${schedule.class.subject || 'Không có thông tin'}`,
+      startTime,
+      endTime
+    };
+    
+    const meetLink = await createGoogleMeeting(meetingInfo);
+    
+    schedule.meetingLink = meetLink;
+    await schedule.save();
+    
+    const io = req.app.get("socketio");
+    if (io) {
+      io.emit("updateDashboard", { 
+        message: "Google Meet link created",
+        updatedSchedule: schedule
+      });
+    }
+    
+    res.status(200).json({ 
+      message: "Tạo liên kết Google Meet thành công", 
+      meetLink 
+    });
+    
+  } catch (error) {
+    console.error("Lỗi khi tạo Google Meet:", error);
+    res.status(500).json({ 
+      error: "Không thể tạo Google Meet",
+      details: error.message 
+    });
   }
 };
 
@@ -260,4 +335,5 @@ module.exports = {
   deleteSchedule,
   getStudentSchedules,
   getTutorSchedules,
+  createMeetLink
 };

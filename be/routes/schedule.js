@@ -12,6 +12,7 @@ router.delete("/delete-schedule/:scheduleId",authenticateUser,authorizeRole(["Ad
 router.get("/get-all-schedule",authenticateUser,authorizeRole(["Admin"]), scheduleController.getAllSchedules);
 router.get("/schedule-tutor",authenticateUser,authorizeRole(["Tutor"]), scheduleController.getTutorSchedules);
 router.get("/schedule-student",authenticateUser,authorizeRole(["Student"]), scheduleController.getStudentSchedules);
+router.post("/create-meet/:scheduleId", authenticateUser, authorizeRole(["Admin", "Tutor"]), scheduleController.createMeetLink);
 
 
 module.exports = router;

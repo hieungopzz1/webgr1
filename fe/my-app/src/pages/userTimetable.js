@@ -1,32 +1,20 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import api from "../utils/api";
 import { getUserData, isAuthenticated } from "../utils/storage";
-import InputField from "../components/inputField/InputField";
 import Button from "../components/button/Button";
 import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import { useNotification } from "../context/NotificationContext";
 import { 
   getWeek, 
-  startOfWeek, 
-  endOfWeek, 
-  eachDayOfInterval, 
   format, 
-  getWeeksInYear, 
-  getYear,
-  addDays,
-  setWeek,
-  startOfYear,
-  endOfYear 
+  getYear
 } from 'date-fns';
-import { vi } from 'date-fns/locale';
 import "./userTimetable.css";
 
 const UserTimetable = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -35,26 +23,16 @@ const UserTimetable = () => {
   const [studentsInClass, setStudentsInClass] = useState([]);
   const [attendanceStatus, setAttendanceStatus] = useState({ presentStudents: [], absentStudents: [] });
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [studentAttendances, setStudentAttendances] = useState([]);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(getYear(currentDate));
   const [selectedWeek, setSelectedWeek] = useState(getWeek(currentDate, { weekStartsOn: 1 }));
   
-  const [classFilter, setClassFilter] = useState("");
   const [tutorClasses, setTutorClasses] = useState([]);
-  const [dateFilter, setDateFilter] = useState("");
-
   const [studentAttendanceMap, setStudentAttendanceMap] = useState({});
 
   const { success: showSuccess, error: showError } = useNotification();
-  
-  const notificationRef = useRef();
-  notificationRef.current = { showSuccess, showError };
-
-  const classesRef = useRef();
-  classesRef.current = classes;
 
   const slotLabels = {
     1: "07:00 - 08:30",
@@ -67,22 +45,13 @@ const UserTimetable = () => {
 
   const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return format(date, 'dd/MM/yyyy');
-  };
+  const formatDate = dateString => format(new Date(dateString), 'dd/MM/yyyy');
+  const formatShortDate = date => format(date, 'dd/MM');
 
-  const formatShortDate = (date) => {
-    return format(date, 'dd/MM');
-  };
-
-  const getAvailableWeeksInYear = (year) => {
+  const getAvailableWeeksInYear = year => {
     const weeks = [];
-    
     const lastDayOfYear = new Date(year, 11, 31);
-    const totalDays = lastDayOfYear.getDate() + 
-      (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30);
-    
+    const totalDays = lastDayOfYear.getDate() + (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30);
     const totalWeeks = Math.ceil(totalDays / 7) + 1;
     
     for (let weekNum = 1; weekNum <= totalWeeks; weekNum++) {
@@ -113,13 +82,9 @@ const UserTimetable = () => {
     return [currentYear - 1, currentYear, currentYear + 1];
   }, []);
 
-  const weekOptions = useMemo(() => {
-    return getAvailableWeeksInYear(selectedYear);
-  }, [selectedYear]);
+  const weekOptions = useMemo(() => getAvailableWeeksInYear(selectedYear), [selectedYear]);
 
   const daysInSelectedWeek = useMemo(() => {
-    const firstDayOfYear = new Date(selectedYear, 0, 1);
-    
     const dayOfYear = (selectedWeek - 1) * 7 + 1;
     const dateOfFirstDayOfWeek = new Date(selectedYear, 0, dayOfYear);
     
@@ -141,8 +106,7 @@ const UserTimetable = () => {
 
   useEffect(() => {
     if (isAuthenticated()) {
-      const userData = getUserData();
-      setUser(userData);
+      setUser(getUserData());
     }
   }, []);
 
@@ -167,10 +131,9 @@ const UserTimetable = () => {
       errorMsg = `Error: ${err.message}`;
     }
     
-    setError(errorMsg);
-    notificationRef.current.showError(errorMsg);
+    showError(errorMsg);
     return errorMsg;
-  }, []);
+  }, [showError]);
 
   const fetchClasses = useCallback(async () => {
     try {
@@ -348,18 +311,16 @@ const UserTimetable = () => {
           } else {
             newAttendanceMap[schedule._id] = null;
           }
-        } catch (err) {
-        }
+        } catch (err) {}
       }
       
       setStudentAttendanceMap(newAttendanceMap);
-    } catch (err) {
-    }
+    } catch (err) {}
   }, [user, filteredSchedulesByWeek]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      setError("Authentication required. Please log in again.");
+      showError("Authentication required. Please log in again.");
       return;
     }
 
@@ -377,7 +338,7 @@ const UserTimetable = () => {
         setDataLoading(false);
       });
     }
-  }, [fetchSchedulesForStudent, fetchSchedulesForTutor, fetchClasses]);
+  }, [fetchSchedulesForStudent, fetchSchedulesForTutor, fetchClasses, showError]);
 
   useEffect(() => {
     if (user?.role === "Student") {
@@ -388,7 +349,6 @@ const UserTimetable = () => {
   const submitAttendance = useCallback(async (scheduleId, attendanceData) => {
     try {
       setLoading(true);
-      setError("");
       
       const payload = {
         scheduleId,
@@ -396,9 +356,7 @@ const UserTimetable = () => {
       };
       
       const response = await api.post('/api/attendance/mark', payload);
-      const successMessage = "Attendance marked successfully!";
-      setSuccess(successMessage);
-      notificationRef.current.showSuccess(successMessage);
+      showSuccess("Attendance marked successfully!");
       
       if (user?.role === "Student") {
         fetchStudentAttendanceData();
@@ -414,7 +372,7 @@ const UserTimetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [handleApiError, fetchStudentAttendanceData, fetchAttendanceStatus, selectedSchedule, user]);
+  }, [handleApiError, fetchStudentAttendanceData, fetchAttendanceStatus, selectedSchedule, user, showSuccess]);
 
   const handleOpenAttendanceModal = useCallback(async (schedule) => {
     setSelectedSchedule(schedule);
@@ -422,8 +380,7 @@ const UserTimetable = () => {
       await fetchStudentsBySchedule(schedule._id);
       await fetchAttendanceStatus(schedule._id);
       setIsAttendanceModalOpen(true);
-    } catch (error) {
-    }
+    } catch (error) {}
   }, [fetchStudentsBySchedule, fetchAttendanceStatus]);
 
   const getStudentAttendanceStatus = useCallback((studentId, scheduleId) => {
@@ -440,38 +397,21 @@ const UserTimetable = () => {
     return null;
   }, [attendanceStatus, studentAttendanceMap, user]);
 
-  const [tutorCache, setTutorCache] = useState({});
-
   const TutorName = ({ tutorData }) => {
     const [tutorName, setTutorName] = useState("Not Assigned");
     
     useEffect(() => {
       if (!tutorData) {
         setTutorName("Not Assigned");
-        return;
-      }
-      
-      if (typeof tutorData === 'string') {
+      } else if (typeof tutorData === 'string') {
         setTutorName(tutorData);
-        return;
-      }
-      
-      if (tutorData.firstName && tutorData.lastName) {
+      } else if (tutorData.firstName && tutorData.lastName) {
         setTutorName(`${tutorData.firstName} ${tutorData.lastName}`);
-        return;
-      }
-      
-      if (tutorData.tutor_name) {
+      } else if (tutorData.tutor_name) {
         setTutorName(tutorData.tutor_name);
-        return;
-      }
-      
-      if (tutorData.name) {
+      } else if (tutorData.name) {
         setTutorName(tutorData.name);
-        return;
       }
-      
-      setTutorName("Not Assigned");
     }, [tutorData]);
     
     return <>{tutorName}</>;
@@ -535,6 +475,20 @@ const UserTimetable = () => {
                   </span>
                 )}
               </div>
+              
+              {schedule.meetingLink && (
+                <div className="meeting-info">
+                  <a 
+                    href={schedule.meetingLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="meet-link"
+                    title="Open in new tab"
+                  >
+                    <i className="fas fa-video"></i> Join Meet
+                  </a>
+                </div>
+              )}
               
               {isStudent && (
                 <div className="attendance-status">
@@ -638,24 +592,6 @@ const UserTimetable = () => {
             </select>
           </div>
         </div>
-        
-        {user?.role === "Tutor" && tutorClasses.length > 0 && (
-          <div className="filter-item">
-            <label>Filter by Class:</label>
-            <select
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              className="form-select"
-            >
-              <option value="">All Classes</option>
-              {tutorClasses.map(classItem => (
-                <option key={classItem._id} value={classItem._id}>
-                  {classItem.class_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
     );
   };
@@ -738,15 +674,9 @@ const UserTimetable = () => {
         ) : (
           <div className="attendance-container">
             <div className="attendance-header">
-              <p>
-                <strong>Class:</strong> {selectedSchedule?.class?.class_name}
-              </p>
-              <p>
-                <strong>Date:</strong> {selectedSchedule && formatDate(selectedSchedule.date)}
-              </p>
-              <p>
-                <strong>Slot:</strong> {selectedSchedule?.slot && slotLabels[selectedSchedule.slot]}
-              </p>
+              <p><strong>Class:</strong> {selectedSchedule?.class?.class_name}</p>
+              <p><strong>Date:</strong> {selectedSchedule && formatDate(selectedSchedule.date)}</p>
+              <p><strong>Slot:</strong> {selectedSchedule?.slot && slotLabels[selectedSchedule.slot]}</p>
             </div>
             
             {studentsInClass.length === 0 ? (

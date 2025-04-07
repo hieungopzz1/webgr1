@@ -207,13 +207,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .form-row {
   display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
 }
 
 .form-row .form-group {
   flex: 1;
-  margin-bottom: 0;
+  min-width: 200px;
 }
 
 .form-actions {
@@ -331,6 +332,104 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #666;
 }
 
+/* Style for Class Type Radio Options */
+.class-type-options {
+  display: flex;
+  gap: 20px;
+  margin-top: 5px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.radio-option input {
+  margin-right: 5px;
+}
+
+/* Style for Google Meet Option */
+.meet-option {
+  margin-top: 10px;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-option input {
+  margin-right: 5px;
+}
+
+.meet-info {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.text-info {
+  color: #3498db;
+}
+
+.fas.fa-info-circle {
+  margin-right: 4px;
+}
+
+/* Meeting link styling */
+.admin-meeting-info {
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  width: fit-content;
+  margin-top: 3px;
+}
+
+.admin-class-type {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  display: inline-block;
+  width: fit-content;
+}
+
+.admin-class-type.online {
+  background-color: #e1f5fe;
+  color: #0288d1;
+}
+
+.admin-class-type.offline {
+  background-color: #f1f1f1;
+  color: #757575;
+}
+
+.admin-meet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #4285f4;
+  color: white !important;
+  text-decoration: none;
+  font-size: 0.85em;
+  transition: background-color 0.2s;
+  width: fit-content;
+}
+
+.admin-meet-link:hover {
+  background-color: #1a73e8;
+  text-decoration: none;
+  color: white !important;
+}
+
+.admin-meet-link .fas {
+  font-size: 0.9em;
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .form-row {
@@ -357,4 +456,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: block;
     overflow-x: auto;
   }
+}
+
+/* Pagination styling */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 30px;
 } 

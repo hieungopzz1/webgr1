@@ -7,6 +7,7 @@ import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import { useNotification } from "../context/NotificationContext";
+import Pagination from "../components/pagination/Pagination";
 import { format } from 'date-fns';
 import "./Timetable.css";
 
@@ -19,6 +20,10 @@ const Timetable = () => {
   const [classes, setClasses] = useState([]);
   const [tutors, setTutors] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -174,7 +179,35 @@ const Timetable = () => {
     setSuccess("");
     
     try {
-      const response = await api.post("/api/schedule/create-schedule", formData);
+      const requestData = {
+        date: formData.date,
+        slots: formData.slots,
+        classType: formData.classType  // Truyền thông tin classType cho API
+      };
+
+      const response = await api.post("/api/schedule/create-schedule", requestData);
+      
+      if (formData.createMeetLink && response.data && response.data.schedules) {
+        // Tìm các lịch học tương ứng với lớp học đã chọn
+        const createdSchedules = response.data.schedules.filter(schedule => {
+          // Chuyển đổi ID sang chuỗi để so sánh chính xác
+          const scheduleClassId = schedule.class._id || schedule.class;
+          const selectedClassId = formData.slots[0].classes[0];
+          
+          return scheduleClassId.toString() === selectedClassId.toString();
+        });
+        
+        for (const schedule of createdSchedules) {
+          try {
+            await api.post(`/api/schedule/create-meet/${schedule._id}`);
+          } catch (meetError) {
+            notificationRef.current.showError(`Failed to create Google Meet link for slot ${schedule.slot}: ${meetError.message}`);
+          }
+        }
+        
+        await fetchSchedulesForAdmin();
+      }
+      
       const successMessage = "Schedule created successfully!";
       setSuccess(successMessage);
       notificationRef.current.showSuccess(successMessage);
@@ -231,6 +264,27 @@ const Timetable = () => {
     }
   }, [fetchSchedulesForAdmin, handleApiError]);
 
+  const handleCreateMeetLink = useCallback(async (scheduleId) => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    
+    try {
+      const response = await api.post(`/api/schedule/create-meet/${scheduleId}`);
+      const successMessage = "Google Meet link created successfully!";
+      setSuccess(successMessage);
+      notificationRef.current.showSuccess(successMessage);
+      
+      await fetchSchedulesForAdmin();
+      return response;
+    } catch (err) {
+      handleApiError(err, "Failed to create Google Meet link");
+      return err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchSchedulesForAdmin, handleApiError]);
+
   const formatDate = (dateString) => format(new Date(dateString), 'dd/MM/yyyy');
 
   const scheduledTutors = useMemo(() => {
@@ -271,13 +325,39 @@ const Timetable = () => {
     return matchesClass && matchesDate && matchesTutor;
   });
 
+  // Hàm xử lý khi thay đổi trang
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Cuộn lên đầu bảng khi chuyển trang
+    window.scrollTo({ top: document.querySelector('.schedule-table').offsetTop - 20, behavior: 'smooth' });
+  };
+
+  // Tính toán trang hiện tại
+  const paginatedSchedules = useMemo(() => {
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    return filteredSchedules.slice(indexOfFirstItem, indexOfLastItem);
+  }, [filteredSchedules, currentPage, itemsPerPage]);
+
+  // Tính tổng số trang
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredSchedules.length / itemsPerPage);
+  }, [filteredSchedules, itemsPerPage]);
+
+  // Reset về trang 1 khi thay đổi bộ lọc
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [classFilter, dateFilter, tutorFilter]);
+
   const ScheduleForm = ({ onSubmit, initialData = {}, submitLabel }) => {
     const today = format(new Date(), 'yyyy-MM-dd');
     
     const [formData, setFormData] = useState({
       date: initialData.date ? format(new Date(initialData.date), 'yyyy-MM-dd') : today,
       classId: initialData.classId || "",
-      selectedSlots: initialData.selectedSlots || []
+      selectedSlots: initialData.selectedSlots || [],
+      classType: initialData.classType || "Offline",
+      createMeetLink: initialData.createMeetLink || false
     });
     
     const [errors, setErrors] = useState({});
@@ -303,6 +383,21 @@ const Timetable = () => {
       if (value && errors.classId) {
         setErrors(prev => ({ ...prev, classId: undefined }));
       }
+    };
+    
+    const handleClassTypeChange = (value) => {
+      setFormData(prev => ({
+        ...prev,
+        classType: value,
+        createMeetLink: value === "Online" ? prev.createMeetLink : false
+      }));
+    };
+    
+    const handleCreateMeetLinkChange = (checked) => {
+      setFormData(prev => ({
+        ...prev,
+        createMeetLink: checked
+      }));
     };
     
     const handleSlotToggle = (slotNumber) => {
@@ -355,7 +450,9 @@ const Timetable = () => {
           slots: formData.selectedSlots.map(slotNumber => ({
             slot: slotNumber,
             classes: [formData.classId]
-          }))
+          })),
+          classType: formData.classType,
+          createMeetLink: formData.classType === "Online" && formData.createMeetLink
         };
         
         onSubmit(submissionData);
@@ -401,32 +498,84 @@ const Timetable = () => {
         </div>
         
         {isInitialSelectionComplete && (
-          <div className="slots-selection-container">
-            <h3>Select Time Slots</h3>
-            {errors.selectedSlots && <div className="error-message">{errors.selectedSlots}</div>}
-            
-            <div className="slots-checkbox-list">
-              {Object.entries(slotLabels).map(([slot, timeRange]) => (
-                <div key={slot} className="slot-checkbox-item">
-                  <input
-                    type="checkbox"
-                    id={`slot-${slot}`}
-                    checked={formData.selectedSlots.includes(parseInt(slot))}
-                    onChange={() => handleSlotToggle(parseInt(slot))}
-                  />
-                  <label htmlFor={`slot-${slot}`}>
-                    <span className="slot-number">Slot {slot}:</span> {timeRange}
+          <>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Class Type</label>
+                <div className="class-type-options">
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="classType"
+                      value="Offline"
+                      checked={formData.classType === "Offline"}
+                      onChange={() => handleClassTypeChange("Offline")}
+                    />
+                    <span>Offline</span>
+                  </label>
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="classType"
+                      value="Online"
+                      checked={formData.classType === "Online"}
+                      onChange={() => handleClassTypeChange("Online")}
+                    />
+                    <span>Online</span>
                   </label>
                 </div>
-              ))}
-            </div>
-            
-            <div className="selection-info">
-              {formData.selectedSlots.length > 0 && (
-                <small>Selected: {formData.selectedSlots.length} slot(s)</small>
+              </div>
+              
+              {formData.classType === "Online" && (
+                <div className="form-group">
+                  <div className="meet-option">
+                    <label className="checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={formData.createMeetLink}
+                        onChange={(e) => handleCreateMeetLinkChange(e.target.checked)}
+                      />
+                      <span>Automatically create Google Meet link</span>
+                    </label>
+                    <div className="meet-info">
+                      {formData.createMeetLink && (
+                        <small className="text-info">
+                          <i className="fas fa-info-circle"></i> A Google Meet link will be created when schedule is saved
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+
+            <div className="slots-selection-container">
+              <h3>Select Time Slots</h3>
+              {errors.selectedSlots && <div className="error-message">{errors.selectedSlots}</div>}
+              
+              <div className="slots-checkbox-list">
+                {Object.entries(slotLabels).map(([slot, timeRange]) => (
+                  <div key={slot} className="slot-checkbox-item">
+                    <input
+                      type="checkbox"
+                      id={`slot-${slot}`}
+                      checked={formData.selectedSlots.includes(parseInt(slot))}
+                      onChange={() => handleSlotToggle(parseInt(slot))}
+                    />
+                    <label htmlFor={`slot-${slot}`}>
+                      <span className="slot-number">Slot {slot}:</span> {timeRange}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="selection-info">
+                {formData.selectedSlots.length > 0 && (
+                  <small>Selected: {formData.selectedSlots.length} slot(s)</small>
+                )}
+              </div>
+            </div>
+          </>
         )}
         
         <div className="form-actions">
@@ -557,18 +706,19 @@ const Timetable = () => {
           <th>Tutor Name</th>
           <th>Date</th>
           <th>Slot</th>
+          <th>Type</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        {filteredSchedules.length === 0 ? (
+        {paginatedSchedules.length === 0 ? (
           <tr>
-            <td colSpan={6} className="no-data">
+            <td colSpan={7} className="no-data">
               {dataLoading ? "Loading schedules..." : "No schedules found"}
             </td>
           </tr>
         ) : (
-          filteredSchedules.map(schedule => {
+          paginatedSchedules.map(schedule => {
             const classInfo = classes.find(c => c._id === (schedule.class._id || schedule.class));
             const className = classInfo ? classInfo.class_name : (schedule.class.class_name || "Unknown Class");
             const major = classInfo ? classInfo.major : (schedule.class.major || "Unknown Major");
@@ -602,17 +752,25 @@ const Timetable = () => {
                     Slot {schedule.slot}: {slotLabels[schedule.slot]}
                   </span>
                 </td>
+                <td>
+                  {schedule.meetingLink ? (
+                    <div className="admin-meeting-info">
+                      <span className="admin-class-type online">Online</span>
+                      <a 
+                        href={schedule.meetingLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="admin-meet-link"
+                        title="Open in new tab"
+                      >
+                        <i className="fas fa-video"></i> Join Meet
+                      </a>
+                    </div>
+                  ) : (
+                    <span className="admin-class-type offline">Offline</span>
+                  )}
+                </td>
                 <td className="action-buttons">
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => {
-                      setSelectedSchedule(schedule);
-                      setIsEditModalOpen(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
                   <Button
                     variant="danger"
                     size="small"
@@ -657,7 +815,19 @@ const Timetable = () => {
               <Loader />
             </div>
           ) : (
-            renderScheduleTable()
+            <>
+              {renderScheduleTable()}
+              
+              {totalPages > 1 && (
+                <div className="pagination-container">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </>
           )}
           
           {renderModals()}

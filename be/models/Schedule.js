@@ -5,13 +5,13 @@ const ScheduleSchema = new mongoose.Schema({
   date: { type: Date, required: true }, 
   // startTime: { type: String, required: true }, 
   // endTime: { type: String, required: true },
-  // type: { 
-  //   type: String, 
-  //   enum: ["Online", "Offline"], 
-  //   required: true 
-  // }, 
+  type: { 
+    type: String, 
+    enum: ["Online", "Offline"], 
+    default: "Offline"
+  }, 
   // location: { type: String }, 
-  // meetingLink: { type: String } 
+  meetingLink: { type: String }, 
   slot: {
     type:Number,
     required: true,

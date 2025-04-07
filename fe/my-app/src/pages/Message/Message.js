@@ -12,28 +12,42 @@ const Message = () => {
     const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [users, setUsers] = useState([]);
+    const [onlineUsers, setOnlineUsers] = useState([]);
+    const [offlineUsers, setOfflineUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [notification, setNotification] = useState(null);
+    const [unreadMessages, setUnreadMessages] = useState({});
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const { user } = useAuth();
     const loggedInUserId = user?.id;
 
-    const fetchOnlineUsers = async () => {
+    const fetchAllUsers = async () => {
         try {
-            const response = await api.get('/api/messages/online-users');
-            console.log('API /api/online-users response:', response.data);
-            if (response.data && Array.isArray(response.data)) {
-                const filteredUsers = response.data.filter((u) => u.id !== loggedInUserId);
-                setUsers(filteredUsers);
+            const allUsersResponse = await api.get('/api/messages/users');
+            const onlineUsersResponse = await api.get('/api/messages/online-users');
+            console.log('API /api/users response:', allUsersResponse.data);
+            console.log('API /api/online-users response:', onlineUsersResponse.data);
+
+            if (allUsersResponse.data && Array.isArray(allUsersResponse.data) && 
+                onlineUsersResponse.data && Array.isArray(onlineUsersResponse.data)) {
+                const onlineIds = onlineUsersResponse.data.map((u) => u.id);
+                const filteredAllUsers = allUsersResponse.data.filter((u) => u.id !== loggedInUserId);
+
+                const online = filteredAllUsers.filter((u) => onlineIds.includes(u.id));
+                const offline = filteredAllUsers.filter((u) => !onlineIds.includes(u.id));
+
+                setOnlineUsers(online);
+                setOfflineUsers(offline);
+
                 if (id) {
-                    const selected = filteredUsers.find((u) => u.id === id);
+                    const selected = filteredAllUsers.find((u) => u.id === id);
                     setSelectedUser(selected || null);
                 }
             }
         } catch (error) {
-            console.error('Error fetching online users:', error.response?.data || error.message);
+            console.error('Error fetching users:', error.response?.data || error.message);
         }
     };
 
@@ -43,6 +57,7 @@ const Message = () => {
             console.log('Fetched messages:', response.data);
             if (response.data && Array.isArray(response.data)) {
                 setMessages(response.data);
+                setUnreadMessages((prev) => ({ ...prev, [receiverId]: 0 }));
             }
         } catch (error) {
             console.error('Error fetching messages:', error.response?.data || error.message);
@@ -61,12 +76,17 @@ const Message = () => {
 
         socket.on('connect', () => {
             console.log('Socket connected. Socket ID:', socket.id);
-            socket.emit('register', { userId: loggedInUserId, role: user.role, firstName: user.firstName, lastName: user.lastName });
+            socket.emit('register', { 
+                userId: loggedInUserId, 
+                role: user.role, 
+                firstName: user.firstName, 
+                lastName: user.lastName 
+            });
         });
 
-        socket.on('onlineUsers', (onlineUsers) => {
-            console.log('Socket received online users:', onlineUsers);
-            fetchOnlineUsers();
+        socket.on('onlineUsers', () => {
+            console.log('Socket received online users');
+            fetchAllUsers();
         });
 
         socket.on('newMessage', (newMessageData) => {
@@ -77,9 +97,25 @@ const Message = () => {
             ) {
                 setMessages((prev) => [...prev, newMessageData]);
             }
+
+            if (newMessageData.senderId !== loggedInUserId && newMessageData.senderId !== selectedUser?.id) {
+                setUnreadMessages((prev) => ({
+                    ...prev,
+                    [newMessageData.senderId]: (prev[newMessageData.senderId] || 0) + 1,
+                }));
+            }
+
+            if (newMessageData.senderId !== loggedInUserId) {
+                const sender = [...onlineUsers, ...offlineUsers].find((u) => u.id === newMessageData.senderId);
+                setNotification({
+                    message: `${sender ? `${sender.firstName} ${sender.lastName}` : 'Someone'} sent you a message`,
+                    timestamp: Date.now(),
+                });
+                setTimeout(() => setNotification(null), 3000);
+            }
         });
 
-        fetchOnlineUsers();
+        fetchAllUsers();
         if (id) {
             fetchMessages(id);
         }
@@ -135,36 +171,89 @@ const Message = () => {
 
     return (
         <div className="message-page">
+            {notification && (
+                <div className="notification-toast">
+                    {notification.message}
+                </div>
+            )}
+
             <div className="message-sidebar">
                 <div className="message-sidebar__header">
                     <h2>Messages</h2>
                 </div>
-                <div className="message-sidebar__users">
-                    {users.map((user) => (
-                        <div
-                            key={user.id}
-                            className={`message-sidebar__user ${selectedUser?.id === user.id ? 'active' : ''}`}
-                            onClick={() => {
-                                setSelectedUser(user);
-                                navigate(`/messages/${user.id}`);
-                                fetchMessages(user.id);
-                            }}
-                        >
-                            <div className="message-sidebar__user-avatar">
-                                {user.avatar ? (
-                                    <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
-                                ) : (
-                                    <div className="avatar-placeholder">
-                                        {(user.firstName || 'U')[0]}
-                                    </div>
-                                )}
+
+                {/* Người online */}
+                <div className="message-sidebar__section">
+                    <h3 className="message-sidebar__section-title">Online</h3>
+                    <div className="message-sidebar__users">
+                        {onlineUsers.map((user) => (
+                            <div
+                                key={user.id}
+                                className={`message-sidebar__user ${selectedUser?.id === user.id ? 'active' : ''}`}
+                                onClick={() => {
+                                    setSelectedUser(user);
+                                    navigate(`/messages/${user.id}`);
+                                    fetchMessages(user.id);
+                                }}
+                            >
+                                <div className="message-sidebar__user-avatar">
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
+                                    ) : (
+                                        <div className="avatar-placeholder">
+                                            {(user.firstName || 'U')[0]}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="message-sidebar__user-info">
+                                    <h3>
+                                        {user.firstName} {user.lastName}
+                                        {unreadMessages[user.id] > 0 && (
+                                            <span className="unread-count">1</span>
+                                        )}
+                                    </h3>
+                                    <p>{user.email}</p>
+                                </div>
                             </div>
-                            <div className="message-sidebar__user-info">
-                                <h3>{user.firstName} {user.lastName}</h3>
-                                <p>{user.email}</p>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Người offline */}
+                <div className="message-sidebar__section">
+                    <h3 className="message-sidebar__section-title">Offline</h3>
+                    <div className="message-sidebar__users">
+                        {offlineUsers.map((user) => (
+                            <div
+                                key={user.id}
+                                className={`message-sidebar__user ${selectedUser?.id === user.id ? 'active' : ''}`}
+                                onClick={() => {
+                                    setSelectedUser(user);
+                                    navigate(`/messages/${user.id}`);
+                                    fetchMessages(user.id);
+                                }}
+                            >
+                                <div className="message-sidebar__user-avatar">
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
+                                    ) : (
+                                        <div className="avatar-placeholder">
+                                            {(user.firstName || 'U')[0]}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="message-sidebar__user-info">
+                                    <h3>
+                                        {user.firstName} {user.lastName}
+                                        {unreadMessages[user.id] > 0 && (
+                                            <span className="unread-count">1</span>
+                                        )}
+                                    </h3>
+                                    <p>{user.email}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
 

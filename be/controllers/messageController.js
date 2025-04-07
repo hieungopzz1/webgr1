@@ -6,25 +6,17 @@ const cloudinary = require("../config/cloudinary");
 
 const getUsersForSidebar = async (req, res) => {
   try {
-    const loggedInUserId = req.user._id; // Get logged-in user's ID
-
-    const students = await Student.find(
-      { _id: { $ne: loggedInUserId } }, // Exclude students with the logged-in ID
-      "firstName lastName email role avatar _id"
-    );
-    const tutors = await Tutor.find(
-      { _id: { $ne: loggedInUserId } }, // Exclude tutors with the logged-in ID
-      "firstName lastName email role avatar _id"
-    );
-
-    const users = [...students, ...tutors];
-
-    res.status(200).json(users);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error retrieving users", error: error.message });
-  }
+    const tutors = await Tutor.find({}, 'firstName lastName email');
+    const students = await Student.find({}, 'firstName lastName email');
+    const allUsers = [
+        ...tutors.map((t) => ({ id: t._id, firstName: t.firstName, lastName: t.lastName, email: t.email, role: 'tutor' })),
+        ...students.map((s) => ({ id: s._id, firstName: s.firstName, lastName: s.lastName, email: s.email, role: 'student' })),
+    ];
+    res.json(allUsers);
+} catch (error) {
+    console.error('Error fetching all users:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+}
 };
 
 const getMessages = async (req, res) => {

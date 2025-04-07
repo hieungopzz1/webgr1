@@ -19,6 +19,12 @@ const messageSchema = new mongoose.Schema(
       type: String,
     },
   },
+  {
+    timestamps: {
+      type: Date,
+      default: Date.now,
+    }
+  },
   { timestamps: true }
 );
 

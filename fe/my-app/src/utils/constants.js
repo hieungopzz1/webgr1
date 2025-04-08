@@ -36,6 +36,10 @@ export const API_ROUTES = {
     MARK_READ: (id) => `/api/notification/mark-read/${id}`,
     MARK_ALL_READ: '/api/notification/mark-all-read',
   },
+  TUTOR: {
+    GET_CLASSES: (tutorId) => `/api/tutor/classes/${tutorId}`,
+    GET_CLASS_STUDENTS: (classId) => `/api/tutor/class/${classId}/students`,
+  },
 };
 
 // Routes
@@ -61,8 +65,11 @@ export const ROUTES = {
     }
   },
   PROFILE: '/profile',
+  TUTOR: {
+    CLASSES: '/tutor/classes',
+    CLASS_STUDENTS: (classId) => `/tutor/class/${classId}/students`,
+  },
 };
-
 
 // User roles
 export const USER_ROLES = {

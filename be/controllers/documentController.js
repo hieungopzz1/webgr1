@@ -88,11 +88,6 @@ exports.uploadDocument = async (req, res) => {
 
     await newDocument.save();
 
-    const io = req.app.get("socketio");
-    if (io) {
-      io.emit("updateDashboard", { message: "LISTEN Success", newDocument });
-    }
-
     // Send notification based on document type
     if (documentType === 'assignment' && tutor_id) {
       // Assignment uploaded by tutor - notify all students in this class

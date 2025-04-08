@@ -1,20 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { getUserData } from '../utils/storage';
-import { UI, API_ROUTES } from '../utils/constants';
+import { API_ROUTES } from '../utils/constants';
 
-// Create context
 const NotificationContext = createContext();
 
-// Provider component
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [toastNotifications, setToastNotifications] = useState([]);
 
-  // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
       const userData = getUserData();
@@ -33,7 +29,6 @@ export const NotificationProvider = ({ children }) => {
       
       setNotifications(notificationData);
       
-      // Count unread notifications
       const userId = userData.id;
       const unreadNotifications = notificationData.filter(
         notification => !notification.readBy || !notification.readBy.includes(userId)
@@ -58,7 +53,6 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // Mark a notification as read
   const markAsRead = useCallback(async (notificationId) => {
     try {
       const userData = getUserData();
@@ -66,10 +60,8 @@ export const NotificationProvider = ({ children }) => {
       
       if (!userId) return false;
       
-      // Make API call to mark as read
       await api.post(API_ROUTES.NOTIFICATION.MARK_READ(notificationId));
       
-      // Update local state
       setNotifications(prev => {
         const updated = prev.map(notification => {
           if (notification._id === notificationId) {
@@ -86,7 +78,6 @@ export const NotificationProvider = ({ children }) => {
         return updated;
       });
       
-      // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
       
       return true;
@@ -96,7 +87,6 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
       const userData = getUserData();
@@ -104,10 +94,8 @@ export const NotificationProvider = ({ children }) => {
       
       if (!userId) return false;
       
-      // Make API call to mark all as read
       await api.post(API_ROUTES.NOTIFICATION.MARK_ALL_READ);
       
-      // Update local state
       setNotifications(prev => 
         prev.map(notification => ({
           ...notification,
@@ -115,7 +103,6 @@ export const NotificationProvider = ({ children }) => {
         }))
       );
       
-      // Update unread count
       setUnreadCount(0);
       
       return true;
@@ -125,12 +112,10 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // Initialize by fetching notifications once
   useEffect(() => {
     if (getUserData()) {
       fetchNotifications();
       
-      // Poll for new notifications every minute
       const intervalId = setInterval(() => {
         if (getUserData()) {
           fetchNotifications();
@@ -141,71 +126,7 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [fetchNotifications]);
 
-  const addNotification = (notification) => {
-    const id = Date.now();
-    
-    const newNotification = {
-      id,
-      ...notification,
-      autoDismiss: notification.autoDismiss ?? true,
-      dismissTimeout: notification.dismissTimeout ?? UI.TOAST_TIMEOUT,
-    };
-    
-    setToastNotifications(prev => [...prev, newNotification]);
-    
-    if (newNotification.autoDismiss) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, newNotification.dismissTimeout);
-    }
-    
-    return id;
-  };
-
-  const removeNotification = (id) => {
-    setToastNotifications(prev => prev.filter(notification => notification.id !== id));
-  };
-
-  const clearNotifications = () => {
-    setToastNotifications([]);
-  };
-
-  // Helper functions for different notification types
-  const success = (message, options = {}) => {
-    return addNotification({
-      type: 'success',
-      message,
-      ...options,
-    });
-  };
-
-  const error = (message, options = {}) => {
-    return addNotification({
-      type: 'error',
-      message,
-      ...options,
-    });
-  };
-
-  const warning = (message, options = {}) => {
-    return addNotification({
-      type: 'warning',
-      message,
-      ...options,
-    });
-  };
-
-  const info = (message, options = {}) => {
-    return addNotification({
-      type: 'info',
-      message,
-      ...options,
-    });
-  };
-
-  // Context value
   const value = {
-    // API notifications
     notifications,
     loading,
     error: errorMsg,
@@ -213,16 +134,6 @@ export const NotificationProvider = ({ children }) => {
     fetchNotifications,
     markAsRead,
     markAllAsRead,
-    
-    // Toast notifications
-    toastNotifications,
-    addNotification,
-    removeNotification,
-    clearNotifications,
-    success,
-    showError: error,
-    warning,
-    info,
   };
 
   return (
@@ -232,7 +143,6 @@ export const NotificationProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use notification context
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (context === undefined) {
@@ -241,7 +151,6 @@ export const useNotifications = () => {
   return context;
 };
 
-// For backward compatibility
 export const useNotification = useNotifications;
 
 export default NotificationContext;

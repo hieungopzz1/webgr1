@@ -1,14 +1,18 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import api from "../utils/api";
 import { getUserData, isAuthenticated } from "../utils/storage";
 import Button from "../components/button/Button";
 import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
-import { useNotification } from "../context/NotificationContext";
+import { useToast } from "../context/ToastContext";
 import { 
   getWeek, 
   format, 
-  getYear
+  getYear,
+  addDays,
+  startOfWeek,
+  addWeeks,
+  subWeeks
 } from 'date-fns';
 import "./userTimetable.css";
 
@@ -18,6 +22,7 @@ const UserTimetable = () => {
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [studentsInClass, setStudentsInClass] = useState([]);
@@ -25,14 +30,14 @@ const UserTimetable = () => {
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
 
-  const currentDate = new Date();
-  const [selectedYear, setSelectedYear] = useState(getYear(currentDate));
-  const [selectedWeek, setSelectedWeek] = useState(getWeek(currentDate, { weekStartsOn: 1 }));
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [weekDates, setWeekDates] = useState([]);
   
   const [tutorClasses, setTutorClasses] = useState([]);
   const [studentAttendanceMap, setStudentAttendanceMap] = useState({});
 
-  const { success: showSuccess, error: showError } = useNotification();
+  const toast = useToast();
 
   const slotLabels = {
     1: "07:00 - 08:30",
@@ -82,11 +87,11 @@ const UserTimetable = () => {
     return [currentYear - 1, currentYear, currentYear + 1];
   }, []);
 
-  const weekOptions = useMemo(() => getAvailableWeeksInYear(selectedYear), [selectedYear]);
+  const weekOptions = useMemo(() => getAvailableWeeksInYear(getYear(currentDate)), [currentDate]);
 
   const daysInSelectedWeek = useMemo(() => {
-    const dayOfYear = (selectedWeek - 1) * 7 + 1;
-    const dateOfFirstDayOfWeek = new Date(selectedYear, 0, dayOfYear);
+    const dayOfYear = (currentWeek - 1) * 7 + 1;
+    const dateOfFirstDayOfWeek = new Date(getYear(currentDate), 0, dayOfYear);
     
     const dayOfWeek = dateOfFirstDayOfWeek.getDay();
     const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -102,38 +107,49 @@ const UserTimetable = () => {
     }
     
     return days;
-  }, [selectedYear, selectedWeek]);
+  }, [currentWeek, currentDate]);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      setUser(getUserData());
+    if (!isAuthenticated()) {
+      toast.error("Authentication required. Please log in again.");
+      return;
     }
-  }, []);
+    
+    const userData = getUserData();
+    setUser(userData);
+    
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      dates.push(addDays(currentWeek, i));
+    }
+    setWeekDates(dates);
+  }, [currentWeek, toast]);
 
-  const handleApiError = useCallback((err, defaultMessage) => {
-    let errorMsg = defaultMessage || "An error occurred";
+  const handleApiError = useCallback((err, defaultMessage = "Đã xảy ra lỗi") => {
+    let errorMsg = defaultMessage;
     
     if (err.response) {
       if (err.response.data?.message) {
         errorMsg = err.response.data.message;
       } else if (err.response.status === 404) {
-        errorMsg = "API endpoint not found";
+        errorMsg = "Không tìm thấy API";
       } else if (err.response.status === 401) {
-        errorMsg = "Authentication required. Please log in again.";
+        errorMsg = "Vui lòng đăng nhập lại";
       } else if (err.response.status === 403) {
-        errorMsg = "You do not have permission to perform this action";
+        errorMsg = "Bạn không có quyền thực hiện hành động này";
       } else if (err.response.status === 500) {
-        errorMsg = "Server error occurred. Please try again later.";
+        errorMsg = "Lỗi máy chủ, vui lòng thử lại sau";
       }
     } else if (err.request) {
-      errorMsg = "No response received from server";
+      errorMsg = "Không nhận được phản hồi từ máy chủ";
     } else {
-      errorMsg = `Error: ${err.message}`;
+      errorMsg = `Lỗi: ${err.message}`;
     }
     
-    showError(errorMsg);
+    setError(errorMsg);
+    toast.error(errorMsg);
     return errorMsg;
-  }, [showError]);
+  }, [toast]);
 
   const fetchClasses = useCallback(async () => {
     try {
@@ -156,29 +172,35 @@ const UserTimetable = () => {
   const fetchSchedulesForStudent = useCallback(async () => {
     try {
       setDataLoading(true);
-      const response = await api.get("/api/schedule/schedule-student");
+      const response = await api.get(`/api/schedule/student/${user.id}`);
       
-      if (Array.isArray(response.data?.schedules)) {
-        setSchedules(response.data.schedules);
-      } else {
-        setSchedules([]);
+      if (response.data) {
+        const scheduleData = Array.isArray(response.data) ? response.data : [];
+        setSchedules(scheduleData);
+        
+        const classSet = new Set();
+        scheduleData.forEach(schedule => {
+          if (schedule.class && schedule.class._id) {
+            classSet.add(schedule.class._id);
+          }
+        });
+        
+        setClasses(Array.from(classSet));
       }
-      return response;
     } catch (err) {
-      handleApiError(err, "Failed to fetch your schedules");
-      return err;
+      handleApiError(err, "Failed to fetch schedules");
     } finally {
       setDataLoading(false);
     }
-  }, [handleApiError]);
+  }, [user, handleApiError]);
 
   const fetchSchedulesForTutor = useCallback(async () => {
     try {
       setDataLoading(true);
-      const response = await api.get("/api/schedule/schedule-tutor");
+      const response = await api.get(`/api/schedule/tutor/${user.id}`);
       
-      if (Array.isArray(response.data?.schedules)) {
-        const scheduleData = response.data.schedules;
+      if (response.data) {
+        const scheduleData = Array.isArray(response.data) ? response.data : [];
         setSchedules(scheduleData);
         
         if (scheduleData.length > 0) {
@@ -204,14 +226,12 @@ const UserTimetable = () => {
         setSchedules([]);
         setTutorClasses([]);
       }
-      return response;
     } catch (err) {
-      handleApiError(err, "Failed to fetch your schedules");
-      return err;
+      handleApiError(err, "Failed to fetch schedules");
     } finally {
       setDataLoading(false);
     }
-  }, [handleApiError]);
+  }, [user, handleApiError]);
 
   const fetchStudentsBySchedule = useCallback(async (scheduleId) => {
     try {
@@ -318,27 +338,50 @@ const UserTimetable = () => {
     } catch (err) {}
   }, [user, filteredSchedulesByWeek]);
 
+  const fetchUserSchedules = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      setDataLoading(true);
+      
+      let endpoint;
+      if (user.role === "Student") {
+        endpoint = `/api/schedule/student/${user.id}`;
+      } else if (user.role === "Tutor") {
+        endpoint = `/api/schedule/tutor/${user.id}`;
+      } else {
+        toast.error("Invalid user role");
+        setDataLoading(false);
+        return;
+      }
+      
+      const response = await api.get(endpoint);
+      
+      if (response.data) {
+        const scheduleData = Array.isArray(response.data) ? response.data : [];
+        setSchedules(scheduleData);
+        
+        const classSet = new Set();
+        scheduleData.forEach(schedule => {
+          if (schedule.class && schedule.class._id) {
+            classSet.add(schedule.class._id);
+          }
+        });
+        
+        setClasses(Array.from(classSet));
+      }
+    } catch (err) {
+      handleApiError(err, "Failed to fetch schedules");
+    } finally {
+      setDataLoading(false);
+    }
+  }, [user, handleApiError, toast]);
+
   useEffect(() => {
-    if (!isAuthenticated()) {
-      showError("Authentication required. Please log in again.");
-      return;
+    if (user) {
+      fetchUserSchedules();
     }
-
-    const userData = getUserData();
-    if (!userData) return;
-
-    fetchClasses();
-
-    if (userData.role === "Student") {
-      fetchSchedulesForStudent().finally(() => {
-        setDataLoading(false);
-      });
-    } else if (userData.role === "Tutor") {
-      fetchSchedulesForTutor().finally(() => {
-        setDataLoading(false);
-      });
-    }
-  }, [fetchSchedulesForStudent, fetchSchedulesForTutor, fetchClasses, showError]);
+  }, [user, fetchUserSchedules]);
 
   useEffect(() => {
     if (user?.role === "Student") {
@@ -356,7 +399,7 @@ const UserTimetable = () => {
       };
       
       const response = await api.post('/api/attendance/mark', payload);
-      showSuccess("Attendance marked successfully!");
+      toast.success("Attendance marked successfully!");
       
       if (user?.role === "Student") {
         fetchStudentAttendanceData();
@@ -372,7 +415,7 @@ const UserTimetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [handleApiError, fetchStudentAttendanceData, fetchAttendanceStatus, selectedSchedule, user, showSuccess]);
+  }, [handleApiError, fetchStudentAttendanceData, fetchAttendanceStatus, selectedSchedule, user, toast]);
 
   const handleOpenAttendanceModal = useCallback(async (schedule) => {
     setSelectedSchedule(schedule);
@@ -567,8 +610,8 @@ const UserTimetable = () => {
           <div className="filter-item">
             <label>Year:</label>
             <select 
-              value={selectedYear} 
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              value={getYear(currentDate)} 
+              onChange={(e) => setCurrentDate(new Date(e.target.value))}
               className="form-select"
             >
               {yearOptions.map(year => (
@@ -580,8 +623,8 @@ const UserTimetable = () => {
           <div className="filter-item">
             <label>Week:</label>
             <select 
-              value={selectedWeek} 
-              onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+              value={getWeek(currentDate, { weekStartsOn: 1 })} 
+              onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
               className="form-select"
             >
               {weekOptions.map(weekOption => (

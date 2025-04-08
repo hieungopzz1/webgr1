@@ -17,6 +17,9 @@ import Settings from "./pages/Settings/Settings";
 import Message from "./pages/Message/Message";
 import Home from "./pages/Home";
 // import Notifications from "./components/notification/Notification";
+import Toast from "./components/toast/Toast";
+import { useToast } from "./context/ToastContext";
+import { registerToastContext } from "./utils/toast";
 import { ROUTES } from "./utils/constants";
 import { isAuthenticated } from "./utils/storage";
 import "./App.css";
@@ -25,9 +28,18 @@ import UserTimetable from "./pages/userTimetable";
 import Document from "./pages/Document";
 import UserDocument from "./pages/userDocument";
 
-// Protected Route component
+const ToastInitializer = () => {
+  const toastContext = useToast();
+  
+  React.useEffect(() => {
+    registerToastContext(toastContext);
+  }, [toastContext]);
+  
+  return null; 
+};
+
 const ProtectedRoute = ({ children }) => {
-  const user = isAuthenticated(); // Giả sử hàm này trả về user object
+  const user = isAuthenticated(); 
   if (!user) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
@@ -56,6 +68,8 @@ const PublicRoute = ({ children, restricted }) => {
 const App = () => {
   return (
     <>
+      <ToastInitializer />
+      <Toast />
       {/* <Notifications /> */}
       <Routes>
         {/* Public Routes */}

@@ -6,7 +6,7 @@ import Button from "../components/button/Button";
 import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
-import { useNotification } from "../context/NotificationContext";
+import { useToast } from "../context/ToastContext";
 import Pagination from "../components/pagination/Pagination";
 import { format } from 'date-fns';
 import "./Timetable.css";
@@ -14,7 +14,10 @@ import "./Timetable.css";
 const Timetable = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  // Chỉ lưu trữ trạng thái lỗi nhưng hiển thị qua toast
+  // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState("");
+  // eslint-disable-next-line no-unused-vars
   const [success, setSuccess] = useState("");
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -34,9 +37,7 @@ const Timetable = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [tutorFilter, setTutorFilter] = useState("");
 
-  const { success: showSuccess, error: showError } = useNotification();
-  const notificationRef = useRef();
-  notificationRef.current = { showSuccess, showError };
+  const toast = useToast();
   
   const classesRef = useRef();
   classesRef.current = classes;
@@ -114,9 +115,9 @@ const Timetable = () => {
     }
     
     setError(errorMsg);
-    notificationRef.current.showError(errorMsg);
+    toast.error(errorMsg);
     return errorMsg;
-  }, []);
+  }, [toast]);
 
   const fetchSchedulesForAdmin = useCallback(async () => {
     try {
@@ -182,15 +183,13 @@ const Timetable = () => {
       const requestData = {
         date: formData.date,
         slots: formData.slots,
-        classType: formData.classType  // Truyền thông tin classType cho API
+        classType: formData.classType
       };
 
       const response = await api.post("/api/schedule/create-schedule", requestData);
       
       if (formData.createMeetLink && response.data && response.data.schedules) {
-        // Tìm các lịch học tương ứng với lớp học đã chọn
         const createdSchedules = response.data.schedules.filter(schedule => {
-          // Chuyển đổi ID sang chuỗi để so sánh chính xác
           const scheduleClassId = schedule.class._id || schedule.class;
           const selectedClassId = formData.slots[0].classes[0];
           
@@ -201,22 +200,22 @@ const Timetable = () => {
           try {
             await api.post(`/api/schedule/create-meet/${schedule._id}`);
           } catch (meetError) {
-            notificationRef.current.showError(`Failed to create Google Meet link for slot ${schedule.slot}: ${meetError.message}`);
+            toast.error(`Failed to create Google Meet link for slot ${schedule.slot}: ${meetError.message}`);
           }
         }
-        
-        await fetchSchedulesForAdmin();
       }
       
-      // Điều chỉnh thông báo thành công dựa trên loại lịch học
       const scheduleType = formData.classType || "Offline";
       const successMessage = scheduleType === "Online" 
         ? "Online schedule with Google Meet link created successfully!" 
         : "Schedule created successfully!";
         
       setSuccess(successMessage);
-      notificationRef.current.showSuccess(successMessage);
+      toast.success(successMessage);
       setIsCreateModalOpen(false);
+      
+      await fetchSchedulesForAdmin();
+      
       return response;
     } catch (err) {
       handleApiError(err, "Failed to create schedule");
@@ -224,7 +223,7 @@ const Timetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSchedulesForAdmin, handleApiError]);
+  }, [fetchSchedulesForAdmin, handleApiError, toast]);
 
   const handleUpdateSchedule = useCallback(async (scheduleId, formData) => {
     setLoading(true);
@@ -235,7 +234,7 @@ const Timetable = () => {
       const response = await api.put(`/api/schedule/update-schedule/${scheduleId}`, formData);
       const successMessage = "Schedule updated successfully!";
       setSuccess(successMessage);
-      notificationRef.current.showSuccess(successMessage);
+      toast.success(successMessage);
       setIsEditModalOpen(false);
       fetchSchedulesForAdmin();
       return response;
@@ -245,7 +244,7 @@ const Timetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSchedulesForAdmin, handleApiError]);
+  }, [fetchSchedulesForAdmin, handleApiError, toast]);
 
   const handleDeleteSchedule = useCallback(async (scheduleId) => {
     setLoading(true);
@@ -256,7 +255,7 @@ const Timetable = () => {
       const response = await api.delete(`/api/schedule/delete-schedule/${scheduleId}`);
       const successMessage = "Schedule deleted successfully!";
       setSuccess(successMessage);
-      notificationRef.current.showSuccess(successMessage);
+      toast.success(successMessage);
       setIsDeleteModalOpen(false);
       fetchSchedulesForAdmin();
       return response;
@@ -266,8 +265,10 @@ const Timetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSchedulesForAdmin, handleApiError]);
+  }, [fetchSchedulesForAdmin, handleApiError, toast]);
 
+  // Xóa hoặc sử dụng hàm handleCreateMeetLink
+  // eslint-disable-next-line no-unused-vars
   const handleCreateMeetLink = useCallback(async (scheduleId) => {
     setLoading(true);
     setError("");
@@ -277,7 +278,7 @@ const Timetable = () => {
       const response = await api.post(`/api/schedule/create-meet/${scheduleId}`);
       const successMessage = "Schedule updated to online with Google Meet link";
       setSuccess(successMessage);
-      notificationRef.current.showSuccess(successMessage);
+      toast.success(successMessage);
       
       await fetchSchedulesForAdmin();
       return response;
@@ -287,7 +288,7 @@ const Timetable = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSchedulesForAdmin, handleApiError]);
+  }, [fetchSchedulesForAdmin, handleApiError, toast]);
 
   const formatDate = (dateString) => format(new Date(dateString), 'dd/MM/yyyy');
 
@@ -329,26 +330,21 @@ const Timetable = () => {
     return matchesClass && matchesDate && matchesTutor;
   });
 
-  // Hàm xử lý khi thay đổi trang
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
-    // Cuộn lên đầu bảng khi chuyển trang
     window.scrollTo({ top: document.querySelector('.schedule-table').offsetTop - 20, behavior: 'smooth' });
   };
 
-  // Tính toán trang hiện tại
   const paginatedSchedules = useMemo(() => {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     return filteredSchedules.slice(indexOfFirstItem, indexOfLastItem);
   }, [filteredSchedules, currentPage, itemsPerPage]);
 
-  // Tính tổng số trang
   const totalPages = useMemo(() => {
     return Math.ceil(filteredSchedules.length / itemsPerPage);
   }, [filteredSchedules, itemsPerPage]);
 
-  // Reset về trang 1 khi thay đổi bộ lọc
   useEffect(() => {
     setCurrentPage(1);
   }, [classFilter, dateFilter, tutorFilter]);

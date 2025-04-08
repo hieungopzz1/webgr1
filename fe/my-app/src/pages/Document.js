@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { format } from 'date-fns';
 import api from "../utils/api";
 import { getUserData, isAuthenticated } from "../utils/storage";
 import Button from "../components/button/Button";
 import Loader from "../components/loader/Loader";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
-import { useNotification } from "../context/NotificationContext";
-import { format } from 'date-fns';
+import { useToast } from "../context/ToastContext";
 import "./Document.css";
 
 const Document = () => {
@@ -20,8 +20,7 @@ const Document = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [documentType, setDocumentType] = useState("all"); // all, assignment, submission
   
-  const { success: showSuccess, error: showError } = useNotification();
-  const notificationRef = useRef({ showSuccess, showError });
+  const toast = useToast();
 
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + ' B';
@@ -63,9 +62,9 @@ const Document = () => {
       errorMsg = `Error: ${err.message}`;
     }
     
-    notificationRef.current.showError(errorMsg);
+    toast.error(errorMsg);
     return errorMsg;
-  }, []);
+  }, [toast]);
 
   const fetchClasses = useCallback(async () => {
     try {
@@ -104,7 +103,7 @@ const Document = () => {
         data: { userId: user.id, userRole: user.role }
       });
       
-      notificationRef.current.showSuccess("Document deleted successfully");
+      toast.success("Document deleted successfully");
       fetchDocuments(selectedClass);
       setIsDeleteModalOpen(false);
     } catch (err) {
@@ -112,16 +111,16 @@ const Document = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchDocuments, handleApiError, selectedClass, user]);
+  }, [fetchDocuments, handleApiError, selectedClass, user, toast]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      notificationRef.current.showError("Authentication required. Please log in again.");
+      toast.error("Authentication required. Please log in again.");
       return;
     }
 
     fetchClasses().finally(() => setDataLoading(false));
-  }, [fetchClasses]);
+  }, [fetchClasses, toast]);
 
   useEffect(() => {
     if (selectedClass) {
@@ -154,9 +153,9 @@ const Document = () => {
       document.body.removeChild(anchor);
       
       setTimeout(() => URL.revokeObjectURL(url), 100);
-      notificationRef.current.showSuccess("Download started");
+      toast.success("Download started");
     } catch (error) {
-      notificationRef.current.showError(`Download failed: ${error.message}`);
+      toast.error(`Download failed: ${error.message}`);
       console.error("Download error:", error);
     } finally {
       setLoading(false);

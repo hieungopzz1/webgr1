@@ -5,7 +5,7 @@ import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
 import api from '../../utils/api';
 import { USER_ROLES } from '../../utils/constants';
-import { useNotification } from '../../context/NotificationContext';
+import { useToast } from '../../context/ToastContext';
 import './Register.css';
 
 const RoleSelect = ({ value, onChange }) => (
@@ -71,28 +71,29 @@ const StudentFields = ({ studentId, major, onChange }) => (
   </>
 );
 
-const useFormValidation = (formData, showError) => {
+const useFormValidation = (formData, toast) => {
   const validate = () => {
     const { firstName, lastName, email, password, role, student_ID, major } = formData;
+    
+    const displayError = (message) => {
+      toast.error(message);
+      return false;
+    };
 
     if (!firstName || !lastName || !email || !password || !role) {
-      showError('Please fill in all required fields.');
-      return false;
+      return displayError('Please fill in all required fields.');
     }
 
     if (role === USER_ROLES.STUDENT && (!student_ID || !major)) {
-      showError('Student ID and Major are required for student accounts.');
-      return false;
+      return displayError('Student ID and Major are required for student accounts.');
     }
 
     if (!email.includes('@')) {
-      showError('Invalid email address.');
-      return false;
+      return displayError('Invalid email address.');
     }
 
     if (password.length < 6) {
-      showError('Password must be at least 6 characters.');
-      return false;
+      return displayError('Password must be at least 6 characters.');
     }
 
     return true;
@@ -115,8 +116,8 @@ const Register = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { success: showSuccess, error: showError } = useNotification();
-  const { validate } = useFormValidation(formData, showError);
+  const toast = useToast();
+  const { validate } = useFormValidation(formData, toast);
 
   const handleChange = (e) => {
     setFormData({
@@ -154,13 +155,17 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validate()) {
-      return;
+    if (loading) {
+      return; // Prevent multiple submissions
     }
-
-    setLoading(true);
-
+    
     try {
+      if (!validate()) {
+        return;
+      }
+
+      setLoading(true);
+
       const { firstName, lastName, email, password, role, student_ID, major } = formData;
 
       const formDataToSend = new FormData();
@@ -185,18 +190,50 @@ const Register = () => {
         }
       });
 
-      showSuccess(`Successfully created ${role} account for ${email}`);
+      const successMessage = `Successfully created ${role} account for ${email}`;
+      toast.success(successMessage);
       resetForm();
 
     } catch (err) {
       console.error('Error creating account:', err);
       
-      const errorMessage = err.response?.data?.message 
-        || err.response?.data?.error 
-        || err.message 
-        || 'Failed to create account. Please try again.';
+      let errorMessage = 'Failed to create account. Please try again.';
       
-      showError(errorMessage);
+      if (err.response) {
+        if (err.response.status === 400) {
+          // Handle validation errors
+          errorMessage = err.response.data?.message || 'Please check your input data.';
+          
+          // Xử lý đặc biệt khi student_ID đã tồn tại
+          if (err.response.data?.message?.includes('student_ID') || 
+              err.response.data?.message?.includes('Student ID')) {
+            errorMessage = 'A student with this Student ID already exists.';
+          }
+        } else if (err.response.status === 401) {
+          // Handle authentication errors
+          errorMessage = 'You are not authorized to create accounts.';
+        } else if (err.response.status === 409) {
+          // Handle conflict errors (e.g., email already exists)
+          errorMessage = err.response.data?.message || 'A user with this email already exists.';
+        } else if (err.response.status === 500) {
+          // Handle server errors
+          errorMessage = 'Server error occurred. Please try again later.';
+        } else if (err.response.data?.message) {
+          // Get message from response if available
+          errorMessage = err.response.data.message;
+        } else if (err.response.data?.error) {
+          // Get error from response if available
+          errorMessage = err.response.data.error;
+        }
+      } else if (err.request) {
+        // Handle network errors
+        errorMessage = 'No response from server. Please check your connection.';
+      } else if (err.message) {
+        // Handle other errors
+        errorMessage = err.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,7 @@ import Button from "../components/button/Button";
 import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
-import { useNotifications } from "../context/NotificationContext";
+import { useToast } from "../context/ToastContext";
 import "./userDocument.css";
 
 const UserDocument = () => {
@@ -24,14 +24,8 @@ const UserDocument = () => {
   const [uploadFile, setUploadFile] = useState(null);
   
   // Refs
-  const { success, showError } = useNotifications();
-  const notificationRef = useRef({ success, showError });
+  const toast = useToast();
   const fileInputRef = useRef(null);
-
-  // Keep notification ref updated
-  useEffect(() => {
-    notificationRef.current = { success, showError };
-  }, [success, showError]);
 
   // Utility functions
   const formatFileSize = (bytes) => {
@@ -66,16 +60,19 @@ const UserDocument = () => {
       errorMsg = `Error: ${err.message}`;
     }
     
-    notificationRef.current.showError(errorMsg);
+    toast.error(errorMsg);
     return errorMsg;
-  }, []);
+  }, [toast]);
 
   // Fetch classes data
   const fetchUserClasses = useCallback(async () => {
     if (!user) return;
     
     try {
-      setDataLoading(true);
+      if (!dataLoading) {
+        setDataLoading(true);
+      }
+      
       let response;
       
       if (user.role === "Tutor") {
@@ -83,6 +80,7 @@ const UserDocument = () => {
       } else if (user.role === "Student") {
         response = await api.get(`/api/documents/student/${user.id}/classes`);
       } else {
+        setDataLoading(false);
         return;
       }
       
@@ -105,18 +103,19 @@ const UserDocument = () => {
           });
           
           setDocuments(docsObj);
+          toast.success('Đã tải danh sách lớp học và tài liệu thành công');
         } else {
-          notificationRef.current.showError("Invalid data format received from server");
+          toast.error("Định dạng dữ liệu không hợp lệ");
         }
       } else if (response.data && response.data.message) {
         setClasses([]);
         setDocuments({});
       } else {
-        notificationRef.current.showError("Invalid response format received from server");
+        toast.error("Định dạng phản hồi không hợp lệ");
       }
     } catch (err) {
       if (err.response && err.response.status === 400 && err.response.data?.message) {
-        notificationRef.current.showError(err.response.data.message);
+        toast.error(err.response.data.message);
       } else {
         handleApiError(err, "Failed to fetch your classes");
       }
@@ -126,7 +125,7 @@ const UserDocument = () => {
     } finally {
       setDataLoading(false);
     }
-  }, [user, handleApiError]);
+  }, [user, handleApiError, toast, dataLoading]);
 
   // Upload document
   const handleUploadDocument = useCallback(async () => {
@@ -145,7 +144,8 @@ const UserDocument = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      notificationRef.current.success("Document uploaded successfully");
+      toast.success(`Đã tải lên tài liệu "${uploadFile.name}" thành công`);
+      
       setIsUploadModalOpen(false);
       setUploadFile(null);
       if (fileInputRef.current) {
@@ -158,7 +158,7 @@ const UserDocument = () => {
     } finally {
       setLoading(false);
     }
-  }, [uploadFile, selectedClass, user, fetchUserClasses, handleApiError]);
+  }, [uploadFile, selectedClass, user, fetchUserClasses, handleApiError, toast]);
 
   // Delete document
   const handleDeleteDocument = useCallback(async (documentId) => {
@@ -171,7 +171,8 @@ const UserDocument = () => {
         data: { userId: user.id, userRole: user.role }
       });
       
-      notificationRef.current.success("Document deleted successfully");
+      toast.success("Đã xóa tài liệu thành công");
+      
       setIsDeleteModalOpen(false);
       
       fetchUserClasses();
@@ -180,7 +181,7 @@ const UserDocument = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, fetchUserClasses, handleApiError]);
+  }, [user, fetchUserClasses, handleApiError, toast]);
 
   // Download document
   const downloadDocument = async (fileUrl, fileName) => {
@@ -204,9 +205,9 @@ const UserDocument = () => {
       document.body.removeChild(anchor);
       
       setTimeout(() => URL.revokeObjectURL(url), 100);
-      notificationRef.current.success("Download started");
+      toast.success(`Đã bắt đầu tải xuống tài liệu "${fileName}"`);
     } catch (error) {
-      notificationRef.current.showError(`Download failed: ${error.message}`);
+      toast.error(`Không thể tải xuống: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -231,14 +232,15 @@ const UserDocument = () => {
   // Fetch classes when user is available
   useEffect(() => {
     if (!isAuthenticated()) {
-      notificationRef.current.showError("Authentication required. Please log in again.");
+      toast.error("Authentication required. Please log in again.");
       return;
     }
     
-    if (user) {
+    // Only fetch classes if we have a user and aren't already loading data
+    if (user && !dataLoading) {
       fetchUserClasses();
     }
-  }, [user, fetchUserClasses]);
+  }, [user, fetchUserClasses, dataLoading, toast]);
 
   // Update selected class detail when class changes
   useEffect(() => {

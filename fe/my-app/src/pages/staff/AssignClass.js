@@ -7,6 +7,7 @@ import Loader from '../../components/loader/Loader';
 import Modal from '../../components/modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getUserData, isAuthenticated } from '../../utils/storage';
+import { useToast } from '../../context/ToastContext';
 
 const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }) => {
   const [className, setClassName] = useState('');
@@ -543,6 +544,7 @@ const AssignClass = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [dataLoading, setDataLoading] = useState(true);
+  const toast = useToast();
   
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -585,16 +587,16 @@ const AssignClass = () => {
     }
     
     setError(errorMsg);
+    toast.error(errorMsg);
     return errorMsg;
-  }, []);
+  }, [toast]);
 
   // Callback to store the reset function
   const handleFormReset = useCallback((resetFunc) => {
     setResetCreateForm(() => resetFunc);
   }, []);
 
-  // Cải thiện fetchStudentsByMajor trong CreateClassForm component để loại bỏ console.error
-  // Cải thiện fetchClasses
+  // Improved fetchClasses
   const fetchClasses = useCallback(async () => {
     try {
       const response = await api.get('/api/class/get-all-class');
@@ -610,40 +612,69 @@ const AssignClass = () => {
     }
   }, [handleApiError]);
 
+  // Improved fetchStudents with proper error handling
   const fetchStudents = useCallback(async () => {
     try {
       const response = await api.get('/api/admin/get-users');
-      const studentsList = response.data.users.filter(user => user.role === 'Student');
-      setStudents(studentsList);
+      if (response.data && Array.isArray(response.data.users)) {
+        const studentsList = response.data.users.filter(user => user.role === 'Student');
+        setStudents(studentsList);
+      } else {
+        setStudents([]);
+        toast.warning('No students found or invalid data format received');
+      }
       return response;
     } catch (err) {
+      handleApiError(err, 'Failed to fetch students');
+      setStudents([]);
       return err;
     }
-  }, []);
+  }, [handleApiError, toast]);
 
+  // Improved fetchTutors with proper error handling
   const fetchTutors = useCallback(async () => {
     try {
       const response = await api.get('/api/admin/get-users');
-      const tutorsList = response.data.users.filter(user => user.role === 'Tutor');
-      setTutors(tutorsList);
+      if (response.data && Array.isArray(response.data.users)) {
+        const tutorsList = response.data.users.filter(user => user.role === 'Tutor');
+        setTutors(tutorsList);
+      } else {
+        setTutors([]);
+        toast.warning('No tutors found or invalid data format received');
+      }
       return response;
     } catch (err) {
+      handleApiError(err, 'Failed to fetch tutors');
+      setTutors([]);
       return err;
     }
-  }, []);
+  }, [handleApiError, toast]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
       setError('Authentication required. Please log in again.');
+      toast.error('Authentication required. Please log in again.');
       return;
     }
     
     setDataLoading(true);
-    Promise.all([fetchClasses(), fetchStudents(), fetchTutors()])
+    
+    const promises = [fetchClasses(), fetchStudents(), fetchTutors()];
+    
+    Promise.all(promises)
+      .then(results => {
+        const hasError = results.some(result => result instanceof Error);
+        if (!hasError) {
+          toast.success('Data loaded successfully');
+        }
+      })
+      .catch(err => {
+        console.error('Error during data loading:', err);
+      })
       .finally(() => {
         setDataLoading(false);
       });
-  }, [fetchClasses, fetchStudents, fetchTutors]);
+  }, [fetchClasses, fetchStudents, fetchTutors, toast]);
 
   // Event handlers
   const handleCreateClass = useCallback(async (formData) => {

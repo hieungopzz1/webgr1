@@ -7,8 +7,11 @@ import Loader from '../../components/loader/Loader';
 import Modal from '../../components/modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getUserData, isAuthenticated } from '../../utils/storage';
+import { useToast } from '../../context/ToastContext';
 
 const ClassManagement = () => {
+  const toast = useToast();
+  
   // Main state
   const [classes, setClasses] = useState([]);
   const [tutors, setTutors] = useState([]);
@@ -64,13 +67,24 @@ const ClassManagement = () => {
     }
     
     setError(errorMsg);
+    toast.error(errorMsg);
     return errorMsg;
-  }, []);
+  }, [toast]);
+  
+  const showSuccess = useCallback((message) => {
+    setSuccess(message);
+    toast.success(message);
+    
+    setTimeout(() => {
+      setSuccess('');
+    }, 3000);
+  }, [toast]);
   
   // Fetch data on component mount
   useEffect(() => {
     if (!isAuthenticated()) {
       setError('Authentication required. Please log in again.');
+      toast.error('Authentication required. Please log in again.');
       return;
     }
     
@@ -79,10 +93,12 @@ const ClassManagement = () => {
     Promise.all([
       fetchClasses(),
       fetchUsers()
-    ]).finally(() => {
+    ]).then(() => {
+      toast.info('Đã tải dữ liệu quản lý lớp học');
+    }).finally(() => {
       setDataLoading(false);
     });
-  }, []);
+  }, [toast]);
   
   // Fetch classes
   const fetchClasses = useCallback(async () => {
@@ -98,7 +114,7 @@ const ClassManagement = () => {
       handleApiError(err, 'Failed to fetch classes');
       return err;
     }
-  }, []);
+  }, [handleApiError]);
   
   // Fetch users (tutors and students)
   const fetchUsers = useCallback(async () => {
@@ -115,7 +131,7 @@ const ClassManagement = () => {
       handleApiError(err, 'Failed to fetch users');
       return err;
     }
-  }, []);
+  }, [handleApiError]);
   
   // Fetch class details (students and tutor)
   const fetchClassDetails = useCallback(async (classId) => {
@@ -137,19 +153,21 @@ const ClassManagement = () => {
         } else {
           setClassTutor(null);
         }
+        toast.success(`Đã tải thông tin lớp học ${selectedClass?.class_name || ''}`);
       }
     } catch (err) {
       handleApiError(err, 'Failed to fetch class details');
     } finally {
       setFetchingClassDetails(false);
     }
-  }, [tutors]);
+  }, [tutors, handleApiError, toast, selectedClass]);
   
   // Handle selecting a class
   const handleSelectClass = useCallback((classItem) => {
     setSelectedClass(classItem);
     fetchClassDetails(classItem._id);
-  }, [fetchClassDetails]);
+    toast.info(`Đã chọn lớp ${classItem.class_name}`);
+  }, [fetchClassDetails, toast]);
   
   // Filter classes based on search query
   const filteredClasses = useMemo(() => {

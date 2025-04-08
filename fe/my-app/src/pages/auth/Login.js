@@ -4,7 +4,7 @@ import InputField from '../../components/inputField/InputField';
 import PasswordInput from '../../components/passwordInput/PasswordInput';
 import Button from '../../components/button/Button';
 import useAuth from '../../hooks/useAuth';
-import { useNotifications } from '../../context/NotificationContext';
+import { useToast } from '../../context/ToastContext';
 import { isAuthenticated } from '../../utils/storage';
 import './Login.css';
 
@@ -17,7 +17,7 @@ const Login = () => {
   
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { showError } = useNotifications();
+  const toast = useToast();
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -47,12 +47,13 @@ const Login = () => {
       const result = await login(email, password);
       
       if (result.success) {
+        toast.success('Đăng nhập thành công!');
         navigate('/home', { replace: true });
       } else {
-        showError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+        toast.error(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } catch (err) {
-      showError('Có lỗi xảy ra. Vui lòng thử lại.');
+      toast.error('Có lỗi xảy ra. Vui lòng thử lại.');
       console.error('Login error:', err);
     } finally {
       setLoading(false);

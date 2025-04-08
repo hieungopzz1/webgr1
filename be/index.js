@@ -8,7 +8,7 @@ const { Server } = require("socket.io");
 // Import các routes
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
-// const tutorRoutes = require("./routes/tutor");
+const tutorRoutes = require("./routes/tutor");
 // const studentRoutes = require("./routes/student");
 const blogRoutes = require("./routes/blog");
 const meetingRoutes = require("./routes/meeting");
@@ -118,7 +118,7 @@ app.use("/api/assign-student", assignStudentRoutes);
 app.use("/api/class", classRoutes);
 app.use("/api/like", likeRoutes);
 app.use("/api/search", searchRoutes);
-// app.use('/api/tutor', tutorRoutes);
+app.use('/api/tutor', tutorRoutes);
 // app.use('/api/student', studentRoutes);
 app.use("/api/dashboard", require("./routes/dashboard")); // Route dashboard
 

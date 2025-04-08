@@ -17,6 +17,8 @@ import StaffDashboard from './pages/staff/StaffDashboard';
 import UserManagement from './pages/staff/UserManagement';
 import CourseApproval from './pages/staff/CourseApproval';
 import Reports from './pages/staff/Reports';
+import TutorClasses from './pages/tutor/ClassesList/TutorClasses';
+import ClassStudents from './pages/tutor/StudentsList/ClassStudents';
 
 const Routes = () => (
   <Switch>
@@ -38,6 +40,8 @@ const Routes = () => (
     <Route path="/tutor/manage-courses" component={ManageCourses} />
     <Route path="/tutor/assignment-review" component={AssignmentReview} />
     <Route path="/tutor/student-progress" component={StudentProgress} />
+    <Route path="/tutor/classes" component={TutorClasses} />
+    <Route path="/tutor/class/:classId/students" component={ClassStudents} />
 
     {/* Staff Routes */}
     <Route path="/staff/dashboard" component={StaffDashboard} />

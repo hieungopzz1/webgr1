@@ -88,6 +88,10 @@ const createSchedule = async (req, res) => {
         return res.status(400).json({ message: "Each slot must have a slot number and classes" });
       }
 
+      if(slotNumber < 1 || slotNumber > 6) {
+        return res.status(400).json({ message: "Slot number must be between 1 and 6" });
+      }
+
       const existingClasses = await Class.find({ _id: { $in: classes } });
       if (existingClasses.length !== classes.length) {
         return res.status(400).json({ message: "One or more classes not found" });
@@ -186,7 +190,7 @@ const createSchedule = async (req, res) => {
     const updatedSchedules = await Schedule.find({ date });
 
     const io = req.app.get("socketio");
-    io.emit("updateDashboard", { message: "Schedule updated successfully!",updatedSchedules });
+    io.emit("updateDashboard", { message: "Successfully!",updatedSchedules });
 
     res.status(200).json({
       message: "Schedules updated successfully!",
@@ -211,42 +215,151 @@ const getAllSchedules = async (req, res) => {
 
 const updateSchedule = async (req, res) => {
   try {
+    const { date, slots, classType } = req.body;
     const { scheduleId } = req.params;
-    const { date, startTime, endTime, type, meetingLink } = req.body;
+    const adminId = req.user.id;
 
-    if (startTime === endTime) {
-      return res
-        .status(400)
-        .json({ message: "Start time and end time cannot be the same" });
+    const { slot: slotNumber } = slots[0]; 
+    if (!slotNumber) {
+      return res.status(400).json({ message: "Slot number is required" });
+    }
+    if (slotNumber < 1 || slotNumber > 6) {
+      return res.status(400).json({ message: "Slot number must be between 1 and 6" });
     }
 
-    if (startTime > endTime) {
-      return res
-        .status(400)
-        .json({ message: "Start time must be before end time" });
+    if (req.user.role !== 'Admin') {
+      return res.status(403).json({ message: 'Only admin can update schedules' });
     }
 
-    const updatedSchedule = await Schedule.findByIdAndUpdate(
-      scheduleId,
-      { date, startTime, endTime, type, meetingLink },
-      { new: true }
-    );
-
-    if (!updatedSchedule) {
-      return res.status(404).json({ message: "Schedule not found" });
+    if (!scheduleId || !date || (!slots) || slots.length === 0) {
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const io = req.app.get("socketio");
-    io.emit("updateDashboard", {
-      message: " Update schedule successfully",
-      updatedSchedule: updatedSchedule,
+    const existingSchedule = await Schedule.findById(scheduleId);
+    if (!existingSchedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    const notifiedClasses = new Set();
+    let updatedSchedules = [];
+
+    for (const slot of slots) {
+      const { slot: slotNumber, classes } = slot;
+
+      if (!slotNumber || !classes) {
+        return res.status(400).json({ message: 'Each slot must have a slot number and classes' });
+      }
+
+      const existingClasses = await Class.find({ _id: { $in: classes } });
+      if (existingClasses.length !== classes.length) {
+        return res.status(400).json({ message: 'One or more classes not found' });
+      }
+
+      const studentsInClasses = await AssignStudent.find({ class: { $in: classes } });
+      const classWithNoStudents = classes.filter(
+        (classId) => !studentsInClasses.some((s) => s.class.toString() === classId)
+      );
+      if (classWithNoStudents.length > 0) {
+        return res.status(400).json({
+          message: 'Some classes have no students assigned and cannot be scheduled',
+          classWithNoStudents,
+        });
+      }
+
+      const conflictingSchedules = await Schedule.find({
+        date,
+        slot: slotNumber,
+        _id: { $ne: scheduleId }, // Loại trừ lịch hiện tại
+      });
+      const existingClassIds = conflictingSchedules.map((s) => s.class.toString());
+      const classesAlreadyScheduled = classes.filter((classId) => existingClassIds.includes(classId));
+      if (classesAlreadyScheduled.length > 0) {
+        return res.status(400).json({
+          message: 'Some classes are already scheduled in this slot',
+          classesAlreadyScheduled,
+        });
+      }
+
+      const classesToUpdate = classes.filter((classId) => !existingClassIds.includes(classId));
+      for (const classId of classesToUpdate) {
+        const updatedSchedule = await Schedule.findOneAndUpdate(
+          { _id: scheduleId, class: classId },
+          { date, slot: slotNumber, type: classType || 'Offline' },
+          { new: true }
+        );
+        if (updatedSchedule) {
+          updatedSchedules.push(updatedSchedule);
+          notifiedClasses.add(classId);
+        }
+      }
+    }
+
+    // Gửi thông báo nếu có thay đổi
+    if (notifiedClasses.size > 0) {
+      const dateObj = new Date(date);
+      const formattedDate = dateObj.toDateString();
+
+      for (const classId of notifiedClasses) {
+        const classInfo = await Class.findById(classId);
+
+        // Lấy danh sách student
+        const assignedStudents = await AssignStudent.find({ class: classId });
+        const studentIds = assignedStudents.map((assignment) => assignment.student.toString());
+
+        // Thêm tutor vào danh sách nhận thông báo
+        const recipientIds = [...studentIds];
+        if (classInfo && classInfo.tutor) {
+          recipientIds.push(classInfo.tutor.toString());
+        }
+
+        // Tạo thông báo
+        if (recipientIds.length > 0) {
+          const scheduleType = classType || 'Offline';
+          const notificationTitle = scheduleType === 'Online' ? 'Updated Online Class Schedule' : 'Updated Class Schedule';
+          const notificationContent = `The ${scheduleType.toLowerCase()} class schedule for ${classInfo.class_name || 'your class'} has been updated to ${formattedDate}.`;
+
+          const notification = new Notification({
+            title: notificationTitle,
+            content: scheduleType === 'Online'
+              ? `${notificationContent} You can access Google Meet when the class starts.`
+              : notificationContent,
+            senderId: adminId,
+            recipientIds,
+          });
+          await notification.save();
+          // Gửi thông báo qua Socket.IO
+          const io = req.app.get('socketio');
+          const onlineUsers = req.app.get('onlineUsers');
+          recipientIds.forEach((recipientId) => {
+            const socketId = onlineUsers.get(recipientId)?.socketId;
+            if (socketId) {
+              io.to(socketId).emit('newNotification', {
+                id: notification._id,
+                title: notification.title,
+                content: notification.content,
+                senderId: notification.senderId,
+                timestamp: notification.timestamp,
+              });
+            }
+          });
+        }
+      }
+    }
+
+    // Lấy danh sách lịch học đã cập nhật trong ngày
+    const allUpdatedSchedules = await Schedule.find({ date });
+
+    // Gửi cập nhật dashboard qua Socket.IO
+    const io = req.app.get('socketio');
+    io.emit('updateDashboard', { message: 'Schedules updated successfully!', schedules: allUpdatedSchedules });
+
+    res.status(200).json({
+      message: 'Schedules updated successfully!',
+      schedules: allUpdatedSchedules,
     });
-
-    res
-      .status(200)
-      .json({ message: "Schedule updated successfully!", updatedSchedule });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error in updateSchedule:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 

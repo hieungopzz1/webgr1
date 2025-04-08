@@ -29,18 +29,18 @@ const BlogSchema = new mongoose.Schema({
   image: {
     type: String,
   },
-  likes: [
-    {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        refPath: "likes.userRole",
-      },
-      userRole: {
-        type: String,
-        enum: ["Student", "Tutor"],
-      },
-    },
-  ],
+  // likes: [
+  //   {
+  //     userId: {
+  //       type: mongoose.Schema.Types.ObjectId,
+  //       refPath: "likes.userRole",
+  //     },
+  //     userRole: {
+  //       type: String,
+  //       enum: ["Student", "Tutor"],
+  //     },
+  //   },
+  // ],
 });
 
 module.exports = mongoose.model("Blog", BlogSchema);

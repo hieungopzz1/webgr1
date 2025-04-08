@@ -59,8 +59,12 @@ const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
+    
     // Real-time update qua Socket.IO
-    const io = req.app.get("socketio"); // Lấy instance Socket.IO
+    const io = req.app.get("socketio");
+    if (io) {
+      io.emit("updateDashboard", { message: "LISTEN Success", newMessage });
+    }
     const onlineUsers = req.app.get("onlineUsers"); // Lấy danh sách người online
 
     console.log('🟢 Current online users:', onlineUsers);

@@ -1,39 +1,58 @@
 const Admin = require("../models/Admin");
 const Student = require("../models/Student");
 const Tutor = require("../models/Tutor");
-const Document = require("../models/Document");
-const Blog = require("../models/Blog");
-const Class = require("../models/Class");
-const Schedule = require("../models/Schedule");
-const Attendance = require("../models/Attendance");
-const AssignStudent = require("../models/AssignStudent");
 const bcrypt = require("bcrypt");
 const fs = require("fs");
 const path = require("path");
 
-
 const createAccount = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role, student_ID, major } = req.body;
-    const avatar = req.file ? `/uploads/avatar/${req.file.filename}` : null;
-    if (!["Student", "Tutor", "Admin"].includes(role)) {
+    const avatar = req.file ? `/uploads/avatar/${req.file.filename}` : undefined;
+
+    if (!firstName || !lastName || !email || !password || !role) {
+      if (avatar) removeImage(avatar);
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const validRoles = ["Student", "Tutor", "Admin"];
+    if (!validRoles.includes(role)) {
       if (avatar) removeImage(avatar);
       return res.status(400).json({ message: "Invalid role" });
     }
 
-    const existingUser =
-      (await Student.findOne({ email })) ||
-      (await Tutor.findOne({ email })) ||
-      (await Admin.findOne({ email }));
+    const existingId = await Student.findOne({ student_ID: student_ID });
+    if (existingId) {
+      if (avatar) removeImage(avatar);
+      return res.status(400).json({ message: "Student ID already registered" });
+    }
+
+
+    const existingUser = await Promise.all([
+      Student.findOne({ email }),
+      Tutor.findOne({ email }),
+      Admin.findOne({ email }),
+    ]).then(results => results.find(user => user !== null));
 
     if (existingUser) {
+      if (avatar) removeImage(avatar);
       return res.status(400).json({ message: "Email already registered" });
     }
+
+    // const validatePass = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/;
+    // if (!validatePass.test(password)) {
+    //   if (avatar) removeImage(avatar);
+    //   return res.status(400).json({ message: "Password must be 6-20 characters, include at least one number, one lowercase, and one uppercase letter" });
+    // }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let user;
     if (role === "Student") {
+      if (!student_ID || !major) {
+        if (avatar) removeImage(avatar);
+        return res.status(400).json({ message: "Student ID and major are required for Student role" });
+      }
       user = new Student({
         firstName,
         lastName,
@@ -41,7 +60,7 @@ const createAccount = async (req, res) => {
         password: hashedPassword,
         avatar,
         student_ID,
-        major
+        major,
       });
     } else if (role === "Tutor") {
       user = new Tutor({
@@ -64,14 +83,25 @@ const createAccount = async (req, res) => {
     await user.save();
 
     const io = req.app.get("socketio");
-    io.emit("updateDashboard", { message: "A new user is added!", user: user });
+    if (io) {
+      io.emit("updateDashboard", { message: "A new user is added!", user });
+    }
 
-    res
-      .status(201)
-      .json({ user, message: "User created successfully", avatar });
+    res.status(201).json({
+      user: {
+        id: user._id,
+        firstName,
+        lastName,
+        email,
+        role,
+        avatar,
+      },
+      message: "User created successfully",
+    });
   } catch (error) {
     if (req.file) removeImage(`/uploads/avatar/${req.file.filename}`);
-    res.status(500).json({ error: error.message });
+    console.error("Error creating account:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -125,22 +155,26 @@ const deleteUser = async (req, res) => {
     // Xóa Student
     const deletedStudent = await Student.findOneAndDelete({ _id: id });
     if (deletedStudent) {
-      return res.status(200).json({ message: "Student and related data deleted", deletedUser: deletedStudent });
+      return res.status(200).json({
+        message: "Student and related data deleted",
+        deletedUser: deletedStudent,
+      });
     }
 
     // Xóa Tutor
     const deletedTutor = await Tutor.findOneAndDelete({ _id: id });
     if (deletedTutor) {
-      return res.status(200).json({ message: "Tutor and related data deleted", deletedUser: deletedTutor });
+      return res.status(200).json({
+        message: "Tutor and related data deleted",
+        deletedUser: deletedTutor,
+      });
     }
 
-    
     return res.status(404).json({ message: "User not found" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 module.exports = {
   createAccount,

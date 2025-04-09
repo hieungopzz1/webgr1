@@ -17,7 +17,7 @@ import StaffDashboard from './pages/staff/StaffDashboard';
 import UserManagement from './pages/staff/UserManagement';
 import CourseApproval from './pages/staff/CourseApproval';
 import Reports from './pages/staff/Reports';
-import TutorClasses from './pages/tutor/ClassesList/TutorClasses';
+ import TutorClasses from './pages/tutor/ClassesList/TutorClasses';
 import ClassStudents from './pages/tutor/StudentsList/ClassStudents';
 
 const Routes = () => (

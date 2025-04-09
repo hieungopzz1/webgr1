@@ -31,13 +31,14 @@ const UserTimetable = () => {
   const [selectedSchedule, setSelectedSchedule] = useState(null);
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [currentWeek, setCurrentWeek] = useState(getWeek(new Date(), { weekStartsOn: 1 }));
   const [weekDates, setWeekDates] = useState([]);
   
   const [tutorClasses, setTutorClasses] = useState([]);
   const [studentAttendanceMap, setStudentAttendanceMap] = useState({});
 
   const toast = useToast();
+  const initialLoadRef = useRef(false);
 
   const slotLabels = {
     1: "07:00 - 08:30",
@@ -55,28 +56,38 @@ const UserTimetable = () => {
 
   const getAvailableWeeksInYear = year => {
     const weeks = [];
-    const lastDayOfYear = new Date(year, 11, 31);
-    const totalDays = lastDayOfYear.getDate() + (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30);
-    const totalWeeks = Math.ceil(totalDays / 7) + 1;
     
-    for (let weekNum = 1; weekNum <= totalWeeks; weekNum++) {
-      const dayOfYear = (weekNum - 1) * 7 + 1;
-      let weekStart = new Date(year, 0, dayOfYear);
-      
-      const dayOfWeek = weekStart.getDay();
-      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      weekStart.setDate(weekStart.getDate() + diff);
+    const firstDayOfYear = new Date(year, 0, 1);
+    const lastDayOfYear = new Date(year, 11, 31);
+    
+    let firstMonday = new Date(firstDayOfYear);
+    const firstDayOfWeek = firstDayOfYear.getDay();
+    
+    if (firstDayOfWeek === 1) {
+    } else if (firstDayOfWeek === 0) {
+      firstMonday.setDate(firstDayOfYear.getDate() + 1);
+    } else {
+      firstMonday.setDate(firstDayOfYear.getDate() + (8 - firstDayOfWeek));
+    }
+    
+    let currentDay = new Date(firstMonday);
+    let weekCounter = 1;
+    
+    while (currentDay <= lastDayOfYear) {
+      const weekStart = new Date(currentDay);
       
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
       
-      if (weekEnd.getFullYear() < year) continue;
-      if (weekStart.getFullYear() > year) break;
-      
       weeks.push({
-        week: weekNum,
-        label: `${format(weekStart, 'dd/MM/yyyy')} - ${format(weekEnd, 'dd/MM/yyyy')}`
+        week: weekCounter,
+        label: `${format(weekStart, 'dd/MM/yyyy')} - ${format(weekEnd, 'dd/MM/yyyy')}`,
+        startDate: new Date(weekStart),
+        endDate: new Date(weekEnd)
       });
+      
+      currentDay.setDate(currentDay.getDate() + 7);
+      weekCounter++;
     }
     
     return weeks;
@@ -87,27 +98,35 @@ const UserTimetable = () => {
     return [currentYear - 1, currentYear, currentYear + 1];
   }, []);
 
-  const weekOptions = useMemo(() => getAvailableWeeksInYear(getYear(currentDate)), [currentDate]);
+  const weekOptions = useMemo(() => {
+    const options = getAvailableWeeksInYear(getYear(currentDate));
+    return options;
+  }, [currentDate]);
 
   const daysInSelectedWeek = useMemo(() => {
-    const dayOfYear = (currentWeek - 1) * 7 + 1;
-    const dateOfFirstDayOfWeek = new Date(getYear(currentDate), 0, dayOfYear);
+    if (!weekOptions || weekOptions.length === 0) {
+      return [];
+    }
     
-    const dayOfWeek = dateOfFirstDayOfWeek.getDay();
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const selectedWeekInfo = weekOptions.find(option => option.week === currentWeek);
+    if (!selectedWeekInfo) {
+      return [];
+    }
     
-    const weekStartDate = new Date(dateOfFirstDayOfWeek);
-    weekStartDate.setDate(dateOfFirstDayOfWeek.getDate() + diff);
+    const startDateStr = selectedWeekInfo.label.split(' - ')[0];
+    
+    const [day, month, year] = startDateStr.split('/').map(Number);
+    const mondayOfSelectedWeek = new Date(year, month - 1, day);
     
     const days = [];
     for (let i = 0; i < 7; i++) {
-      const day = new Date(weekStartDate);
-      day.setDate(weekStartDate.getDate() + i);
+      const day = new Date(mondayOfSelectedWeek);
+      day.setDate(mondayOfSelectedWeek.getDate() + i);
       days.push(day);
     }
     
     return days;
-  }, [currentWeek, currentDate]);
+  }, [weekOptions, currentWeek]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -119,36 +138,33 @@ const UserTimetable = () => {
     setUser(userData);
     
     const dates = [];
-    for (let i = 0; i < 7; i++) {
-      dates.push(addDays(currentWeek, i));
+    if (typeof currentWeek === 'number') {
+      const year = getYear(currentDate);
+      const firstDayOfYear = new Date(year, 0, 1);
+      const dayOffset = (currentWeek - 1) * 7;
+      const weekStart = new Date(year, 0, dayOffset);
+      
+      const dayOfWeek = weekStart.getDay();
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      weekStart.setDate(weekStart.getDate() + diff);
+      
+      for (let i = 0; i < 7; i++) {
+        const newDate = new Date(weekStart);
+        newDate.setDate(weekStart.getDate() + i);
+        dates.push(newDate);
+      }
+    } else {
+      for (let i = 0; i < 7; i++) {
+        dates.push(addDays(currentWeek, i));
+      }
     }
     setWeekDates(dates);
-  }, [currentWeek, toast]);
+  }, [currentWeek, currentDate]);
 
-  const handleApiError = useCallback((err, defaultMessage = "Đã xảy ra lỗi") => {
-    let errorMsg = defaultMessage;
-    
-    if (err.response) {
-      if (err.response.data?.message) {
-        errorMsg = err.response.data.message;
-      } else if (err.response.status === 404) {
-        errorMsg = "Không tìm thấy API";
-      } else if (err.response.status === 401) {
-        errorMsg = "Vui lòng đăng nhập lại";
-      } else if (err.response.status === 403) {
-        errorMsg = "Bạn không có quyền thực hiện hành động này";
-      } else if (err.response.status === 500) {
-        errorMsg = "Lỗi máy chủ, vui lòng thử lại sau";
-      }
-    } else if (err.request) {
-      errorMsg = "Không nhận được phản hồi từ máy chủ";
-    } else {
-      errorMsg = `Lỗi: ${err.message}`;
+  const handleApiError = useCallback((err) => {
+    if (err?.response?.status !== 401) {
+      toast.error(err?.response?.data?.message || 'Something went wrong. Please try again.');
     }
-    
-    setError(errorMsg);
-    toast.error(errorMsg);
-    return errorMsg;
   }, [toast]);
 
   const fetchClasses = useCallback(async () => {
@@ -164,7 +180,7 @@ const UserTimetable = () => {
       }
       return response;
     } catch (err) {
-      handleApiError(err, "Failed to fetch classes");
+      handleApiError(err);
       return err;
     }
   }, [handleApiError]);
@@ -188,7 +204,7 @@ const UserTimetable = () => {
         setClasses(Array.from(classSet));
       }
     } catch (err) {
-      handleApiError(err, "Failed to fetch schedules");
+      handleApiError(err);
     } finally {
       setDataLoading(false);
     }
@@ -227,7 +243,7 @@ const UserTimetable = () => {
         setTutorClasses([]);
       }
     } catch (err) {
-      handleApiError(err, "Failed to fetch schedules");
+      handleApiError(err);
     } finally {
       setDataLoading(false);
     }
@@ -247,7 +263,7 @@ const UserTimetable = () => {
       
       return response;
     } catch (err) {
-      handleApiError(err, "Failed to fetch students for this schedule");
+      handleApiError(err);
       return err;
     } finally {
       setAttendanceLoading(false);
@@ -266,7 +282,7 @@ const UserTimetable = () => {
       }
       return response;
     } catch (err) {
-      handleApiError(err, "Failed to fetch attendance status");
+      handleApiError(err);
       return err;
     } finally {
       setAttendanceLoading(false);
@@ -281,10 +297,13 @@ const UserTimetable = () => {
     const endOfDay = new Date(endDate);
     endOfDay.setHours(23, 59, 59, 999);
     
-    return schedules.filter(schedule => {
+    const filteredSchedules = schedules.filter(schedule => {
       const scheduleDate = new Date(schedule.date);
-      return scheduleDate >= startDate && scheduleDate <= endOfDay;
+      const isInRange = scheduleDate >= startDate && scheduleDate <= endOfDay;
+      return isInRange;
     });
+    
+    return filteredSchedules;
   }, [schedules, daysInSelectedWeek]);
 
   const schedulesGroupedByDayAndSlot = useMemo(() => {
@@ -311,12 +330,12 @@ const UserTimetable = () => {
   }, [filteredSchedulesByWeek, daysInSelectedWeek]);
 
   const fetchStudentAttendanceData = useCallback(async () => {
-    if (user?.role !== "Student" || !filteredSchedulesByWeek.length) return;
+    if (!user || user.role !== "Student" || !filteredSchedulesByWeek.length) return;
     
     try {
       const newAttendanceMap = {};
       
-      for (const schedule of filteredSchedulesByWeek) {
+      const attendancePromises = filteredSchedulesByWeek.map(async (schedule) => {
         try {
           const response = await api.get(`/api/attendance/${schedule._id}/status`);
           const data = response.data;
@@ -324,58 +343,141 @@ const UserTimetable = () => {
           const isPresentStudent = data.presentStudents.some(student => student._id === user.id);
           const isAbsentStudent = data.absentStudents.some(student => student._id === user.id);
           
-          if (isPresentStudent) {
-            newAttendanceMap[schedule._id] = "Present";
-          } else if (isAbsentStudent) {
-            newAttendanceMap[schedule._id] = "Absent";
-          } else {
-            newAttendanceMap[schedule._id] = null;
-          }
-        } catch (err) {}
-      }
+          return {
+            scheduleId: schedule._id,
+            status: isPresentStudent ? "Present" : (isAbsentStudent ? "Absent" : null)
+          };
+        } catch (err) {
+          return { scheduleId: schedule._id, status: null };
+        }
+      });
+      
+      const results = await Promise.all(attendancePromises);
+      
+      results.forEach(result => {
+        if (result && result.scheduleId) {
+          newAttendanceMap[result.scheduleId] = result.status;
+        }
+      });
       
       setStudentAttendanceMap(newAttendanceMap);
-    } catch (err) {}
-  }, [user, filteredSchedulesByWeek]);
+    } catch (err) {
+      handleApiError(err);
+    }
+  }, [user, filteredSchedulesByWeek, handleApiError]);
 
   const fetchUserSchedules = useCallback(async () => {
-    if (!user) return;
+    if (!user || !user.id) return;
     
     try {
       setDataLoading(true);
+      setError("");
       
-      let endpoint;
-      if (user.role === "Student") {
-        endpoint = `/api/schedule/student/${user.id}`;
-      } else if (user.role === "Tutor") {
-        endpoint = `/api/schedule/tutor/${user.id}`;
-      } else {
-        toast.error("Invalid user role");
+      if (typeof user.id !== 'string' || user.id.trim() === '') {
+        setError("ID người dùng không hợp lệ");
         setDataLoading(false);
         return;
       }
       
-      const response = await api.get(endpoint);
+      let endpoint;
+      if (user.role === "Student") {
+        endpoint = `/api/schedule/schedule-student`;
+      } else if (user.role === "Tutor") {
+        endpoint = `/api/schedule/schedule-tutor`;
+      } else {
+        setError("Vai trò người dùng không hợp lệ");
+        setDataLoading(false);
+        return;
+      }
       
-      if (response.data) {
-        const scheduleData = Array.isArray(response.data) ? response.data : [];
-        setSchedules(scheduleData);
-        
-        const classSet = new Set();
-        scheduleData.forEach(schedule => {
-          if (schedule.class && schedule.class._id) {
-            classSet.add(schedule.class._id);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      try {
+        const response = await api.get(endpoint, {
+          signal: controller.signal,
+          'axios-retry': {
+            retries: 3,
+            retryDelay: (retryCount) => retryCount * 1000
           }
         });
         
-        setClasses(Array.from(classSet));
+        clearTimeout(timeoutId);
+        
+        if (response.data) {
+          let scheduleData;
+          
+          if (Array.isArray(response.data)) {
+            scheduleData = response.data;
+          } else if (response.data.schedules && Array.isArray(response.data.schedules)) {
+            scheduleData = response.data.schedules;
+          } else {
+            scheduleData = [];
+          }
+          
+          setSchedules(scheduleData);
+          
+          if (user.role === "Tutor" && scheduleData.length > 0) {
+            const uniqueClasses = [];
+            const classIds = new Set();
+            
+            scheduleData.forEach(schedule => {
+              const classData = schedule.class || {};
+              const classId = classData._id || (typeof classData === 'string' ? classData : null);
+              const className = classData.class_name || "Unknown Class";
+              
+              if (classId && !classIds.has(classId)) {
+                classIds.add(classId);
+                uniqueClasses.push({
+                  _id: classId,
+                  class_name: className
+                });
+              }
+            });
+            
+            setTutorClasses(uniqueClasses);
+          } else {
+            const classSet = new Set();
+            scheduleData.forEach(schedule => {
+              if (schedule.class) {
+                const classId = typeof schedule.class === 'object' ? schedule.class._id : schedule.class;
+                if (classId) classSet.add(classId);
+              }
+            });
+            
+            setClasses(Array.from(classSet));
+          }
+        } else {
+          setSchedules([]);
+          setTutorClasses([]);
+          setClasses([]);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          setError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
+        } else {
+          throw fetchError;
+        }
       }
     } catch (err) {
-      handleApiError(err, "Failed to fetch schedules");
+      if (err?.response?.status === 404) {
+        setError(`Không tìm thấy lịch học cho người dùng này.`);
+      } else if (err?.code === 'ERR_NETWORK') {
+        setError("Không thể kết nối đến máy chủ. Kiểm tra kết nối mạng của bạn.");
+      } else {
+        setError(err?.response?.data?.message || 'Không thể tải dữ liệu lịch học.');
+      }
+      
+      setSchedules([]);
+      setTutorClasses([]);
+      setClasses([]);
+      
+      handleApiError(err);
     } finally {
       setDataLoading(false);
     }
-  }, [user, handleApiError, toast]);
+  }, [user, handleApiError]);
 
   useEffect(() => {
     if (user) {
@@ -384,10 +486,11 @@ const UserTimetable = () => {
   }, [user, fetchUserSchedules]);
 
   useEffect(() => {
-    if (user?.role === "Student") {
+    if (user?.role === 'Student' && filteredSchedulesByWeek.length > 0 && !initialLoadRef.current) {
       fetchStudentAttendanceData();
+      initialLoadRef.current = true;
     }
-  }, [filteredSchedulesByWeek, fetchStudentAttendanceData, user]);
+  }, [user?.role, filteredSchedulesByWeek.length, fetchStudentAttendanceData]);
 
   const submitAttendance = useCallback(async (scheduleId, attendanceData) => {
     try {
@@ -410,12 +513,10 @@ const UserTimetable = () => {
       setIsAttendanceModalOpen(false);
       return response;
     } catch (err) {
-      handleApiError(err, "Failed to mark attendance");
-      return err;
-    } finally {
-      setLoading(false);
+      handleApiError(err);
+      return false;
     }
-  }, [handleApiError, fetchStudentAttendanceData, fetchAttendanceStatus, selectedSchedule, user, toast]);
+  }, [user, handleApiError, fetchStudentAttendanceData, fetchAttendanceStatus, selectedSchedule, toast]);
 
   const handleOpenAttendanceModal = useCallback(async (schedule) => {
     setSelectedSchedule(schedule);
@@ -611,7 +712,13 @@ const UserTimetable = () => {
             <label>Year:</label>
             <select 
               value={getYear(currentDate)} 
-              onChange={(e) => setCurrentDate(new Date(e.target.value))}
+              onChange={(e) => {
+                const newYear = parseInt(e.target.value);
+                const newDate = new Date(currentDate);
+                newDate.setFullYear(newYear);
+                setCurrentDate(newDate);
+                setCurrentWeek(getWeek(new Date(), { weekStartsOn: 1 }));
+              }}
               className="form-select"
             >
               {yearOptions.map(year => (
@@ -623,8 +730,15 @@ const UserTimetable = () => {
           <div className="filter-item">
             <label>Week:</label>
             <select 
-              value={getWeek(currentDate, { weekStartsOn: 1 })} 
-              onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
+              value={currentWeek} 
+              onChange={(e) => {
+                const selectedWeek = parseInt(e.target.value);
+                setCurrentWeek(selectedWeek);
+                
+                if (user?.role === "Student") {
+                  initialLoadRef.current = false;
+                }
+              }}
               className="form-select"
             >
               {weekOptions.map(weekOption => (
@@ -651,7 +765,34 @@ const UserTimetable = () => {
     const isTutor = user.role === "Tutor";
     const isStudent = user.role === "Student";
     
-    const isLoading = dataLoading || classes.length === 0;
+    if (error) {
+      return (
+        <>
+          <div className="user-timetable-header">
+            <h2>My Schedule</h2>
+            {renderWeekSelector()}
+          </div>
+          <div className="error-container">
+            <div className="error-message">
+              <i className="bi bi-exclamation-triangle"></i>
+              <p>{error}</p>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setError("");
+                setDataLoading(true);
+                fetchUserSchedules();
+              }}
+            >
+              Thử lại
+            </Button>
+          </div>
+        </>
+      );
+    }
+
+    const isLoading = dataLoading;
 
     return (
       <>
@@ -664,6 +805,10 @@ const UserTimetable = () => {
           <div className="loading-container">
             <Loader />
             <p>Loading class data...</p>
+          </div>
+        ) : schedules.length === 0 ? (
+          <div className="empty-schedule">
+            <p>Không có lịch học nào trong tuần đã chọn.</p>
           </div>
         ) : (
           renderTimetable(isTutor, isStudent)
@@ -678,17 +823,19 @@ const UserTimetable = () => {
     const [attendanceData, setAttendanceData] = useState([]);
     
     useEffect(() => {
-      if (isAttendanceModalOpen && studentsInClass.length > 0) {
+      if (isAttendanceModalOpen && studentsInClass.length > 0 && selectedSchedule?._id) {
         const initialAttendance = studentsInClass.map(student => {
-          const status = getStudentAttendanceStatus(student._id, selectedSchedule?._id);
+          const status = getStudentAttendanceStatus(student._id, selectedSchedule._id);
           return {
             studentId: student._id,
             status: status || "Absent"
           };
         });
         setAttendanceData(initialAttendance);
+      } else if (!isAttendanceModalOpen) {
+        setAttendanceData([]);
       }
-    }, [isAttendanceModalOpen, studentsInClass]);
+    }, [isAttendanceModalOpen, studentsInClass, selectedSchedule?._id, getStudentAttendanceStatus]);
     
     const handleStatusChange = (studentId, status) => {
       setAttendanceData(prev => 

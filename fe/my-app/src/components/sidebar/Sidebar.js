@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useSidebar } from "../../context/SidebarContext";
 import { ROUTES, USER_ROLES } from "../../utils/constants";
 import useAuth from "../../hooks/useAuth";
-import NotificationModal from "../notification/NotificationModal";
+import NotificationModal from "../../pages/notification/NotificationModal";
 import "./Sidebar.css";
 import useNotifications from "../../hooks/useNotifications";
 

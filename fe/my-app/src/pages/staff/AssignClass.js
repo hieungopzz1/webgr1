@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import api from '../../utils/api';
 import './AssignClass.css';
 import InputField from '../../components/inputField/InputField';
@@ -541,8 +541,6 @@ const AssignClass = () => {
   const [tutors, setTutors] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [dataLoading, setDataLoading] = useState(true);
   const toast = useToast();
   
@@ -554,6 +552,14 @@ const AssignClass = () => {
   
   // Ref for reset form function
   const [resetCreateForm, setResetCreateForm] = useState(null);
+  
+  const initialLoadRef = useRef(false);
+  
+  const showToast = useCallback((type, message) => {
+    if (type === 'success') toast.success(message);
+    else if (type === 'error') toast.error(message);
+    else if (type === 'warning') toast.warning(message);
+  }, [toast]);
   
   // Utility function xử lý lỗi
   const handleApiError = useCallback((err, defaultMessage) => {
@@ -586,10 +592,9 @@ const AssignClass = () => {
       errorMsg = `Error: ${err.message}`;
     }
     
-    setError(errorMsg);
-    toast.error(errorMsg);
+    showToast('error', errorMsg);
     return errorMsg;
-  }, [toast]);
+  }, [showToast]);
 
   // Callback to store the reset function
   const handleFormReset = useCallback((resetFunc) => {
@@ -621,7 +626,7 @@ const AssignClass = () => {
         setStudents(studentsList);
       } else {
         setStudents([]);
-        toast.warning('No students found or invalid data format received');
+        showToast('warning', 'No students found or invalid data format received');
       }
       return response;
     } catch (err) {
@@ -629,7 +634,7 @@ const AssignClass = () => {
       setStudents([]);
       return err;
     }
-  }, [handleApiError, toast]);
+  }, [handleApiError, showToast]);
 
   // Improved fetchTutors with proper error handling
   const fetchTutors = useCallback(async () => {
@@ -640,7 +645,7 @@ const AssignClass = () => {
         setTutors(tutorsList);
       } else {
         setTutors([]);
-        toast.warning('No tutors found or invalid data format received');
+        showToast('warning', 'No tutors found or invalid data format received');
       }
       return response;
     } catch (err) {
@@ -648,56 +653,57 @@ const AssignClass = () => {
       setTutors([]);
       return err;
     }
-  }, [handleApiError, toast]);
+  }, [handleApiError, showToast]);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      setError('Authentication required. Please log in again.');
-      toast.error('Authentication required. Please log in again.');
+    if (initialLoadRef.current || !isAuthenticated()) {
       return;
     }
     
-    setDataLoading(true);
-    
-    const promises = [fetchClasses(), fetchStudents(), fetchTutors()];
-    
-    Promise.all(promises)
-      .then(results => {
-        const hasError = results.some(result => result instanceof Error);
-        if (!hasError) {
-          toast.success('Data loaded successfully');
+    const loadData = async () => {
+      if (!isAuthenticated()) {
+        showToast('error', 'Authentication required. Please log in again.');
+        return;
+      }
+      
+      setDataLoading(true);
+      
+      try {
+        await Promise.all([fetchClasses(), fetchStudents(), fetchTutors()]);
+        if (!initialLoadRef.current) {
+          showToast('success', 'Data loaded successfully');
+          initialLoadRef.current = true;
         }
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Error during data loading:', err);
-      })
-      .finally(() => {
+      } finally {
         setDataLoading(false);
-      });
-  }, [fetchClasses, fetchStudents, fetchTutors, toast]);
+      }
+    };
+    
+    loadData();
+  }, [fetchClasses, fetchStudents, fetchTutors, showToast]);
 
   // Event handlers
   const handleCreateClass = useCallback(async (formData) => {
     if (!formData.className || !formData.major || !formData.subject || !formData.tutorId || !formData.studentIds.length) {
-      setError('Please fill in all required fields and select at least one student');
+      showToast('error', 'Please fill in all required fields and select at least one student');
       return;
     }
 
     const className = formData.className.trim();
     if (!className) {
-      setError('Class name cannot be empty');
+      showToast('error', 'Class name cannot be empty');
       return;
     }
 
     setLoading(true);
-    setError('');
-    setSuccess('');
 
     try {
       const userData = getUserData();
       
       if (!userData || !userData.id) {
-        setError('Authentication required. Please log in again.');
+        showToast('error', 'Authentication required. Please log in again.');
         setLoading(false);
         return;
       }
@@ -709,7 +715,7 @@ const AssignClass = () => {
         const classExists = existingClasses.some(c => c.class_name === className);
         
         if (classExists) {
-          setError(`Class name "${className}" already exists. Please use a different name.`);
+          showToast('error', `Class name "${className}" already exists. Please use a different name.`);
           setLoading(false);
           return;
         }
@@ -727,7 +733,7 @@ const AssignClass = () => {
       const classResponse = await api.post('/api/class/create-class', payload);
       
       if (!classResponse.data) {
-        setError('Invalid server response when creating class');
+        showToast('error', 'Invalid server response when creating class');
         setLoading(false);
         return;
       }
@@ -735,7 +741,7 @@ const AssignClass = () => {
       const newClassId = classResponse.data.class?._id;
       
       if (!newClassId) {
-        setError('Class created but could not retrieve class ID');
+        showToast('error', 'Class created but could not retrieve class ID');
         setLoading(false);
         return;
       }
@@ -747,14 +753,14 @@ const AssignClass = () => {
           adminId: userData.id
         });
         
-        setSuccess('Class created successfully with assigned students and tutor');
+        showToast('success', 'Class created successfully with assigned students and tutor');
         
         // Reset form after successful creation
         if (resetCreateForm) {
           resetCreateForm();
         }
       } catch (assignError) {
-        setSuccess('Class created successfully, but failed to assign students. Please assign them manually.');
+        showToast('warning', 'Class created successfully, but failed to assign students');
         
         // Reset form even if student assignment fails
         if (resetCreateForm) {
@@ -768,7 +774,7 @@ const AssignClass = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchClasses, resetCreateForm, handleApiError]);
+  }, [fetchClasses, resetCreateForm, handleApiError, showToast]);
 
   const handleDeleteStudent = useCallback(async (studentId, classId) => {
     // Tìm thông tin sinh viên và lớp để hiển thị thông báo
@@ -776,15 +782,13 @@ const AssignClass = () => {
     const studentName = studentData ? `${studentData.firstName} ${studentData.lastName}` : 'Student';
     
     setLoading(true);
-    setError('');
-    setSuccess(`Removing ${studentName}...`);
 
     try {
       if (!isAuthenticated()) {
-        setError('Authentication required. Please log in again.');
+        showToast('error', 'Authentication required. Please log in again.');
         setLoading(false);
-      return;
-    }
+        return;
+      }
 
       await api.delete('/api/assign-student/remove', { 
         data: { 
@@ -793,7 +797,7 @@ const AssignClass = () => {
         } 
       });
       
-      setSuccess(`${studentName} removed successfully`);
+      showToast('success', `${studentName} removed successfully`);
       
       if (isDetailModalOpen && selectedClassDetail) {
         setIsDetailModalOpen(false);
@@ -806,7 +810,7 @@ const AssignClass = () => {
     } finally {
       setLoading(false);
     }
-  }, [isDetailModalOpen, selectedClassDetail, students, handleApiError]);
+  }, [isDetailModalOpen, selectedClassDetail, students, handleApiError, showToast]);
 
   const handleDeleteClass = useCallback(async (classId) => {
     setClassToDelete(classId);
@@ -825,12 +829,10 @@ const AssignClass = () => {
     
     // Hiển thị thông báo đang xử lý
     setLoading(true);
-    setError('');
-    setSuccess(`Deleting ${className}...`);
     
     try {
       await api.delete(`/api/class/delete-class/${classToDelete}`);
-      setSuccess(`${className} deleted successfully`);
+      showToast('success', `${className} deleted successfully`);
       // Không cần fetchClasses vì đã cập nhật UI
     } catch (err) {
       // Hoàn tác UI change nếu API call thất bại
@@ -840,7 +842,7 @@ const AssignClass = () => {
       setLoading(false);
       setClassToDelete(null);
     }
-  }, [classToDelete, classes, handleApiError]);
+  }, [classToDelete, classes, handleApiError, showToast]);
 
   const handleClassClick = useCallback((classData) => {
     setSelectedClassDetail(classData);
@@ -852,8 +854,6 @@ const AssignClass = () => {
   // Thêm hàm xử lý update class
   const handleUpdateClass = useCallback(async (updateData) => {
     setLoading(true);
-    setError('');
-    setSuccess('');
 
     try {
       await api.put(`/api/class/update-class/${updateData.classId}`, {
@@ -863,21 +863,18 @@ const AssignClass = () => {
         tutor_id: updateData.tutor_id
       });
       
-      setSuccess('Class updated successfully');
+      showToast('success', 'Class updated successfully');
       fetchClasses();
     } catch (err) {
       handleApiError(err, 'Failed to update class');
     } finally {
       setLoading(false);
     }
-  }, [fetchClasses, handleApiError]);
+  }, [fetchClasses, handleApiError, showToast]);
 
   return (
     <div className="assign-class-container">
       <h2 className="page-title">Class Management</h2>
-
-      {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
 
       {!isDataLoaded ? (
         <div className="loading-container">

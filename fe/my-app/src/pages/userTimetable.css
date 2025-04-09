@@ -529,4 +529,51 @@
 
 .meet-link .fas {
   font-size: 0.9em;
-} 
+}
+
+/* Thêm CSS cho phần hiển thị lỗi và các trường hợp đặc biệt */
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 2rem auto;
+  padding: 2rem;
+  max-width: 600px;
+  background-color: #fff3f3;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  color: #d32f2f;
+  text-align: center;
+}
+
+.error-message i {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.error-message p {
+  font-size: 16px;
+  margin: 0;
+}
+
+.empty-schedule {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin: 2rem 0;
+  color: #666;
+  font-size: 16px;
+}
+
+/* Các CSS cho trang đã tồn tại */ 

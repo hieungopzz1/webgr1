@@ -69,23 +69,25 @@ const UserDocument = () => {
     if (!user) return;
     
     try {
-      if (!dataLoading) {
-        setDataLoading(true);
-      }
+      setDataLoading(true);
       
-      let response;
+      let endpoint;
       
       if (user.role === "Tutor") {
-        response = await api.get(`/api/documents/tutor/${user.id}/classes`);
+        endpoint = `/api/documents/tutor/${user.id}/classes`;
       } else if (user.role === "Student") {
-        response = await api.get(`/api/documents/student/${user.id}/classes`);
+        endpoint = `/api/documents/student/${user.id}/classes`;
       } else {
         setDataLoading(false);
         return;
       }
       
-      if (response.data && response.data.classes) {
-        const receivedClasses = response.data.classes;
+      const response = await api.get(endpoint);
+      
+      const responseData = response.data;
+      
+      if (responseData && responseData.classes) {
+        const receivedClasses = responseData.classes;
         
         if (Array.isArray(receivedClasses)) {
           setClasses(receivedClasses);
@@ -103,14 +105,17 @@ const UserDocument = () => {
           });
           
           setDocuments(docsObj);
-          toast.success('Đã tải danh sách lớp học và tài liệu thành công');
         } else {
+          setClasses([]);
+          setDocuments({});
           toast.error("Định dạng dữ liệu không hợp lệ");
         }
-      } else if (response.data && response.data.message) {
+      } else if (responseData && responseData.message) {
         setClasses([]);
         setDocuments({});
       } else {
+        setClasses([]);
+        setDocuments({});
         toast.error("Định dạng phản hồi không hợp lệ");
       }
     } catch (err) {
@@ -125,7 +130,7 @@ const UserDocument = () => {
     } finally {
       setDataLoading(false);
     }
-  }, [user, handleApiError, toast, dataLoading]);
+  }, [user, handleApiError, toast]);
 
   // Upload document
   const handleUploadDocument = useCallback(async () => {
@@ -236,11 +241,10 @@ const UserDocument = () => {
       return;
     }
     
-    // Only fetch classes if we have a user and aren't already loading data
-    if (user && !dataLoading) {
+    if (user) {
       fetchUserClasses();
     }
-  }, [user, fetchUserClasses, dataLoading, toast]);
+  }, [user, fetchUserClasses, toast]);
 
   // Update selected class detail when class changes
   useEffect(() => {
@@ -250,6 +254,12 @@ const UserDocument = () => {
       setSelectedClassDetail(null);
     }
   }, [selectedClass, classes]);
+
+  const handleRetryLoading = () => {
+    if (user) {
+      fetchUserClasses();
+    }
+  };
 
   // Render upload modal
   const renderUploadModal = () => (
@@ -429,26 +439,42 @@ const UserDocument = () => {
   // Render documents content
   const renderDocumentsContent = () => {
     if (dataLoading) {
-      return <div className="loading-container"><Loader /></div>;
+      return (
+        <div className="loading-container">
+          <Loader />
+          <p>Đang tải dữ liệu lớp học...</p>
+        </div>
+      );
     }
 
     if (classes.length === 0) {
-      return <div className="no-classes"><p>You are not assigned to any classes yet.</p></div>;
+      return (
+        <div className="no-classes">
+          <p>Không tìm thấy lớp học nào hoặc có lỗi khi tải dữ liệu.</p>
+          <Button
+            variant="primary"
+            onClick={handleRetryLoading}
+            style={{ marginTop: '10px' }}
+          >
+            Thử lại
+          </Button>
+        </div>
+      );
     }
 
     if (!selectedClass) {
-      return <div className="no-class-selected"><p>Please select a class to view documents</p></div>;
+      return <div className="no-class-selected"><p>Vui lòng chọn một lớp để xem tài liệu</p></div>;
     }
 
     return (
       <div className="documents-content">
         <div className="documents-header">
-          <h3>Documents for {selectedClassDetail?.class?.class_name}</h3>
+          <h3>Tài liệu của lớp {selectedClassDetail?.class?.class_name}</h3>
           <Button
             variant="primary"
             onClick={() => setIsUploadModalOpen(true)}
           >
-            Upload {user?.role === "Tutor" ? "Assignment" : "Submission"}
+            Upload {user?.role === "Tutor" ? "bài tập" : "bài nộp"}
           </Button>
         </div>
         

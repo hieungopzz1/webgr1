@@ -80,26 +80,6 @@ const ClassManagement = () => {
     }, 3000);
   }, [toast]);
   
-  // Fetch data on component mount
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      setError('Authentication required. Please log in again.');
-      toast.error('Authentication required. Please log in again.');
-      return;
-    }
-    
-    setDataLoading(true);
-    
-    Promise.all([
-      fetchClasses(),
-      fetchUsers()
-    ]).then(() => {
-      toast.info('Đã tải dữ liệu quản lý lớp học');
-    }).finally(() => {
-      setDataLoading(false);
-    });
-  }, [toast]);
-  
   // Fetch classes
   const fetchClasses = useCallback(async () => {
     try {
@@ -132,6 +112,28 @@ const ClassManagement = () => {
       return err;
     }
   }, [handleApiError]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      setError('Authentication required. Please log in again.');
+      toast.error('Authentication required. Please log in again.');
+      return;
+    }
+    
+    setDataLoading(true);
+    
+    Promise.all([
+      fetchClasses(),
+      fetchUsers()
+    ]).then(() => {
+      toast.info('Đã tải dữ liệu quản lý lớp học');
+    }).catch(err => {
+      console.error('Error loading initial data:', err);
+    }).finally(() => {
+      setDataLoading(false);
+    });
+    
+  }, []); 
   
   // Fetch class details (students and tutor)
   const fetchClassDetails = useCallback(async (classId) => {
@@ -257,7 +259,7 @@ const ClassManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedClass, fetchClasses, fetchClassDetails]);
+  }, [selectedClass, fetchClasses, fetchClassDetails, handleApiError]);
   
   // Add students to class
   const handleAddStudents = useCallback(async (studentIds) => {

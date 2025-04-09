@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Modal from '../modal/Modal';
-import Loader from '../loader/Loader';
+import Modal from '../../components/modal/Modal';
+import Loader from '../../components/loader/Loader';
 import useNotifications from '../../hooks/useNotifications';
 import { getUserData } from '../../utils/storage';
 import './NotificationModal.css';

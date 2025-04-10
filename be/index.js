@@ -9,7 +9,7 @@ const { Server } = require("socket.io");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const tutorRoutes = require("./routes/tutor");
-// const studentRoutes = require("./routes/student");
+const studentRoutes = require("./routes/student");
 const blogRoutes = require("./routes/blog");
 const meetingRoutes = require("./routes/meeting");
 const messageRoutes = require("./routes/message");
@@ -119,7 +119,7 @@ app.use("/api/class", classRoutes);
 app.use("/api/like", likeRoutes);
 app.use("/api/search", searchRoutes);
 app.use('/api/tutor', tutorRoutes);
-// app.use('/api/student', studentRoutes);
+app.use('/api/student', studentRoutes);
 app.use("/api/dashboard", require("./routes/dashboard")); // Route dashboard
 
 // Chạy server

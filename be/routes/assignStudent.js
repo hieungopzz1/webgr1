@@ -6,7 +6,7 @@ const { authenticateUser, authorizeRole } = require("../middleware/authMiddlewar
 //quan ly phan bo sinh vien 
 
 //loc major
-router.get("/search-students-by-major",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getStudentsByMajor);
+router.get("/major",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getStudentsByMajor);
 router.get("/get-all-students",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getAllStudents);
 router.post("/",authenticateUser,authorizeRole(["Admin"]), assignStudentController.assignStudent);
 router.get("/get-students/:classId",authenticateUser,authorizeRole(["Admin"]), assignStudentController.getAssignStudentInClass);

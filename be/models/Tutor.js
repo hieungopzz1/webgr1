@@ -7,7 +7,9 @@ const TutorSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, default: "Tutor" },
-  avatar: { type: String }
+  avatar: { type: String },
+  major: { type: String },
+  tutor_ID: { type: String },
 });
 
 TutorSchema.pre("findOneAndDelete", async function (next) {

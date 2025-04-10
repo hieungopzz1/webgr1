@@ -30,6 +30,7 @@ const createAccount = async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
 
+    
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let user;
@@ -50,6 +51,8 @@ const createAccount = async (req, res) => {
         email,
         password: hashedPassword,
         avatar,
+        major,
+        tutor_ID
       });
     } else if (role === "Admin") {
       user = new Admin({

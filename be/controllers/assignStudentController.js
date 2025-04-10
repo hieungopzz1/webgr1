@@ -1,5 +1,6 @@
 const AssignStudent = require("../models/AssignStudent");
 const Student = require("../models/Student");
+const Tutor = require("../models/Tutor");
 const Class = require("../models/Class");
 const Notification = require("../models/Notification");
 const sendEmailAllocation = require("../services/emailService");
@@ -106,13 +107,11 @@ const getAssignStudentInClass = async (req, res) => {
       "student"
     );
 
-    res
-      .status(200)
-      .json({
-        message: "Get Successfully",
-        totalStudentInClass: students.length,
-        students,
-      });
+    res.status(200).json({
+      message: "Get Successfully",
+      totalStudentInClass: students.length,
+      students,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -131,13 +130,18 @@ const getStudentsByMajor = async (req, res) => {
       major: { $regex: new RegExp(major, "i") },
     }).select("firstName lastName email major student_ID");
 
-    if (students.length === 0) {
+
+    const tutors = await Tutor.find({
+      major: { $regex: new RegExp(major, "i") },
+    }).select("firstName lastName email major tutor_ID");
+
+    if (tutors.length === 0 && students.length === 0) {
       return res
         .status(404)
         .json({ message: "No students found for this major" });
     }
 
-    res.status(200).json({ students });
+    res.status(200).json({ students, tutors });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

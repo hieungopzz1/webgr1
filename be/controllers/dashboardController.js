@@ -51,24 +51,23 @@ const getAdminDashboard = async (req, res) => {
     //tat ca tin nhan cua moi nguoi trong 7 ngay
     const messages = await Message.find({
       createdAt: { $gte: sevenDaysAgo },
-    }).sort({ createdAt: -1 }); 
+    }).sort({ createdAt: -1 });
 
     //student tuong tac trong 7 ngay
-    const activeStudents7Days = await Message.distinct('senderId', {
+    const activeStudents7Days = await Message.distinct("senderId", {
       createdAt: { $gte: sevenDaysAgo },
-      senderId: { $in: await Student.distinct('_id') },
+      senderId: { $in: await Student.distinct("_id") },
     });
     //student k tuong tac trong 7 ngay
     const studentsNoInteraction7Days = await Student.find({
       _id: { $nin: activeStudents7Days },
-    })
+    });
 
     //student không dang documents
-    const studentsWithDocuments = await Document.distinct('student_id');
+    const studentsWithDocuments = await Document.distinct("student_id");
     const studentsWithoutDocuments = await Student.find({
       _id: { $nin: studentsWithDocuments },
-    }).select('firstName lastName email student_ID');
-
+    }).select("firstName lastName email student_ID");
 
     const tutors = await Tutor.find();
     const messageStats = await Promise.all(
@@ -76,11 +75,19 @@ const getAdminDashboard = async (req, res) => {
         const messageCount = await Message.countDocuments({
           $or: [{ senderId: tutor._id }, { receiver_id: tutor._id }],
         });
-        return { tutorId: tutor._id, tutorName: `${tutor.firstName} ${tutor.lastName}`, messageCount };
+        return {
+          tutorId: tutor._id,
+          tutorName: `${tutor.firstName} ${tutor.lastName}`,
+          messageCount,
+        };
       })
     );
-    const totalMessages = messageStats.reduce((sum, stat) => sum + stat.messageCount, 0);
-    const averageMessagesPerTutor = tutors.length > 0 ? totalMessages / tutors.length : 0;
+    const totalMessages = messageStats.reduce(
+      (sum, stat) => sum + stat.messageCount,
+      0
+    );
+    const averageMessagesPerTutor =
+      tutors.length > 0 ? totalMessages / tutors.length : 0;
 
     const dashboardData = {
       totalStudents,
@@ -93,11 +100,11 @@ const getAdminDashboard = async (req, res) => {
       totalSchedules,
       totalClassAssign: assignedClassIds.length,
       totalClassUnassign: unassignedClasses.length,
-      messages:messages.length,
+      messages: messages.length,
       activeStudents7Days: activeStudents7Days.length,
       studentsNoInteraction7Days: studentsNoInteraction7Days.length,
       studentsWithoutDocuments: studentsWithoutDocuments.length,
-      averageMessagesPerTutor
+      averageMessagesPerTutor,
     };
 
     res.json(dashboardData);
@@ -109,23 +116,20 @@ const getAdminDashboard = async (req, res) => {
 const getTutorDashboard = async (req, res) => {
   try {
     const tutorId = req.user.id;
-    // Tổng số blog
     const blogs = await Blog.find({ tutor_id: tutorId });
     const documents = await Document.find({ tutor_id: tutorId });
-    // Tổng số bình luận và lượt thích
     const comments = await Comment.find({ tutor_id: tutorId });
     const likes = await Like.find({
       blog_id: { $in: blogs.map((blog) => blog._id) },
     });
 
-    // Lấy tin nhắn gần đây trong 7 ngày
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const recentMessages = await Message.find({
       $or: [{ senderId: tutorId }, { receiverId: tutorId }],
       timestamp: { $gte: sevenDaysAgo },
-    })
-      .sort({ timestamp: -1 })
-      .lean();
+    }).sort({ timestamp: -1 }).lean();
+
+    const classes = await Class.find({ tutor: tutorId });
 
     res.status(200).json({
       message: "Dashboard data retrieved successfully",
@@ -134,6 +138,7 @@ const getTutorDashboard = async (req, res) => {
       totalLikes: likes.length,
       recentMessages,
       totalDocuments: documents.length,
+      totalClasses: classes.length,
     });
   } catch (error) {
     console.error("Error in getTutorDashboard:", error.message);
@@ -158,12 +163,26 @@ const getStudentDashboard = async (req, res) => {
       status: "absent",
     });
 
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentMessages = await Message.find({
+      $or: [{ senderId: studentId }, { receiverId: studentId }],
+      timestamp: { $gte: sevenDaysAgo },
+    }).sort({ timestamp: -1 }).lean();
+
+    const assignments = await AssignStudent.find({ student: studentId,  });
+
+    const classes = assignments
+      .filter((a) => a.class !== null)
+      .map((a) => a.class);
+
     res.json({
       role: "student",
       totalBlogs,
       totalComments: comments.length,
       totalLikes: likes.length,
       totalAbsentDays: attendanceRecords.length,
+      classes: classes.length,
+      recentMessages,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

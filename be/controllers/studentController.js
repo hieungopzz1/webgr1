@@ -1,36 +1,24 @@
-// const Schedule = require("../models/Schedule");
-// const Blog = require("../models/Blog");
-// const Comment = require("../models/Comment");
-// const Like = require("../models/Like");
+const AssignStudent = require("../models/AssignStudent");
 
-// const getStudentDashboard = async (req, res) => {
-//   try {
-//     const studentId = req.user.id;
+const getJoinedClasses = async (req, res) => {
+  try {
+    const studentId = req.user.id;
 
-//     // Lấy danh sách blogs mà student đã đăng
-//     const blogs = await Blog.find({ student_id: studentId });
+    const assignments = await AssignStudent.find({
+      student: studentId,
+    }).populate({
+      path: "class",
+      populate: { path: "tutor" },
+    });
 
-//     // Tổng số blogs, comments, likes
-//     const totalBlogs = blogs.length;
-//     const comments = await Comment.find({ student_id: studentId });
-//     const likes = await Like.find({ blog_id: { $in: blogs.map(blog => blog._id) } });
+    const classes = assignments
+      .filter((a) => a.class !== null)
+      .map((a) => a.class);
 
-//     // Số buổi nghỉ học
-//     const totalAbsentDays = await Schedule.countDocuments({ student_id: studentId, status: "absent" });
+    return res.status(200).json({ classes });
+  } catch (error) {
+    return res.status(500).json({ error });
+  }
+};
 
-//     const dashboardData = {
-//       role: "student",
-//       totalBlogs,
-//       totalComments: comments.length,
-//       totalLikes: likes.length,
-//       totalAbsentDays,
-//     };
-
-//     res.json(dashboardData);
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-
-// module.exports = { getStudentDashboard };
+module.exports = { getJoinedClasses };

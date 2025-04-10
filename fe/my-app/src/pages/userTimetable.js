@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import api from "../utils/api";
 import { getUserData, isAuthenticated } from "../utils/storage";
-import Button from "../components/button/Button";
-import Loader from "../components/loader/Loader";
-import Modal from "../components/modal/Modal";
-import { useToast } from "../context/ToastContext";
 import { 
   getWeek, 
   format, 
@@ -14,32 +10,52 @@ import {
   addWeeks,
   subWeeks
 } from 'date-fns';
+
+// Components
+import Button from "../components/button/Button";
+import Loader from "../components/loader/Loader";
+import Modal from "../components/modal/Modal";
+import { useToast } from "../context/ToastContext";
+
+// Styles
 import "./userTimetable.css";
 
 const UserTimetable = () => {
+  // User state
   const [user, setUser] = useState(null);
+  
+  // General state
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [dataLoading, setDataLoading] = useState(true);
+  
+  // Schedule data
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-  const [studentsInClass, setStudentsInClass] = useState([]);
-  const [attendanceStatus, setAttendanceStatus] = useState({ presentStudents: [], absentStudents: [] });
-  const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState(null);
-
+  const [tutorClasses, setTutorClasses] = useState([]);
+  
+  // Date & Week selection
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentWeek, setCurrentWeek] = useState(getWeek(new Date(), { weekStartsOn: 1 }));
+  const [currentWeek, setCurrentWeek] = useState(null);
   const [weekDates, setWeekDates] = useState([]);
   
-  const [tutorClasses, setTutorClasses] = useState([]);
+  // Attendance related state
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [studentsInClass, setStudentsInClass] = useState([]);
+  const [attendanceStatus, setAttendanceStatus] = useState({ 
+    presentStudents: [], 
+    absentStudents: [], 
+    notYetStudents: []
+  });
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [studentAttendanceMap, setStudentAttendanceMap] = useState({});
 
+  // Refs & Hooks
   const toast = useToast();
   const initialLoadRef = useRef(false);
 
+  // Constants
   const slotLabels = {
     1: "07:00 - 08:30",
     2: "08:45 - 10:15", 
@@ -51,9 +67,11 @@ const UserTimetable = () => {
 
   const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
+  // Helper functions
   const formatDate = dateString => format(new Date(dateString), 'dd/MM/yyyy');
   const formatShortDate = date => format(date, 'dd/MM');
 
+  // Date & Week utils
   const getAvailableWeeksInYear = year => {
     const weeks = [];
     
@@ -64,6 +82,7 @@ const UserTimetable = () => {
     const firstDayOfWeek = firstDayOfYear.getDay();
     
     if (firstDayOfWeek === 1) {
+      // Already Monday
     } else if (firstDayOfWeek === 0) {
       firstMonday.setDate(firstDayOfYear.getDate() + 1);
     } else {
@@ -93,14 +112,31 @@ const UserTimetable = () => {
     return weeks;
   };
 
+  const getCurrentWeekFromDate = useCallback((date) => {
+    const year = getYear(date);
+    const weeks = getAvailableWeeksInYear(year);
+    
+    for (const weekObj of weeks) {
+      const startDate = new Date(weekObj.startDate);
+      const endDate = new Date(weekObj.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      
+      if (date >= startDate && date <= endDate) {
+        return weekObj.week;
+      }
+    }
+    
+    return weeks.length > 0 ? weeks[0].week : 1;
+  }, []);
+
+  // Memoized values
   const yearOptions = useMemo(() => {
     const currentYear = getYear(new Date());
     return [currentYear - 1, currentYear, currentYear + 1];
   }, []);
 
   const weekOptions = useMemo(() => {
-    const options = getAvailableWeeksInYear(getYear(currentDate));
-    return options;
+    return getAvailableWeeksInYear(getYear(currentDate));
   }, [currentDate]);
 
   const daysInSelectedWeek = useMemo(() => {
@@ -128,167 +164,6 @@ const UserTimetable = () => {
     return days;
   }, [weekOptions, currentWeek]);
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      toast.error("Authentication required. Please log in again.");
-      return;
-    }
-    
-    const userData = getUserData();
-    setUser(userData);
-    
-    const dates = [];
-    if (typeof currentWeek === 'number') {
-      const year = getYear(currentDate);
-      const firstDayOfYear = new Date(year, 0, 1);
-      const dayOffset = (currentWeek - 1) * 7;
-      const weekStart = new Date(year, 0, dayOffset);
-      
-      const dayOfWeek = weekStart.getDay();
-      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      weekStart.setDate(weekStart.getDate() + diff);
-      
-      for (let i = 0; i < 7; i++) {
-        const newDate = new Date(weekStart);
-        newDate.setDate(weekStart.getDate() + i);
-        dates.push(newDate);
-      }
-    } else {
-      for (let i = 0; i < 7; i++) {
-        dates.push(addDays(currentWeek, i));
-      }
-    }
-    setWeekDates(dates);
-  }, [currentWeek, currentDate]);
-
-  const handleApiError = useCallback((err) => {
-    if (err?.response?.status !== 401) {
-      toast.error(err?.response?.data?.message || 'Something went wrong. Please try again.');
-    }
-  }, [toast]);
-
-  const fetchClasses = useCallback(async () => {
-    try {
-      const response = await api.get("/api/class/get-all-class");
-      
-      if (response.data && Array.isArray(response.data.classes)) {
-        setClasses(response.data.classes);
-      } else if (response.data && Array.isArray(response.data)) {
-        setClasses(response.data);
-      } else {
-        setClasses([]);
-      }
-      return response;
-    } catch (err) {
-      handleApiError(err);
-      return err;
-    }
-  }, [handleApiError]);
-
-  const fetchSchedulesForStudent = useCallback(async () => {
-    try {
-      setDataLoading(true);
-      const response = await api.get(`/api/schedule/student/${user.id}`);
-      
-      if (response.data) {
-        const scheduleData = Array.isArray(response.data) ? response.data : [];
-        setSchedules(scheduleData);
-        
-        const classSet = new Set();
-        scheduleData.forEach(schedule => {
-          if (schedule.class && schedule.class._id) {
-            classSet.add(schedule.class._id);
-          }
-        });
-        
-        setClasses(Array.from(classSet));
-      }
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setDataLoading(false);
-    }
-  }, [user, handleApiError]);
-
-  const fetchSchedulesForTutor = useCallback(async () => {
-    try {
-      setDataLoading(true);
-      const response = await api.get(`/api/schedule/tutor/${user.id}`);
-      
-      if (response.data) {
-        const scheduleData = Array.isArray(response.data) ? response.data : [];
-        setSchedules(scheduleData);
-        
-        if (scheduleData.length > 0) {
-          const uniqueClasses = [];
-          const classIds = new Set();
-          
-          scheduleData.forEach(schedule => {
-            const classId = schedule.class._id || schedule.class;
-            const className = schedule.class.class_name || "Unknown Class";
-            
-            if (!classIds.has(classId)) {
-              classIds.add(classId);
-              uniqueClasses.push({
-                _id: classId,
-                class_name: className
-              });
-            }
-          });
-          
-          setTutorClasses(uniqueClasses);
-        }
-      } else {
-        setSchedules([]);
-        setTutorClasses([]);
-      }
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setDataLoading(false);
-    }
-  }, [user, handleApiError]);
-
-  const fetchStudentsBySchedule = useCallback(async (scheduleId) => {
-    try {
-      setAttendanceLoading(true);
-      
-      const response = await api.get(`/api/attendance/${scheduleId}/students`);
-      
-      if (Array.isArray(response.data?.students)) {
-        setStudentsInClass(response.data.students);
-      } else {
-        setStudentsInClass([]);
-      }
-      
-      return response;
-    } catch (err) {
-      handleApiError(err);
-      return err;
-    } finally {
-      setAttendanceLoading(false);
-    }
-  }, [handleApiError]);
-
-  const fetchAttendanceStatus = useCallback(async (scheduleId) => {
-    try {
-      setAttendanceLoading(true);
-      const response = await api.get(`/api/attendance/${scheduleId}/status`);
-      if (response.data) {
-        setAttendanceStatus({
-          presentStudents: response.data.presentStudents || [],
-          absentStudents: response.data.absentStudents || []
-        });
-      }
-      return response;
-    } catch (err) {
-      handleApiError(err);
-      return err;
-    } finally {
-      setAttendanceLoading(false);
-    }
-  }, [handleApiError]);
-
   const filteredSchedulesByWeek = useMemo(() => {
     if (!daysInSelectedWeek.length) return [];
     
@@ -297,13 +172,10 @@ const UserTimetable = () => {
     const endOfDay = new Date(endDate);
     endOfDay.setHours(23, 59, 59, 999);
     
-    const filteredSchedules = schedules.filter(schedule => {
+    return schedules.filter(schedule => {
       const scheduleDate = new Date(schedule.date);
-      const isInRange = scheduleDate >= startDate && scheduleDate <= endOfDay;
-      return isInRange;
+      return scheduleDate >= startDate && scheduleDate <= endOfDay;
     });
-    
-    return filteredSchedules;
   }, [schedules, daysInSelectedWeek]);
 
   const schedulesGroupedByDayAndSlot = useMemo(() => {
@@ -329,42 +201,31 @@ const UserTimetable = () => {
     return groupedSchedules;
   }, [filteredSchedulesByWeek, daysInSelectedWeek]);
 
-  const fetchStudentAttendanceData = useCallback(async () => {
-    if (!user || user.role !== "Student" || !filteredSchedulesByWeek.length) return;
-    
+  // Error handling
+  const handleApiError = useCallback((err) => {
+    if (err?.response?.status !== 401) {
+      toast.error(err?.response?.data?.message || 'Something went wrong. Please try again.');
+    }
+  }, [toast]);
+
+  // API calls
+  const fetchClasses = useCallback(async () => {
     try {
-      const newAttendanceMap = {};
+      const response = await api.get("/api/class/get-all-class");
       
-      const attendancePromises = filteredSchedulesByWeek.map(async (schedule) => {
-        try {
-          const response = await api.get(`/api/attendance/${schedule._id}/status`);
-          const data = response.data;
-          
-          const isPresentStudent = data.presentStudents.some(student => student._id === user.id);
-          const isAbsentStudent = data.absentStudents.some(student => student._id === user.id);
-          
-          return {
-            scheduleId: schedule._id,
-            status: isPresentStudent ? "Present" : (isAbsentStudent ? "Absent" : null)
-          };
-        } catch (err) {
-          return { scheduleId: schedule._id, status: null };
-        }
-      });
-      
-      const results = await Promise.all(attendancePromises);
-      
-      results.forEach(result => {
-        if (result && result.scheduleId) {
-          newAttendanceMap[result.scheduleId] = result.status;
-        }
-      });
-      
-      setStudentAttendanceMap(newAttendanceMap);
+      if (response.data && Array.isArray(response.data.classes)) {
+        setClasses(response.data.classes);
+      } else if (response.data && Array.isArray(response.data)) {
+        setClasses(response.data);
+      } else {
+        setClasses([]);
+      }
+      return response;
     } catch (err) {
       handleApiError(err);
+      return err;
     }
-  }, [user, filteredSchedulesByWeek, handleApiError]);
+  }, [handleApiError]);
 
   const fetchUserSchedules = useCallback(async () => {
     if (!user || !user.id) return;
@@ -479,19 +340,86 @@ const UserTimetable = () => {
     }
   }, [user, handleApiError]);
 
-  useEffect(() => {
-    if (user) {
-      fetchUserSchedules();
+  const fetchStudentsBySchedule = useCallback(async (scheduleId) => {
+    try {
+      setAttendanceLoading(true);
+      
+      const response = await api.get(`/api/attendance/${scheduleId}/students`);
+      
+      if (Array.isArray(response.data?.students)) {
+        setStudentsInClass(response.data.students);
+      } else {
+        setStudentsInClass([]);
+      }
+      
+      return response;
+    } catch (err) {
+      handleApiError(err);
+      return err;
+    } finally {
+      setAttendanceLoading(false);
     }
-  }, [user, fetchUserSchedules]);
+  }, [handleApiError]);
 
-  useEffect(() => {
-    if (user?.role === 'Student' && filteredSchedulesByWeek.length > 0 && !initialLoadRef.current) {
-      fetchStudentAttendanceData();
-      initialLoadRef.current = true;
+  const fetchAttendanceStatus = useCallback(async (scheduleId) => {
+    try {
+      setAttendanceLoading(true);
+      const response = await api.get(`/api/attendance/${scheduleId}/status`);
+      if (response.data) {
+        setAttendanceStatus({
+          presentStudents: response.data.presentStudents || [],
+          absentStudents: response.data.absentStudents || [],
+          notYetStudents: response.data.notYetStudents || []
+        });
+      }
+      return response;
+    } catch (err) {
+      handleApiError(err);
+      return err;
+    } finally {
+      setAttendanceLoading(false);
     }
-  }, [user?.role, filteredSchedulesByWeek.length, fetchStudentAttendanceData]);
+  }, [handleApiError]);
 
+  const fetchStudentAttendanceData = useCallback(async () => {
+    if (!user || user.role !== "Student" || !filteredSchedulesByWeek.length) return;
+    
+    try {
+      const newAttendanceMap = {};
+      
+      const attendancePromises = filteredSchedulesByWeek.map(async (schedule) => {
+        try {
+          const response = await api.get(`/api/attendance/${schedule._id}/status`);
+          const data = response.data;
+          
+          const isPresentStudent = data.presentStudents.some(student => student._id === user.id);
+          const isAbsentStudent = data.absentStudents.some(student => student._id === user.id);
+          const isNotYetStudent = data.notYetStudents?.some(student => student._id === user.id);
+          
+          return {
+            scheduleId: schedule._id,
+            status: isPresentStudent ? "Present" : (isAbsentStudent ? "Absent" : (isNotYetStudent ? null : null))
+          };
+        } catch (err) {
+          return { scheduleId: schedule._id, status: null };
+        }
+      });
+      
+      const results = await Promise.all(attendancePromises);
+      
+      results.forEach(result => {
+        if (result && result.scheduleId) {
+          newAttendanceMap[result.scheduleId] = result.status;
+        }
+      });
+      
+      setStudentAttendanceMap(newAttendanceMap);
+    } catch (err) {
+      handleApiError(err);
+    }
+  }, [user, filteredSchedulesByWeek, handleApiError]);
+
+  // Attendance functions
   const submitAttendance = useCallback(async (scheduleId, attendanceData) => {
     try {
       setLoading(true);
@@ -524,7 +452,9 @@ const UserTimetable = () => {
       await fetchStudentsBySchedule(schedule._id);
       await fetchAttendanceStatus(schedule._id);
       setIsAttendanceModalOpen(true);
-    } catch (error) {}
+    } catch (error) {
+      // Error already handled by fetchStudentsBySchedule
+    }
   }, [fetchStudentsBySchedule, fetchAttendanceStatus]);
 
   const getStudentAttendanceStatus = useCallback((studentId, scheduleId) => {
@@ -538,9 +468,66 @@ const UserTimetable = () => {
     const isAbsentStudent = attendanceStatus.absentStudents.some(student => student._id === studentId);
     if (isAbsentStudent) return "Absent";
     
+    const isNotYetStudent = attendanceStatus.notYetStudents.some(student => student._id === studentId);
+    if (isNotYetStudent) return null;
+    
     return null;
   }, [attendanceStatus, studentAttendanceMap, user]);
 
+  // Effect hooks
+  useEffect(() => {
+    if (weekOptions.length > 0 && currentWeek === null) {
+      setCurrentWeek(getCurrentWeekFromDate(new Date()));
+    }
+  }, [weekOptions, currentWeek, getCurrentWeekFromDate]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      toast.error("Authentication required. Please log in again.");
+      return;
+    }
+    
+    const userData = getUserData();
+    setUser(userData);
+    
+    const dates = [];
+    if (typeof currentWeek === 'number') {
+      const year = getYear(currentDate);
+      const firstDayOfYear = new Date(year, 0, 1);
+      const dayOffset = (currentWeek - 1) * 7;
+      const weekStart = new Date(year, 0, dayOffset);
+      
+      const dayOfWeek = weekStart.getDay();
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      weekStart.setDate(weekStart.getDate() + diff);
+      
+      for (let i = 0; i < 7; i++) {
+        const newDate = new Date(weekStart);
+        newDate.setDate(weekStart.getDate() + i);
+        dates.push(newDate);
+      }
+    } else {
+      for (let i = 0; i < 7; i++) {
+        dates.push(addDays(currentWeek, i));
+      }
+    }
+    setWeekDates(dates);
+  }, [currentWeek, currentDate]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserSchedules();
+    }
+  }, [user, fetchUserSchedules]);
+
+  useEffect(() => {
+    if (user?.role === 'Student' && filteredSchedulesByWeek.length > 0 && !initialLoadRef.current) {
+      fetchStudentAttendanceData();
+      initialLoadRef.current = true;
+    }
+  }, [user?.role, filteredSchedulesByWeek.length, fetchStudentAttendanceData]);
+
+  // UI Components
   const TutorName = ({ tutorData }) => {
     const [tutorName, setTutorName] = useState("Not Assigned");
     
@@ -717,7 +704,8 @@ const UserTimetable = () => {
                 const newDate = new Date(currentDate);
                 newDate.setFullYear(newYear);
                 setCurrentDate(newDate);
-                setCurrentWeek(getWeek(new Date(), { weekStartsOn: 1 }));
+                
+                setCurrentWeek(null);
               }}
               className="form-select"
             >
@@ -730,7 +718,7 @@ const UserTimetable = () => {
           <div className="filter-item">
             <label>Week:</label>
             <select 
-              value={currentWeek} 
+              value={currentWeek || ""} 
               onChange={(e) => {
                 const selectedWeek = parseInt(e.target.value);
                 setCurrentWeek(selectedWeek);
@@ -740,12 +728,17 @@ const UserTimetable = () => {
                 }
               }}
               className="form-select"
+              disabled={currentWeek === null}
             >
-              {weekOptions.map(weekOption => (
-                <option key={weekOption.week} value={weekOption.week}>
-                  Week {weekOption.week}: {weekOption.label}
-                </option>
-              ))}
+              {currentWeek === null ? (
+                <option value="">Loading weeks...</option>
+              ) : (
+                weekOptions.map(weekOption => (
+                  <option key={weekOption.week} value={weekOption.week}>
+                    Week {weekOption.week}: {weekOption.label}
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
@@ -792,8 +785,6 @@ const UserTimetable = () => {
       );
     }
 
-    const isLoading = dataLoading;
-
     return (
       <>
         <div className="user-timetable-header">
@@ -801,14 +792,10 @@ const UserTimetable = () => {
           {renderWeekSelector()}
         </div>
           
-        {isLoading ? (
+        {dataLoading ? (
           <div className="loading-container">
             <Loader />
             <p>Loading class data...</p>
-          </div>
-        ) : schedules.length === 0 ? (
-          <div className="empty-schedule">
-            <p>Không có lịch học nào trong tuần đã chọn.</p>
           </div>
         ) : (
           renderTimetable(isTutor, isStudent)
@@ -828,7 +815,7 @@ const UserTimetable = () => {
           const status = getStudentAttendanceStatus(student._id, selectedSchedule._id);
           return {
             studentId: student._id,
-            status: status || "Absent"
+            status: status || null // Default to null instead of "Absent"
           };
         });
         setAttendanceData(initialAttendance);
@@ -847,7 +834,16 @@ const UserTimetable = () => {
     
     const handleSubmit = () => {
       if (!selectedSchedule || !attendanceData.length) return;
-      submitAttendance(selectedSchedule._id, attendanceData);
+      
+      // Chỉ gửi những bản ghi đã được đánh dấu (không phải null)
+      const validAttendanceData = attendanceData
+        .filter(item => item.status !== null)
+        .map(item => ({
+          studentId: item.studentId,
+          status: item.status || "Absent" // Fallback to "Absent" if status is somehow null
+        }));
+        
+      submitAttendance(selectedSchedule._id, validAttendanceData);
     };
     
     return (
@@ -885,36 +881,41 @@ const UserTimetable = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {studentsInClass.map(student => (
-                        <tr key={student._id}>
-                          <td className="student-id" title={student.email || "No email available"}>
-                            {student.student_ID || "ID không có sẵn"}
-                          </td>
-                          <td>{student.firstName} {student.lastName}</td>
-                          <td>
-                            <div className="attendance-radio-group">
-                              <label className="attendance-radio">
-                                <input
-                                  type="radio"
-                                  name={`attendance-${student._id}`}
-                                  checked={attendanceData.find(item => item.studentId === student._id)?.status === "Present"}
-                                  onChange={() => handleStatusChange(student._id, "Present")}
-                                />
-                                <span className="present-label">Present</span>
-                              </label>
-                              <label className="attendance-radio">
-                                <input
-                                  type="radio"
-                                  name={`attendance-${student._id}`}
-                                  checked={attendanceData.find(item => item.studentId === student._id)?.status === "Absent"}
-                                  onChange={() => handleStatusChange(student._id, "Absent")}
-                                />
-                                <span className="absent-label">Absent</span>
-                              </label>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {studentsInClass.map(student => {
+                        const studentAttendance = attendanceData.find(item => item.studentId === student._id);
+                        const currentStatus = studentAttendance ? studentAttendance.status : null;
+                        
+                        return (
+                          <tr key={student._id}>
+                            <td className="student-id" title={student.email || "No email available"}>
+                              {student.student_ID || "ID không có sẵn"}
+                            </td>
+                            <td>{student.firstName} {student.lastName}</td>
+                            <td>
+                              <div className="attendance-radio-group">
+                                <label className="attendance-radio">
+                                  <input
+                                    type="radio"
+                                    name={`attendance-${student._id}`}
+                                    checked={currentStatus === "Present"}
+                                    onChange={() => handleStatusChange(student._id, "Present")}
+                                  />
+                                  <span className="present-label">Present</span>
+                                </label>
+                                <label className="attendance-radio">
+                                  <input
+                                    type="radio"
+                                    name={`attendance-${student._id}`}
+                                    checked={currentStatus === "Absent"}
+                                    onChange={() => handleStatusChange(student._id, "Absent")}
+                                  />
+                                  <span className="absent-label">Absent</span>
+                                </label>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

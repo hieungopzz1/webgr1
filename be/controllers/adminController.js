@@ -14,8 +14,9 @@ const path = require("path");
 
 const createAccount = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role, student_ID, major } = req.body;
+    const { firstName, lastName, email, password, role, student_ID, tutor_ID, major } = req.body;
     const avatar = req.file ? `/uploads/avatar/${req.file.filename}` : null;
+
     if (!["Student", "Tutor", "Admin"].includes(role)) {
       if (avatar) removeImage(avatar);
       return res.status(400).json({ message: "Invalid role" });
@@ -30,11 +31,17 @@ const createAccount = async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let user;
+
     if (role === "Student") {
+      const existingStudentID = await Student.findOne({ student_ID });
+      if (existingStudentID) {
+        if (avatar) removeImage(avatar);
+        return res.status(400).json({ message: "Student ID already exists" });
+      }
+
       user = new Student({
         firstName,
         lastName,
@@ -44,7 +51,14 @@ const createAccount = async (req, res) => {
         student_ID,
         major
       });
+
     } else if (role === "Tutor") {
+      const existingTutorID = await Tutor.findOne({ tutor_ID });
+      if (existingTutorID) {
+        if (avatar) removeImage(avatar);
+        return res.status(400).json({ message: "Tutor ID already exists" });
+      }
+
       user = new Tutor({
         firstName,
         lastName,
@@ -54,6 +68,7 @@ const createAccount = async (req, res) => {
         major,
         tutor_ID
       });
+
     } else if (role === "Admin") {
       user = new Admin({
         firstName,
@@ -67,14 +82,17 @@ const createAccount = async (req, res) => {
     await user.save();
 
     const io = req.app.get("socketio");
-    io.emit("updateDashboard", { message: "A new user is added!", user: user });
+    io.emit("updateDashboard", { message: "A new user is added!", user });
 
-    res
-      .status(201)
-      .json({ user, message: "User created successfully", avatar });
+    return res.status(201).json({
+      user,
+      message: "User created successfully",
+      avatar
+    });
+
   } catch (error) {
     if (req.file) removeImage(`/uploads/avatar/${req.file.filename}`);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 

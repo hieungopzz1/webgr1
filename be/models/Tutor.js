@@ -2,14 +2,14 @@ const mongoose = require("mongoose");
 const Blog = require("../models/Blog");
 const Document = require("../models/Document");
 const TutorSchema = new mongoose.Schema({
+  tutor_ID: { type: String, required: true, unique: true }, 
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true }, 
   password: { type: String, required: true },
   role: { type: String, default: "Tutor" },
-  avatar: { type: String },
-  major: { type: String },
-  tutor_ID: { type: String },
+  major: { type: String, required: true }, 
+  avatar: { type: String }
 });
 
 TutorSchema.pre("findOneAndDelete", async function (next) {

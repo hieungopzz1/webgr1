@@ -188,7 +188,7 @@ const ClassManagement = () => {
     
     setLoadingMajorStudents(true);
     try {
-      const response = await api.get(`/api/assign-student/search-students-by-major?major=${majorName}`);
+      const response = await api.get(`/api/assign-student/major?major=${majorName}`);
       if (response.data && Array.isArray(response.data.students)) {
         setMajorStudents(response.data.students);
       } else {

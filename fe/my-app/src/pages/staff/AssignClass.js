@@ -38,7 +38,7 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
     
     setLoadingStudents(true);
     try {
-      const response = await api.get(`/api/assign-student/search-students-by-major?major=${selectedMajor}`);
+      const response = await api.get(`/api/assign-student/major?major=${selectedMajor}`);
       if (response.data && Array.isArray(response.data.students)) {
         setMajorStudents(response.data.students);
       } else {

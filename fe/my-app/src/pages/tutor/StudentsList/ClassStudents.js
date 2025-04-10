@@ -18,11 +18,11 @@ const ClassStudents = () => {
       setLoading(true);
       setError(null);
       
-      const response = await api.get(API_ROUTES.TUTOR.GET_CLASS_STUDENTS(classId));
-      setClassInfo(response.data.class);
+      const response = await api.get(`/api/class/${classId}/students`);
+      setClassInfo(response.data.classInfo || {});
       setStudents(response.data.students || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Không thể tải danh sách sinh viên');
+      setError(err.response?.data?.message || 'Unable to load student list');
       console.error('Error fetching students:', err);
     } finally {
       setLoading(false);
@@ -59,7 +59,7 @@ const ClassStudents = () => {
       <div className="class-students-container">
         <div className="loading-spinner">
           <div className="spinner"></div>
-          <p>Đang tải dữ liệu...</p>
+          <p>Loading data...</p>
         </div>
       </div>
     );
@@ -69,13 +69,13 @@ const ClassStudents = () => {
     return (
       <div className="class-students-container">
         <div className="error-message">
-          <h2>Có lỗi xảy ra</h2>
+          <h2>An error occurred</h2>
           <p>{error}</p>
           <button className="retry-button" onClick={fetchStudents}>
-            Thử lại
+            Retry
           </button>
           <button className="back-button" onClick={handleGoBack}>
-            Quay lại danh sách lớp
+            Back to class list
           </button>
         </div>
       </div>
@@ -87,20 +87,20 @@ const ClassStudents = () => {
       <div className="page-header">
         <div className="header-actions">
           <button className="back-button" onClick={handleGoBack}>
-            &larr; Quay lại
+            &larr; Back
           </button>
         </div>
         
-        <h1>Danh sách sinh viên - {classInfo?.class_name}</h1>
+        <h1>Student List - {classInfo?.class_name}</h1>
         <div className="class-info">
           <span className="info-item">
-            <strong>Môn học:</strong> {classInfo?.subject}
+            <strong>Subject:</strong> {classInfo?.subject}
           </span>
           <span className="info-item">
-            <strong>Chuyên ngành:</strong> {classInfo?.major}
+            <strong>Major:</strong> {classInfo?.major}
           </span>
           <span className="info-item">
-            <strong>Số sinh viên:</strong> {students.length}
+            <strong>Number of students:</strong> {students.length}
           </span>
         </div>
       </div>
@@ -109,7 +109,7 @@ const ClassStudents = () => {
         <div className="search-container">
           <input
             type="text"
-            placeholder="Tìm kiếm theo mã, tên hoặc email..."
+            placeholder="Search by ID, name or email..."
             value={searchTerm}
             onChange={handleSearchChange}
             className="search-input"
@@ -120,9 +120,9 @@ const ClassStudents = () => {
       {filteredStudents.length === 0 ? (
         <div className="empty-state">
           {searchTerm ? (
-            <p>Không tìm thấy sinh viên phù hợp với từ khóa "{searchTerm}"</p>
+            <p>No students found matching "{searchTerm}"</p>
           ) : (
-            <p>Lớp học này chưa có sinh viên nào.</p>
+            <p>This class has no students yet.</p>
           )}
         </div>
       ) : (
@@ -130,10 +130,10 @@ const ClassStudents = () => {
           <table className="students-table">
             <thead>
               <tr>
-                <th>Mã sinh viên</th>
-                <th>Họ tên</th>
+                <th>Student ID</th>
+                <th>Full Name</th>
                 <th>Email</th>
-                <th>Chuyên ngành</th>
+                <th>Major</th>
               </tr>
             </thead>
             <tbody>

@@ -6,6 +6,7 @@ import Button from '../../components/button/Button';
 import useAuth from '../../hooks/useAuth';
 import { useToast } from '../../context/ToastContext';
 import { isAuthenticated } from '../../utils/storage';
+import { ROUTES } from '../../utils/constants';
 import './Login.css';
 
 const Login = () => {
@@ -21,7 +22,7 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated()) {
-      navigate('/home', { replace: true });
+      navigate(ROUTES.HOME, { replace: true });
     }
   }, [navigate]);
 
@@ -36,7 +37,7 @@ const Login = () => {
     e.preventDefault();
     
     if (isAuthenticated()) {
-      navigate('/home', { replace: true });
+      navigate(ROUTES.HOME, { replace: true });
       return;
     }
     
@@ -47,13 +48,13 @@ const Login = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        toast.success('Đăng nhập thành công!');
-        navigate('/home', { replace: true });
+        toast.success('Login successful!');
+        navigate(ROUTES.HOME, { replace: true });
       } else {
-        toast.error(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+        toast.error(result.message || 'Login failed. Please try again.');
       }
     } catch (err) {
-      toast.error('Có lỗi xảy ra. Vui lòng thử lại.');
+      toast.error('An error occurred. Please try again.');
       console.error('Login error:', err);
     } finally {
       setLoading(false);

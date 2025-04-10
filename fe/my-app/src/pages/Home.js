@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import api from '../utils/api';
 import BlogCard from '../components/BlogCard/BlogCard';
 import { getUserData } from '../utils/storage';
@@ -41,6 +41,8 @@ const Home = () => {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const initialFetchDone = useRef(false);
+  const eventListenerRegistered = useRef(false);
 
   // Sử dụng useCallback để tối ưu hiệu suất
   const fetchBlogs = useCallback(async () => {
@@ -69,22 +71,31 @@ const Home = () => {
     setBlogs(prevBlogs => [newBlog, ...prevBlogs]);
   }, []);
 
+  // useEffect cho việc fetch data và user data - chỉ chạy 1 lần
   useEffect(() => {
-    // Fetch data khi component mount
-    fetchBlogs();
-    
-    // Lấy thông tin người dùng từ localStorage
-    const userData = getUserData();
-    setUser(userData);
+    if (!initialFetchDone.current) {
+      fetchBlogs();
+      
+      // Lấy thông tin người dùng từ localStorage - chỉ lấy 1 lần
+      const userData = getUserData();
+      setUser(userData);
+      
+      initialFetchDone.current = true;
+    }
+  }, []); // Chỉ chạy 1 lần khi mount
 
-    // Thêm event listener
-    window.addEventListener('blogCreated', handleBlogCreated);
-
-    // Cleanup function
-    return () => {
-      window.removeEventListener('blogCreated', handleBlogCreated);
-    };
-  }, [fetchBlogs, handleBlogCreated]); // Thêm dependencies
+  // useEffect riêng cho event listener - chỉ đăng ký một lần
+  useEffect(() => {
+    if (!eventListenerRegistered.current) {
+      window.addEventListener('blogCreated', handleBlogCreated);
+      eventListenerRegistered.current = true;
+      
+      return () => {
+        window.removeEventListener('blogCreated', handleBlogCreated);
+        eventListenerRegistered.current = false;
+      };
+    }
+  }, []); // Chỉ đăng ký sự kiện một lần duy nhất
 
   if (loading) {
     return <LoadingSpinner />;

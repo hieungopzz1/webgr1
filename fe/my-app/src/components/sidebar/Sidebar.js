@@ -22,6 +22,7 @@ const MENU_ITEMS = {
       label: "Create Post",
       onClick: () =>
         window.dispatchEvent(new CustomEvent("openCreateBlogModal")),
+      hideFor: [USER_ROLES.ADMIN],
     },
     {
       to: "/search",
@@ -34,6 +35,7 @@ const MENU_ITEMS = {
       icon: <i className="bi bi-chat-dots" />,
       activeIcon: <i className="bi bi-chat-dots-fill" />,
       label: "Messages",
+      hideFor: [USER_ROLES.ADMIN],
     },
     {
       type: "notification",
@@ -74,6 +76,12 @@ const MENU_ITEMS = {
       icon: <i className="bi bi-people" />,
       activeIcon: <i className="bi bi-people-fill" />,
       label: "Class Assignment",
+    },
+    {
+      to: "/class-management",
+      icon: <i className="bi bi-building" />,
+      activeIcon: <i className="bi bi-building-fill" />,
+      label: "Class Management",
     },
   ],
   [USER_ROLES.TUTOR]: [],
@@ -242,13 +250,18 @@ const Sidebar = () => {
 
   const roleSpecificItems = MENU_ITEMS[userRole] || [];
   const dashboardItem = {
-    to: ROUTES.DASHBOARD(userRole), // 🛠 Lấy Dashboard theo role
+    to: ROUTES.DASHBOARD(userRole),
     icon: <i className="bi bi-bar-chart" />,
     activeIcon: <i className="bi bi-bar-chart-fill" />,
     label: "Dashboard",
   };
 
-  const menuItems = [...MENU_ITEMS.common, dashboardItem, ...roleSpecificItems];
+  // Lọc các menu item dựa vào role
+  const filteredCommonItems = MENU_ITEMS.common.filter(
+    item => !item.hideFor || !item.hideFor.includes(userRole)
+  );
+
+  const menuItems = [...filteredCommonItems, dashboardItem, ...roleSpecificItems];
 
   return (
     <>

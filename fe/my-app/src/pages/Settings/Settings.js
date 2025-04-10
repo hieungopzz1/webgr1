@@ -14,10 +14,10 @@ const Settings = () => {
 
   return (
     <div className="settings-page">
-      <h2>Cài đặt</h2>
+      <h2>Settings</h2>
       
       <div className="settings-section">
-        <h3>Tài khoản</h3>
+        <h3>Account</h3>
         <div className="setting-item">
           <button 
             onClick={handleLogout}

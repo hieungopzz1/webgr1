@@ -1,177 +1,231 @@
 import React, { useEffect, useState } from 'react';
-import { io } from "socket.io-client";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
+import { Pie, Bar, Doughnut } from 'react-chartjs-2';
 import api from '../../utils/api';
-import { Pie, Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import './StaffDashboard.css';
 
-// Đăng ký các thành phần của Chart.js
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
-
-const socket = io("http://localhost:5001");
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const StaffDashboard = () => {
-  // Khởi tạo state cho các thống kê
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    totalTutors: 0,
-    totalClasses: 0,
-    totalSchedules: 0,
-    totalAssignedStudents: 0,
-    totalUnassignedStudents: 0
-  });
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Hàm gọi API để lấy dữ liệu
-  const fetchDashboardData = async () => {
-    try {
-      const response = await api.get('/api/dashboard/admin');
-      setStats(response.data);
-    } catch (err) {
-      console.error('Error for get data:', err);
-    }
-  };
-
-  // UseEffect để gọi API và cập nhật dữ liệu khi có sự kiện
   useEffect(() => {
-    fetchDashboardData();
-
-    // 🔥 Khi có sự kiện 'updateDashboard', gọi lại API
-    socket.on("updateDashboard", () => {
-      fetchDashboardData();  // Gọi lại API để cập nhật dữ liệu
-    });
-
-    return () => {
-      socket.off("updateDashboard");
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/api/dashboard/admin');
+        setDashboardData(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
     };
 
+    fetchDashboardData();
   }, []);
 
-  // Dữ liệu cho Pie Chart
-  const pieChartData = {
-    labels: ['Sinh viên đã xếp lớp', 'Sinh viên chưa xếp lớp'],
+  if (loading) {
+    return (
+      <div className="admin-dashboard">
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="admin-dashboard">
+        <div className="error-message">
+          <h3>Error</h3>
+          <p>{error}</p>
+          <button className="retry-button" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="admin-dashboard">
+        <div className="no-data-message">
+          <h3>No Data Available</h3>
+          <p>There is currently no dashboard data to display.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const classAssignmentData = {
+    labels: ['Assigned Classes', 'Unassigned Classes'],
     datasets: [
       {
-        data: [stats.totalAssignedStudents, stats.totalUnassignedStudents],
-        backgroundColor: ['#3498db', '#e74c3c'], // Màu sắc cho mỗi phần
-        hoverBackgroundColor: ['#2980b9', '#c0392b'], // Màu hover
+        data: [
+          dashboardData.totalClassAssign || 0,
+          dashboardData.totalClassUnassign || 0
+        ],
+        backgroundColor: ['#36A2EB', '#FF6384'],
+        hoverBackgroundColor: ['#2693DB', '#FF4D74'],
+        borderWidth: 1
       }
     ]
   };
 
-  // Dữ liệu cho Bar Chart (biểu đồ cột)
-  const barChartData = {
-    labels: ['Sinh viên'],
+  const studentInteractionData = {
+    labels: ['Active Students', 'Inactive Students'],
     datasets: [
       {
-        label: 'Đã xếp lớp',
-        data: [stats.totalAssignedStudents],
-        backgroundColor: '#3498db',
-      },
-      {
-        label: 'Chưa xếp lớp',
-        data: [stats.totalUnassignedStudents],
-        backgroundColor: '#e74c3c',
+        data: [
+          dashboardData.activeStudents7Days || 0,
+          dashboardData.studentsNoInteraction7Days || 0
+        ],
+        backgroundColor: ['#4BC0C0', '#FF9F40'],
+        hoverBackgroundColor: ['#3CB0B0', '#FF8F30'],
+        borderWidth: 1
       }
     ]
   };
 
-  // Cấu hình cho Pie Chart
-  const pieChartOptions = {
+  const documentData = {
+    labels: ['Students with Uploads', 'Students without Uploads'],
+    datasets: [
+      {
+        data: [
+          (dashboardData.totalStudents - dashboardData.studentsWithoutDocuments) || 0,
+          dashboardData.studentsWithoutDocuments || 0
+        ],
+        backgroundColor: ['#9966FF', '#FFCD56'],
+        hoverBackgroundColor: ['#8A56FF', '#FFBD46'],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const messagesData = {
+    labels: ['Messages in Last 7 Days'],
+    datasets: [
+      {
+        label: 'Total Messages',
+        data: [dashboardData.messages || 0],
+        backgroundColor: ['#36A2EB'],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const pieOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        position: 'bottom',
+        labels: {
+          font: {
+            size: 12
+          }
+        }
       },
-      tooltip: {
-        enabled: true
+      title: {
+        display: false
       }
     }
   };
 
-  // Cấu hình cho Bar Chart
-  const barChartOptions = {
+  const barOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
       },
-      tooltip: {
-        enabled: true
-      }
     },
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
-          stepSize: 1
+          precision: 0
         }
       }
     }
   };
 
-  // Inline styles
-  const containerStyle = {
-    display: 'flex',
-    gap: '20px',  // Khoảng cách giữa các biểu đồ
-    justifyContent: 'space-between',
-    marginTop: '20px',
-  };
-
-  const statBoxStyle = {
-    backgroundColor: '#ecf0f1',
-    borderRadius: '8px',
-    padding: '20px',
-    width: '23%',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',  // Đổ bóng cho box
-    textAlign: 'center',
-  };
-
-  const statTextStyle = {
-    fontSize: '18px',
-    color: '#34495e',
-    margin: '0',
-  };
-
-  const statStrongStyle = {
-    fontWeight: 'bold',
-    color: '#2c3e50',
-  };
-
   return (
-    <div>
-      <h2>Admin Dashboard</h2>
-
-      {/* Thông tin thống kê */}
-      <div style={containerStyle}>
-        <div style={statBoxStyle}>
-          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số sinh viên:</strong> {stats.totalStudents}</p>
+    <div className="admin-dashboard">
+      <h1 className="admin-dashboard-title">Admin Dashboard</h1>
+      
+      <div className="stats-container">
+        <div className="stat-box">
+          <h3 className="stat-title">Total Students</h3>
+          <div className="stat-value">{dashboardData.totalStudents || 0}</div>
         </div>
-        <div style={statBoxStyle}>
-          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số giảng viên:</strong> {stats.totalTutors}</p>
+        <div className="stat-box">
+          <h3 className="stat-title">Total Tutors</h3>
+          <div className="stat-value">{dashboardData.totalTutors || 0}</div>
         </div>
-        <div style={statBoxStyle}>
-          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số lớp học:</strong> {stats.totalClasses}</p>
+        <div className="stat-box">
+          <h3 className="stat-title">Total Classes</h3>
+          <div className="stat-value">{dashboardData.totalClasses || 0}</div>
         </div>
-        <div style={statBoxStyle}>
-          <p style={statTextStyle}><strong style={statStrongStyle}>Tổng số lịch học đã tạo:</strong> {stats.totalSchedules}</p>
-        </div>
-      </div>
-
-      {/* Biểu đồ Pie và Bar trên cùng một hàng */}
-      <div style={containerStyle}>
-        <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-          <h3>Biểu đồ phân bổ sinh viên đã xếp lớp và chưa xếp lớp (Pie Chart)</h3>
-          <Pie data={pieChartData} options={pieChartOptions} />
-        </div>
-        <div style={{ width: '45%', margin: '10px', textAlign: 'center' }}>
-          <h3>Biểu đồ cột số sinh viên đã xếp lớp và chưa xếp lớp</h3>
-          <Bar data={barChartData} options={barChartOptions} />
+        <div className="stat-box">
+          <h3 className="stat-title">Total Schedules</h3>
+          <div className="stat-value">{dashboardData.totalSchedules || 0}</div>
         </div>
       </div>
 
-      {/* Hiển thị số liệu cho sinh viên đã xếp lớp và chưa xếp lớp */}
-      <div>
-        <p><strong>Tổng số sinh viên đã xếp lớp:</strong> {stats.totalAssignedStudents}</p>
-        <p><strong>Tổng số sinh viên chưa xếp lớp:</strong> {stats.totalUnassignedStudents}</p>
+      <div className="charts-container">
+        <div className="chart-box">
+          <h3 className="chart-title">Class Assignment Distribution</h3>
+          <div style={{ height: '300px' }}>
+            <Pie data={classAssignmentData} options={pieOptions} />
+          </div>
+        </div>
+        <div className="chart-box">
+          <h3 className="chart-title">Student Interaction (Last 7 Days)</h3>
+          <div style={{ height: '300px' }}>
+            <Doughnut data={studentInteractionData} options={pieOptions} />
+          </div>
+        </div>
+        <div className="chart-box">
+          <h3 className="chart-title">Document Upload Status</h3>
+          <div style={{ height: '300px' }}>
+            <Pie data={documentData} options={pieOptions} />
+          </div>
+        </div>
+        <div className="chart-box">
+          <h3 className="chart-title">Message Activity</h3>
+          <div style={{ height: '300px' }}>
+            <Bar data={messagesData} options={barOptions} />
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Statistics */}
+      <div className="stats-container">
+        <div className="stat-box">
+          <h3 className="stat-title">Assigned Students</h3>
+          <div className="stat-value">{dashboardData.totalAssignedStudents || 0}</div>
+        </div>
+        <div className="stat-box">
+          <h3 className="stat-title">Unassigned Students</h3>
+          <div className="stat-value">{dashboardData.totalUnassignedStudents || 0}</div>
+        </div>
+        <div className="stat-box">
+          <h3 className="stat-title">Present Count</h3>
+          <div className="stat-value">{dashboardData.presentCount || 0}</div>
+        </div>
+        <div className="stat-box">
+          <h3 className="stat-title">Absent Count</h3>
+          <div className="stat-value">{dashboardData.absentCount || 0}</div>
+        </div>
       </div>
     </div>
   );

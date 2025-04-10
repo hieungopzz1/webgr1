@@ -57,12 +57,6 @@ const Timetable = () => {
   useEffect(() => {
     if (isAuthenticated()) {
       const userData = getUserData();
-      
-      if (userData && userData.role !== "Admin") {
-        window.location.href = "/user-timetable";
-        return;
-      }
-      
       setUser(userData);
     }
   }, []);
@@ -161,9 +155,6 @@ const Timetable = () => {
       setError("Authentication required. Please log in again.");
       return;
     }
-
-    const userData = getUserData();
-    if (!userData || userData.role !== "Admin") return;
 
     Promise.all([
       fetchSchedulesForAdmin(),

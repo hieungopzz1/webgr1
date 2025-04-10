@@ -21,7 +21,7 @@ const ToastItem = ({ toast, onClose }) => {
   useEffect(() => {
 
     if (toast.autoDismiss && progressBarRef.current) {
-      // Bắt đầu đếm ngược
+      // Start countdown
       const startTime = Date.now();
       const endTime = startTime + toast.autoDismissTimeout;
       

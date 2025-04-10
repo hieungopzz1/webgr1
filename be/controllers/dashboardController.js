@@ -71,9 +71,9 @@ const getAdminDashboard = async (req, res) => {
 
     const tutors = await Tutor.find();
     const messageStats = await Promise.all(
-      tutors.map(async (tutor) => {
+      tutors.map(async (tutor,student) => {
         const messageCount = await Message.countDocuments({
-          $or: [{ senderId: tutor._id }, { receiver_id: tutor._id }],
+          $or: [{ senderId: tutor._id }, { receiver_id: tutor._id }] && [{ senderId: student._id }, { receiver_id: student._id }],
         });
         return {
           tutorId: tutor._id,
@@ -123,11 +123,21 @@ const getTutorDashboard = async (req, res) => {
       blog_id: { $in: blogs.map((blog) => blog._id) },
     });
 
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const recentMessages = await Message.find({
-      $or: [{ senderId: tutorId }, { receiverId: tutorId }],
-      timestamp: { $gte: sevenDaysAgo },
-    }).sort({ timestamp: -1 }).lean();
+      $and: [
+        {
+          $or: [
+            { senderId: tutorId },
+            { receiverId: tutorId }
+          ]
+        },
+        { createdAt: { $gte: sevenDaysAgo } }
+      ]
+    }).sort({ createdAt: -1 }).lean(); // mới nhất ở trên
+
 
     const classes = await Class.find({ tutor: tutorId });
 
@@ -136,7 +146,7 @@ const getTutorDashboard = async (req, res) => {
       totalBlogs: blogs.length,
       totalComments: comments.length,
       totalLikes: likes.length,
-      recentMessages,
+      recentMessages:recentMessages.length,
       totalDocuments: documents.length,
       totalClasses: classes.length,
     });
@@ -163,11 +173,20 @@ const getStudentDashboard = async (req, res) => {
       status: "absent",
     });
 
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const recentMessages = await Message.find({
-      $or: [{ senderId: studentId }, { receiverId: studentId }],
-      timestamp: { $gte: sevenDaysAgo },
-    }).sort({ timestamp: -1 }).lean();
+      $and: [
+        {
+          $or: [
+            { senderId: studentId },
+            { receiverId: studentId }
+          ]
+        },
+        { createdAt: { $gte: sevenDaysAgo } }
+      ]
+    }).sort({ createdAt: -1 }).lean(); // mới nhất ở trên
 
     const assignments = await AssignStudent.find({ student: studentId,  });
 
@@ -182,7 +201,8 @@ const getStudentDashboard = async (req, res) => {
       totalLikes: likes.length,
       totalAbsentDays: attendanceRecords.length,
       classes: classes.length,
-      recentMessages,
+      recentMessages:recentMessages.length,
+
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

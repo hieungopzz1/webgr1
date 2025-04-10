@@ -222,7 +222,7 @@ const Message = () => {
                 {/* Người offline */}
                 <div className="message-sidebar__section">
                     <h3 className="message-sidebar__section-title">Offline</h3>
-                    <div className="message-sidebar__users">
+                    <div className="message-sidebar__users scrollable-list">
                         {offlineUsers.map((user) => (
                             <div
                                 key={user.id}

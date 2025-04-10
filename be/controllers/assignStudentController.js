@@ -64,7 +64,7 @@ const assignStudent = async (req, res) => {
     const notification = new Notification({
       title: "New Class Assignment",
       content: `You have been assigned to class ${
-        classData.name || classId
+        classData.class_name || classId
       } by Admin.`,
       senderId: adminId,
       recipientIds,

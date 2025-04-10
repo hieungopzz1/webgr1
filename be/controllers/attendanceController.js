@@ -129,6 +129,7 @@ const getAttendanceStatus = async (req, res) => {
 
     const presentStudents = [];
     const absentStudents = [];
+    const notYetStudents = [];
 
     const attendanceMap = new Map();
     attendanceRecords.forEach(record => {
@@ -143,7 +144,7 @@ const getAttendanceStatus = async (req, res) => {
           absentStudents.push(student);
         }
       } else {
-        absentStudents.push(student);
+        notYetStudents.push(student);
       }
     });
 
@@ -155,6 +156,7 @@ const getAttendanceStatus = async (req, res) => {
       endTime: schedule.endTime,
       presentStudents,
       absentStudents,
+      notYetStudents
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

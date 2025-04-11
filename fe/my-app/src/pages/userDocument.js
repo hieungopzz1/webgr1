@@ -145,21 +145,19 @@ const UserDocument = () => {
       formData.append('classId', selectedClass);
       formData.append('documentType', user.role === "Tutor" ? "assignment" : "submission");
       
-      await api.post('/api/documents/upload-document', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await api.post('/api/documents/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       
-      toast.success(`Đã tải lên tài liệu "${uploadFile.name}" thành công`);
-      
-      setIsUploadModalOpen(false);
-      setUploadFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (response.data) {
+        toast.success(`Successfully uploaded document "${uploadFile.name}"`);
+        fetchUserClasses();
+        closeUploadModal();
       }
-      
-      fetchUserClasses();
     } catch (err) {
-      handleApiError(err, "Failed to upload document");
+      handleApiError(err, 'Error uploading document');
     } finally {
       setLoading(false);
     }
@@ -172,17 +170,15 @@ const UserDocument = () => {
     try {
       setLoading(true);
       
-      await api.delete(`/api/documents/${documentId}`, {
-        data: { userId: user.id, userRole: user.role }
-      });
+      await api.delete(`/api/documents/${documentId}`);
       
-      toast.success("Đã xóa tài liệu thành công");
+      toast.success("Document deleted successfully");
       
       setIsDeleteModalOpen(false);
       
       fetchUserClasses();
     } catch (err) {
-      handleApiError(err, "Failed to delete document");
+      handleApiError(err, 'Error deleting document');
     } finally {
       setLoading(false);
     }
@@ -198,21 +194,22 @@ const UserDocument = () => {
         throw new Error(`Failed to download file: ${response.statusText}`);
       }
       
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
+      const fileBlob = await response.blob();
       
-      anchor.href = url;
-      anchor.download = fileName || 'document';
-      anchor.style.display = 'none';
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
+      // Create a download link and trigger click
+      const downloadUrl = window.URL.createObjectURL(fileBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
       
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-      toast.success(`Đã bắt đầu tải xuống tài liệu "${fileName}"`);
+      toast.success(`Started downloading document "${fileName}"`);
     } catch (error) {
-      toast.error(`Không thể tải xuống: ${error.message}`);
+      toast.error(`Unable to download: ${error.message}`);
+      console.error('Download error:', error);
     } finally {
       setLoading(false);
     }
@@ -442,7 +439,7 @@ const UserDocument = () => {
       return (
         <div className="loading-container">
           <Loader />
-          <p>Đang tải dữ liệu lớp học...</p>
+          <p>Loading class data...</p>
         </div>
       );
     }
@@ -450,31 +447,31 @@ const UserDocument = () => {
     if (classes.length === 0) {
       return (
         <div className="no-classes">
-          <p>Không tìm thấy lớp học nào hoặc có lỗi khi tải dữ liệu.</p>
+          <p>No classes found or there was an error loading the data.</p>
           <Button
             variant="primary"
             onClick={handleRetryLoading}
             style={{ marginTop: '10px' }}
           >
-            Thử lại
+            Retry
           </Button>
         </div>
       );
     }
 
     if (!selectedClass) {
-      return <div className="no-class-selected"><p>Vui lòng chọn một lớp để xem tài liệu</p></div>;
+      return <div className="no-class-selected"><p>Please select a class to view documents</p></div>;
     }
 
     return (
       <div className="documents-content">
         <div className="documents-header">
-          <h3>Tài liệu của lớp {selectedClassDetail?.class?.class_name}</h3>
+          <h3>Documents for class {selectedClassDetail?.class?.class_name}</h3>
           <Button
             variant="primary"
             onClick={() => setIsUploadModalOpen(true)}
           >
-            Upload {user?.role === "Tutor" ? "bài tập" : "bài nộp"}
+            Upload {user?.role === "Tutor" ? "assignment" : "submission"}
           </Button>
         </div>
         

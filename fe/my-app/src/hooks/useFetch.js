@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 /**
- * Custom hook để gọi API và quản lý trạng thái
- * @param {string} url - URL của API
- * @param {Object} options - Các tùy chọn cho request
+ * Custom hook for making API calls and managing state
+ * @param {string} url - API URL
+ * @param {Object} options - Request options
  * @returns {Object} { data, error, loading, refetch }
  */
 const useFetch = (url, options = {}) => {
@@ -12,12 +12,12 @@ const useFetch = (url, options = {}) => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Lưu trữ options trong ref để tránh re-render không cần thiết
+  // Store options in ref to avoid unnecessary re-renders
   const optionsRef = useRef(options);
-  // Lưu trữ url đã gọi cuối cùng để tránh race condition
+  // Store the last called URL to avoid race conditions
   const activeUrlRef = useRef('');
 
-  // Hàm fetch data
+  // Function to fetch data
   const fetchData = async (fetchUrl = url, fetchOptions = optionsRef.current) => {
     setLoading(true);
     setError(null);
@@ -29,19 +29,19 @@ const useFetch = (url, options = {}) => {
         ...fetchOptions,
       });
       
-      // Kiểm tra nếu request này không phải request mới nhất
+      // Check if this request is not the most recent one
       if (activeUrlRef.current !== fetchUrl) return;
       
       setData(response.data);
       return response.data;
     } catch (err) {
-      // Kiểm tra nếu request này không phải request mới nhất
+      // Check if this request is not the most recent one
       if (activeUrlRef.current !== fetchUrl) return;
       
-      setError(err.response?.data || err.message || 'Có lỗi xảy ra');
+      setError(err.response?.data || err.message || 'An error occurred');
       return null;
     } finally {
-      // Kiểm tra nếu request này không phải request mới nhất
+      // Check if this request is not the most recent one
       if (activeUrlRef.current !== fetchUrl) return;
       
       setLoading(false);
@@ -49,18 +49,18 @@ const useFetch = (url, options = {}) => {
   };
 
   useEffect(() => {
-    // Không tự động fetch khi url rỗng
+    // Don't auto-fetch when URL is empty
     if (!url) return;
     
     fetchData();
 
-    // Cleanup function để tránh memory leak
+    // Cleanup function to avoid memory leak
     return () => {
       activeUrlRef.current = '';
     };
   }, [url]);
 
-  // Trả về state và hàm refetch
+  // Return state and refetch function
   return { data, error, loading, refetch: fetchData };
 };
 

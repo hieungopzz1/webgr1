@@ -316,18 +316,18 @@ const UserTimetable = () => {
       } catch (fetchError) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          setError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
+          setError("Unable to connect to the server. Please try again later.");
         } else {
           throw fetchError;
         }
       }
     } catch (err) {
       if (err?.response?.status === 404) {
-        setError(`Không tìm thấy lịch học cho người dùng này.`);
+        setError(`No schedules found for this user.`);
       } else if (err?.code === 'ERR_NETWORK') {
-        setError("Không thể kết nối đến máy chủ. Kiểm tra kết nối mạng của bạn.");
+        setError("Unable to connect to the server. Check your network connection.");
       } else {
-        setError(err?.response?.data?.message || 'Không thể tải dữ liệu lịch học.');
+        setError(err?.response?.data?.message || 'Unable to load schedule data.');
       }
       
       setSchedules([]);

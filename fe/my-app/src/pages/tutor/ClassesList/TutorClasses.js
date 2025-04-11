@@ -20,9 +20,9 @@ const TutorClasses = () => {
       
       const response = await api.get(API_ROUTES.TUTOR.GET_CLASSES(tutorId));
       setClasses(response.data.classes || []);
-      success('Đã tải danh sách lớp học thành công');
+      success('Successfully loaded class list');
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể tải danh sách lớp học';
+      const errorMessage = err.response?.data?.message || 'Unable to load class list';
       setError(errorMessage);
       showError(errorMessage);
       console.error('Error fetching classes:', err);
@@ -44,7 +44,7 @@ const TutorClasses = () => {
       <div className="tutor-classes-container">
         <div className="loading-spinner">
           <div className="spinner"></div>
-          <p>Đang tải dữ liệu...</p>
+          <p>Loading data...</p>
         </div>
       </div>
     );
@@ -54,13 +54,13 @@ const TutorClasses = () => {
     return (
       <div className="tutor-classes-container">
         <div className="error-message">
-          <h2>Có lỗi xảy ra</h2>
+          <h2>An error occurred</h2>
           <p>{error}</p>
           <button 
             className="retry-button" 
             onClick={() => user && fetchClasses(user.id)}
           >
-            Thử lại
+            Retry
           </button>
         </div>
       </div>
@@ -71,8 +71,8 @@ const TutorClasses = () => {
     return (
       <div className="tutor-classes-container">
         <div className="empty-state">
-          <h2>Chưa có lớp nào được phân công</h2>
-          <p>Bạn chưa được phân công giảng dạy lớp nào.</p>
+          <h2>No classes assigned</h2>
+          <p>You haven't been assigned to teach any classes yet.</p>
         </div>
       </div>
     );
@@ -81,8 +81,8 @@ const TutorClasses = () => {
   return (
     <div className="tutor-classes-container">
       <div className="page-header">
-        <h1>Danh sách lớp học</h1>
-        <p>Quản lý các lớp học được phân công cho bạn</p>
+        <h1>Class List</h1>
+        <p>Manage the classes assigned to you</p>
       </div>
       
       <div className="classes-grid">
@@ -95,11 +95,11 @@ const TutorClasses = () => {
             
             <div className="class-details">
               <div className="detail-item">
-                <span className="detail-label">Chuyên ngành:</span>
+                <span className="detail-label">Major:</span>
                 <span className="detail-value">{cls.major}</span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">Số sinh viên:</span>
+                <span className="detail-label">Number of students:</span>
                 <span className="detail-value">{cls.studentCount || 0}</span>
               </div>
             </div>
@@ -108,9 +108,9 @@ const TutorClasses = () => {
               <Link 
                 to={`/tutor/class/${cls._id}/students`} 
                 className="view-students-btn"
-                onClick={() => success(`Đang mở danh sách sinh viên lớp ${cls.class_name}`)}
+                onClick={() => success(`Opening student list for class ${cls.class_name}`)}
               >
-                Xem danh sách sinh viên
+                View student list
               </Link>
             </div>
           </div>

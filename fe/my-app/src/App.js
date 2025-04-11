@@ -4,7 +4,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import MainLayout from "./layouts/MainLayout/MainLayout";
 import AuthLayout from "./layouts/authLayout/AuthLayout";
 import Login from "./pages/auth/Login";
 import Register from "./pages/staff/Register";
@@ -16,17 +15,24 @@ import StudentDashboard from "./pages/student/StudentDashboard";
 import Settings from "./pages/Settings/Settings";
 import Message from "./pages/Message/Message";
 import Home from "./pages/Home";
-// import Notifications from "./components/notification/Notification";
 import Toast from "./components/toast/Toast";
 import { useToast } from "./context/ToastContext";
 import { registerToastContext } from "./utils/toast";
 import { ROUTES } from "./utils/constants";
-import { isAuthenticated } from "./utils/storage";
 import "./App.css";
 import Timetable from "./pages/Timetable";
 import UserTimetable from "./pages/userTimetable";
 import Document from "./pages/Document";
 import UserDocument from "./pages/userDocument";
+import NotFound from "./pages/NotFound";
+
+import {
+  AdminRoute,
+  TutorRoute,
+  StudentRoute,
+  TutorStudentRoute,
+  AuthenticatedRoute
+} from './guards/RouteGuards';
 
 const ToastInitializer = () => {
   const toastContext = useToast();
@@ -38,19 +44,6 @@ const ToastInitializer = () => {
   return null; 
 };
 
-const ProtectedRoute = ({ children }) => {
-  const user = isAuthenticated(); 
-  if (!user) {
-    return <Navigate to={ROUTES.LOGIN} replace />;
-  }
-
-  // Nếu người dùng cố truy cập `/dashboard`, điều hướng họ đến dashboard theo role
-  if (window.location.pathname === "/dashboard") {
-    return <Navigate to={ROUTES.DASHBOARD(user.role)} replace />;
-  }
-
-  return <MainLayout>{children}</MainLayout>;
-};
 // Public Route component
 const PublicRoute = ({ children, restricted }) => {
   const token = localStorage.getItem('token');
@@ -70,7 +63,6 @@ const App = () => {
     <>
       <ToastInitializer />
       <Toast />
-      {/* <Notifications /> */}
       <Routes>
         {/* Public Routes */}
         <Route
@@ -82,129 +74,126 @@ const App = () => {
           }
         />
 
-        {/* Protected Routes */}
+        {/* Admin-only Routes */}
         <Route
           path={ROUTES.REGISTER}
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Register />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
-        {/* Dashboard theo role */}
         <Route
           path={ROUTES.DASHBOARD("admin")}
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <StaffDashboard />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
-        <Route
-          path={ROUTES.DASHBOARD("tutor")}
-          element={
-            <ProtectedRoute>
-              <TutorDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={ROUTES.DASHBOARD("student")}
-          element={
-            <ProtectedRoute>
-              <StudentDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Nếu ai vào `/dashboard`, điều hướng họ đến dashboard theo role */}
-        <Route path="/dashboard" element={<ProtectedRoute />} />
         <Route
           path="/assign-tutor"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AssignTutor />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
-        
-        {/* Class Management Route */}
         <Route
           path="/class-management"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <ClassManagement />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
-
         <Route
           path="/timetable"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Timetable />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
-
-        <Route
-          path="/user-timetable"
-          element={
-            <ProtectedRoute>
-              <UserTimetable />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Document Routes */}
         <Route
           path="/document"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Document />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
 
+        {/* Tutor-only Routes */}
+        <Route
+          path={ROUTES.DASHBOARD("tutor")}
+          element={
+            <TutorRoute>
+              <TutorDashboard />
+            </TutorRoute>
+          }
+        />
+
+        {/* Student-only Routes */}
+        <Route
+          path={ROUTES.DASHBOARD("student")}
+          element={
+            <StudentRoute>
+              <StudentDashboard />
+            </StudentRoute>
+          }
+        />
+
+        {/* Tutor and Student Routes */}
+        <Route
+          path="/user-timetable"
+          element={
+            <TutorStudentRoute>
+              <UserTimetable />
+            </TutorStudentRoute>
+          }
+        />
         <Route
           path="/user-document"
           element={
-            <ProtectedRoute>
+            <TutorStudentRoute>
               <UserDocument />
-            </ProtectedRoute>
+            </TutorStudentRoute>
           }
         />
 
+        {/* Routes for all authenticated users */}
+        <Route path="/dashboard" element={<AuthenticatedRoute />} />
         <Route
           path={ROUTES.SETTINGS}
           element={
-            <ProtectedRoute>
+            <AuthenticatedRoute>
               <Settings />
-            </ProtectedRoute>
+            </AuthenticatedRoute>
           }
         />
-
         <Route
           path={`${ROUTES.MESSAGES}/:id?`}
           element={
-            <ProtectedRoute>
+            <AuthenticatedRoute>
               <Message />
-            </ProtectedRoute>
+            </AuthenticatedRoute>
           }
         />
-
-        {/* Default route */}
         <Route
           path={ROUTES.HOME}
           element={
-            <ProtectedRoute>
+            <AuthenticatedRoute>
               <Home />
-            </ProtectedRoute>
+            </AuthenticatedRoute>
           }
         />
 
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+        {/* 404 - Not Found Route */}
+        <Route path="/not-found" element={<NotFound />} />
+
+        {/* Catch all route - show NotFound instead of redirecting */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );

@@ -31,12 +31,6 @@ const Document = () => {
   useEffect(() => {
     if (isAuthenticated()) {
       const userData = getUserData();
-      
-      if (userData && userData.role !== "Admin") {
-        window.location.href = "/user-document";
-        return;
-      }
-      
       setUser(userData);
     }
   }, []);

@@ -3,30 +3,53 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Pie, Bar, Doughnut } from 'react-chartjs-2';
 import api from '../../utils/api';
 import './StaffDashboard.css';
-
+import { io } from "socket.io-client";
+const socket = io("http://localhost:5001");
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const StaffDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  
+  // Hàm fetch dữ liệu ban đầu hoặc khi cần loading
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/dashboard/admin');
+      setDashboardData(response.data);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Hàm fetch khi cập nhật nhẹ (không bật loading)
+  const refreshDashboardData = async () => {
+    try {
+      const response = await api.get('/api/dashboard/admin');
+      setDashboardData(response.data);
+    } catch (err) {
+      console.error('❌ Error refreshing dashboard:', err);
+      // Không cần set error vì đây là update nền
+    }
+  };
+  
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get('/api/dashboard/admin');
-        setDashboardData(response.data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
+    fetchDashboardData(); // Load lần đầu
+  
+    // Lắng nghe socket sự kiện "updateDashboard"
+    socket.on("updateDashboard", () => {
+      // console.log("🔄 Có thay đổi - Tự động cập nhật Dashboard");
+      refreshDashboardData(); // cập nhật nhẹ, không giật loading
+    });
+  
+    return () => {
+      socket.off("updateDashboard");
     };
-
-    fetchDashboardData();
   }, []);
 
   if (loading) {

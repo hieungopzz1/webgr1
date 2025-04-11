@@ -13,12 +13,14 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
   const [className, setClassName] = useState('');
   const [major, setMajor] = useState('');
   const [subject, setSubject] = useState('');
-  const [tutorId, setTutorId] = useState('');
+  const [selectedTutor, setSelectedTutor] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [errors, setErrors] = useState({});
   const [majorStudents, setMajorStudents] = useState([]);
+  const [majorTutors, setMajorTutors] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [loadingTutors, setLoadingTutors] = useState(false);
   
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return majorStudents;
@@ -55,6 +57,31 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
     }
   }, []);
 
+  const fetchTutorsByMajor = useCallback(async (selectedMajor) => {
+    if (!selectedMajor) {
+      setMajorTutors([]);
+      return;
+    }
+    
+    setLoadingTutors(true);
+    try {
+      const response = await api.get(`/api/assign-student/major?major=${selectedMajor}&type=tutor`);
+      if (response.data && Array.isArray(response.data.tutors)) {
+        setMajorTutors(response.data.tutors);
+      } else {
+        setMajorTutors([]);
+      }
+    } catch (err) {
+      setMajorTutors([]);
+      setErrors(prev => ({ 
+        ...prev, 
+        apiError: `Error loading tutors: ${err.message || 'Unknown error'}`
+      }));
+    } finally {
+      setLoadingTutors(false);
+    }
+  }, []);
+
   const validateForm = useCallback(() => {
     const newErrors = {};
     
@@ -70,8 +97,8 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
       newErrors.subject = 'Subject is required';
     }
     
-    if (!tutorId) {
-      newErrors.tutorId = 'Please select a tutor';
+    if (!selectedTutor) {
+      newErrors.tutor = 'Please select a tutor';
     }
     
     if (selectedStudents.length === 0) {
@@ -80,19 +107,21 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [className, major, subject, tutorId, selectedStudents]);
+  }, [className, major, subject, selectedTutor, selectedStudents]);
 
   const handleMajorChange = useCallback((e) => {
     const newMajor = e.target.value;
     setMajor(newMajor);
     setSelectedStudents([]);
+    setSelectedTutor('');
     
     fetchStudentsByMajor(newMajor);
+    fetchTutorsByMajor(newMajor);
     
     if (newMajor && errors.major) {
       setErrors(prev => ({ ...prev, major: undefined }));
     }
-  }, [errors, fetchStudentsByMajor]);
+  }, [errors, fetchStudentsByMajor, fetchTutorsByMajor]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
@@ -105,19 +134,20 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
       className: className.trim(), 
       major, 
       subject: subject.trim(), 
-      tutorId, 
+      tutorId: selectedTutor, 
       studentIds: selectedStudents 
     });
-  }, [className, major, subject, tutorId, selectedStudents, onSubmit, validateForm]);
+  }, [className, major, subject, selectedTutor, selectedStudents, onSubmit, validateForm]);
 
   useEffect(() => {
     if (!loading && !errors) {
       setClassName('');
       setMajor('');
       setSubject('');
-      setTutorId('');
+      setSelectedTutor('');
       setSelectedStudents([]);
       setMajorStudents([]);
+      setMajorTutors([]);
     }
   }, [loading, errors]);
 
@@ -155,10 +185,10 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
   
   const handleTutorChange = useCallback((e) => {
     const value = e.target.value;
-    setTutorId(value);
+    setSelectedTutor(value);
     
-    if (value && errors.tutorId) {
-      setErrors(prev => ({ ...prev, tutorId: undefined }));
+    if (value && errors.tutor) {
+      setErrors(prev => ({ ...prev, tutor: undefined }));
     }
   }, [errors]);
   
@@ -171,10 +201,11 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
     setClassName('');
     setMajor('');
     setSubject('');
-    setTutorId('');
+    setSelectedTutor('');
     setSelectedStudents([]);
     setSearchQuery('');
     setMajorStudents([]);
+    setMajorTutors([]);
     setErrors({});
   }, []);
   
@@ -232,22 +263,31 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
         </div>
 
         <div className="form-group">
-          <label htmlFor="tutor" className={errors.tutorId ? 'error-label' : ''}>Assign Tutor*</label>
+          <label htmlFor="tutor" className={errors.tutor ? 'error-label' : ''}>Assign Tutor*</label>
           <select 
             id="tutor"
-            value={tutorId} 
+            value={selectedTutor} 
             onChange={handleTutorChange}
             required
-            className={`form-select ${errors.tutorId ? 'error-input' : ''}`}
+            className={`form-select ${errors.tutor ? 'error-input' : ''}`}
+            disabled={!major || loadingTutors}
           >
             <option value="">Select a tutor...</option>
-            {tutors.map(tutor => (
-              <option key={tutor._id} value={tutor._id}>
-                {tutor.firstName} {tutor.lastName}
-              </option>
-            ))}
+            {loadingTutors ? (
+              <option value="" disabled>Loading tutors...</option>
+            ) : majorTutors.length > 0 ? (
+              majorTutors.map(tutor => (
+                <option key={tutor._id} value={tutor._id}>
+                  {tutor.firstName} {tutor.lastName}
+                </option>
+              ))
+            ) : major ? (
+              <option value="" disabled>No tutors found for this major</option>
+            ) : (
+              <option value="" disabled>Select a major first</option>
+            )}
           </select>
-          {errors.tutorId && <div className="error-message">{errors.tutorId}</div>}
+          {errors.tutor && <div className="error-message">{errors.tutor}</div>}
         </div>
         
         <div className="form-group student-selection">
@@ -325,7 +365,7 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
         
         <Button 
           type="submit" 
-          disabled={loading || !major || !tutorId || selectedStudents.length === 0}
+          disabled={loading || !major || !selectedTutor || selectedStudents.length === 0}
           variant="primary"
           fullWidth
         >

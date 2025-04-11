@@ -8,16 +8,35 @@ import './Home.css';
 const UserProfileCard = memo(({ user }) => {
   if (!user) return null;
   
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    
+    // Nếu đường dẫn đã là URL đầy đủ, dùng luôn
+    if (avatarPath.startsWith('http')) {
+      return avatarPath;
+    }
+    
+    // Nếu đường dẫn là relative path, thêm base URL
+    return `${process.env.REACT_APP_API_URL}${avatarPath}`;
+  };
+  
   return (
     <div className="user-profile-card">
       <div className="user-profile-avatar">
         {user.avatar ? (
-          <img src={user.avatar} alt={`${user.firstName}'s avatar`} />
-        ) : (
-          <div className="default-avatar">
-            {user.firstName?.charAt(0) || 'U'}
-          </div>
-        )}
+          <img 
+            src={getAvatarUrl(user.avatar)} 
+            alt={`${user.firstName}'s avatar`} 
+            onError={(e) => {
+              // Nếu load ảnh bị lỗi, hiển thị avatar mặc định
+              e.target.style.display = 'none';
+              e.target.nextElementSibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div className="default-avatar" style={{ display: user.avatar ? 'none' : 'flex' }}>
+          {user.firstName?.charAt(0) || 'U'}
+        </div>
       </div>
       <div className="user-profile-info">
         <h3 className="user-profile-name">

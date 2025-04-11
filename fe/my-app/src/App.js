@@ -30,7 +30,7 @@ import {
   AdminRoute,
   TutorRoute,
   StudentRoute,
-  StaffRoute,
+  TutorStudentRoute,
   AuthenticatedRoute
 } from './guards/RouteGuards';
 
@@ -148,17 +148,17 @@ const App = () => {
         <Route
           path="/user-timetable"
           element={
-            <StaffRoute>
+            <TutorStudentRoute>
               <UserTimetable />
-            </StaffRoute>
+            </TutorStudentRoute>
           }
         />
         <Route
           path="/user-document"
           element={
-            <StaffRoute>
+            <TutorStudentRoute>
               <UserDocument />
-            </StaffRoute>
+            </TutorStudentRoute>
           }
         />
 

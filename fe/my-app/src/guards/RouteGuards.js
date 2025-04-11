@@ -85,6 +85,18 @@ export const StudentRoute = ({ children, redirectToNotFound }) => (
 );
 
 /**
+ * Component bảo vệ route cho Tutor và Student
+ */
+export const TutorStudentRoute = ({ children, redirectToNotFound }) => (
+  <RoleBasedRoute 
+    allowedRoles={[USER_ROLES.TUTOR, USER_ROLES.STUDENT]} 
+    redirectToNotFound={redirectToNotFound}
+  >
+    {children}
+  </RoleBasedRoute>
+);
+
+/**
  * Component bảo vệ route cho Staff (Admin + Tutor)
  */
 export const StaffRoute = ({ children, redirectToNotFound }) => (

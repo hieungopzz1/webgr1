@@ -26,6 +26,7 @@ const UserDocument = () => {
   // Refs
   const toast = useToast();
   const fileInputRef = useRef(null);
+  const dataLoadedRef = useRef(false);
 
   // Utility functions
   const formatFileSize = (bytes) => {
@@ -81,6 +82,8 @@ const UserDocument = () => {
         setDataLoading(false);
         return;
       }
+      
+      console.log('Fetching from endpoint:', endpoint);
       
       const response = await api.get(endpoint);
       
@@ -145,7 +148,7 @@ const UserDocument = () => {
       formData.append('classId', selectedClass);
       formData.append('documentType', user.role === "Tutor" ? "assignment" : "submission");
       
-      const response = await api.post('/api/documents/upload', formData, {
+      const response = await api.post('/api/documents/upload-document', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -231,17 +234,21 @@ const UserDocument = () => {
     }
   }, []);
 
-  // Fetch classes when user is available
+  // Dùng ref và useState để kiểm soát việc fetch dữ liệu
+  const initialFetchRef = useRef(false);
+
+  // Fetch classes when user is available - with better control
   useEffect(() => {
     if (!isAuthenticated()) {
-      toast.error("Authentication required. Please log in again.");
       return;
     }
     
-    if (user) {
+    if (user && !initialFetchRef.current) {
+      initialFetchRef.current = true; // Đánh dấu đã fetch để tránh lặp lại
+      console.log('Initiating fetch classes for user:', user.id);
       fetchUserClasses();
     }
-  }, [user, fetchUserClasses, toast]);
+  }, [user, fetchUserClasses]);
 
   // Update selected class detail when class changes
   useEffect(() => {

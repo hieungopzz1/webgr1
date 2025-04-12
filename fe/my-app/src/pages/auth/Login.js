@@ -96,12 +96,6 @@ const Login = () => {
           <Link to="/forgot-password" className="auth-link">
             Forgot Password?
           </Link>
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register" className="auth-link">
-              Create one
-            </Link>
-          </p>
         </div>
       </div>
     </div>

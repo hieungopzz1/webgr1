@@ -72,6 +72,12 @@ const MENU_ITEMS = {
       label: "Create Account",
     },
     {
+      to: "/account-management",
+      icon: <i className="bi bi-people-fill" />,
+      activeIcon: <i className="bi bi-people-fill" />,
+      label: "Account Management",
+    },
+    {
       to: "/assign-tutor",
       icon: <i className="bi bi-people" />,
       activeIcon: <i className="bi bi-people-fill" />,

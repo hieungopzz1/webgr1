@@ -129,7 +129,7 @@ const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }
     if (!validateForm()) {
       return;
     }
-    
+
     onSubmit({ 
       className: className.trim(), 
       major, 
@@ -475,7 +475,7 @@ const EditClassModal = memo(({ isOpen, onClose, classData, tutors, loading, onSa
     if (!validateForm()) {
       return;
     }
-    
+
     setSaveLoading(true);
     
     try {
@@ -494,36 +494,36 @@ const EditClassModal = memo(({ isOpen, onClose, classData, tutors, loading, onSa
   };
   
   if (!classData) return null;
-  
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit Class: ${classData.class_name}`}>
       <form onSubmit={handleSubmit} className="edit-class-form">
-        <div className="form-group">
+            <div className="form-group">
           <InputField 
             label="Class Name*"
             value={formData.className} 
             onChange={(e) => handleChange('className', e.target.value)}
-            required
+                required
             fullWidth
             error={errors.className}
           />
-        </div>
-        
-        <div className="form-group">
+            </div>
+
+            <div className="form-group">
           <label htmlFor="major">Major*</label>
-          <select 
+              <select 
             id="major"
             value={formData.major} 
             onChange={(e) => handleChange('major', e.target.value)}
-            required
+                required
             className="form-select"
           >
             <option value="IT">IT</option>
             <option value="Business">Business</option>
             <option value="Design">Design</option>
-          </select>
-        </div>
-        
+              </select>
+            </div>
+
         <div className="form-group">
           <InputField 
             label="Subject*"
@@ -535,25 +535,25 @@ const EditClassModal = memo(({ isOpen, onClose, classData, tutors, loading, onSa
           />
         </div>
 
-        <div className="form-group">
+            <div className="form-group">
           <label htmlFor="tutor" className={errors.tutorId ? 'error-label' : ''}>Assign Tutor*</label>
-          <select 
+              <select 
             id="tutor"
             value={formData.tutorId} 
             onChange={(e) => handleChange('tutorId', e.target.value)}
-            required
+                required
             className={`form-select ${errors.tutorId ? 'error-input' : ''}`}
-          >
+              >
             <option value="">Select a tutor...</option>
-            {tutors.map(tutor => (
-              <option key={tutor._id} value={tutor._id}>
-                {tutor.firstName} {tutor.lastName}
-              </option>
-            ))}
-          </select>
+                {tutors.map(tutor => (
+                  <option key={tutor._id} value={tutor._id}>
+                    {tutor.firstName} {tutor.lastName}
+                  </option>
+                ))}
+              </select>
           {errors.tutorId && <div className="error-message">{errors.tutorId}</div>}
-        </div>
-        
+            </div>
+
         <div className="form-actions">
           <Button 
             type="button" 
@@ -569,7 +569,7 @@ const EditClassModal = memo(({ isOpen, onClose, classData, tutors, loading, onSa
           >
             {saveLoading ? 'Saving...' : 'Save Changes'}
           </Button>
-        </div>
+            </div>
       </form>
     </Modal>
   );
@@ -937,7 +937,7 @@ const AssignClass = () => {
               onClassClick={handleClassClick}
               onDeleteClass={handleDeleteClass}
             />
-          </div>
+      </div>
 
           <EditClassModal 
             isOpen={isDetailModalOpen}

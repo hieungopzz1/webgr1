@@ -9,6 +9,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/staff/Register";
 import AssignTutor from "./pages/staff/AssignClass";
 import ClassManagement from "./pages/staff/ClassManagement";
+import AccountManagement from "./pages/staff/AccountManagement";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import TutorDashboard from "./pages/tutor/TutorDashboard";
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -104,6 +105,14 @@ const App = () => {
           element={
             <AdminRoute>
               <ClassManagement />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/account-management"
+          element={
+            <AdminRoute>
+              <AccountManagement />
             </AdminRoute>
           }
         />

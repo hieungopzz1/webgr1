@@ -14,6 +14,21 @@ router.get("/get-users",authenticateUser,authorizeRole(["Admin"]), adminControll
 
 router.get("/get-user/:id",authenticateUser,authorizeRole(["Admin"]), adminController.getUserById);
 
-
+router.put("/update-user/:id", authenticateUser, authorizeRole(["Admin"]), upload.single("avatar"), adminController.updateUser);
+router.get("/filter-users", authenticateUser, authorizeRole(["Admin"]), (req, res) => {
+  const { role, major } = req.query;
+  if (role && major) {
+    adminController.filterUsersByRoleAndMajor(req, res);
+  } 
+  else if (role && !major) {
+    adminController.filterUsersByRole(req, res);
+  }
+  else if (!role && major) {
+    adminController.filterUsersByMajor(req, res);
+  }
+  else {
+    adminController.getAllUsers(req, res);
+  }
+});
 
 module.exports = router;

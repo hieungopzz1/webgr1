@@ -85,13 +85,14 @@
   border-collapse: collapse;
 }
 
-.users-table th, .users-table td {
+.account-management-container .users-table th, 
+.account-management-container .users-table td {
   padding: 12px 16px;
   text-align: left;
   border-bottom: 1px solid #eee;
 }
 
-.users-table th {
+.account-management-container .users-table th {
   background-color: #f5f5f5;
   font-weight: 600;
   color: #333;
@@ -100,18 +101,24 @@
 .user-row {
   transition: background-color 0.2s ease;
   cursor: pointer;
-  height: 65px;
+  height: 77.5px;
+  box-sizing: border-box;
 }
 
 .user-row:hover {
   background-color: #f0f4f8 !important;
 }
 
+.user-row td {
+  height: 100%;
+  vertical-align: middle;
+}
+
 .user-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  max-height: 40px;
+  height: 40px;
   overflow: visible;
 }
 
@@ -259,22 +266,27 @@
     align-items: stretch;
   }
   
-  .users-table, .users-table thead, .users-table tbody, .users-table th, .users-table td, .users-table tr {
+  .account-management-container .users-table, 
+  .account-management-container .users-table thead, 
+  .account-management-container .users-table tbody, 
+  .account-management-container .users-table th, 
+  .account-management-container .users-table td, 
+  .account-management-container .users-table tr {
     display: block;
   }
   
-  .users-table thead tr {
+  .account-management-container .users-table thead tr {
     position: absolute;
     top: -9999px;
     left: -9999px;
   }
   
-  .users-table tr {
+  .account-management-container .users-table tr {
     border: 1px solid #ccc;
     margin-bottom: 8px;
   }
   
-  .users-table td {
+  .account-management-container .users-table td {
     border: none;
     border-bottom: 1px solid #eee;
     position: relative;
@@ -282,7 +294,7 @@
     min-height: 30px;
   }
   
-  .users-table td:before {
+  .account-management-container .users-table td:before {
     position: absolute;
     top: 12px;
     left: 16px;
@@ -292,12 +304,12 @@
     font-weight: bold;
   }
   
-  .users-table td:nth-of-type(1):before { content: "Name"; }
-  .users-table td:nth-of-type(2):before { content: "Email"; }
-  .users-table td:nth-of-type(3):before { content: "Role"; }
-  .users-table td:nth-of-type(4):before { content: "ID"; }
-  .users-table td:nth-of-type(5):before { content: "Major"; }
-  .users-table td:nth-of-type(6):before { content: "Actions"; }
+  .account-management-container .users-table td:nth-of-type(1):before { content: "Name"; }
+  .account-management-container .users-table td:nth-of-type(2):before { content: "Email"; }
+  .account-management-container .users-table td:nth-of-type(3):before { content: "Role"; }
+  .account-management-container .users-table td:nth-of-type(4):before { content: "ID"; }
+  .account-management-container .users-table td:nth-of-type(5):before { content: "Major"; }
+  .account-management-container .users-table td:nth-of-type(6):before { content: "Actions"; }
   
   .actions-cell {
     justify-content: flex-end;

@@ -105,25 +105,25 @@
 }
 
 /* Tables */
-table {
+.assign-class-container table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
 }
 
-table th,
-table td {
+.assign-class-container table th,
+.assign-class-container table td {
   padding: 10px;
   text-align: left;
   border-bottom: 1px solid #ddd;
 }
 
-table th {
+.assign-class-container table th {
   background-color: #f2f2f2;
   font-weight: bold;
 }
 
-table tr:hover {
+.assign-class-container table tr:hover {
   background-color: #f9f9f9;
 }
 

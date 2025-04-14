@@ -145,7 +145,7 @@ const UserDocument = () => {
       formData.append('classId', selectedClass);
       formData.append('documentType', user.role === "Tutor" ? "assignment" : "submission");
       
-      const response = await api.post('/api/documents/upload', formData, {
+      const response = await api.post('/api/documents/upload-document', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

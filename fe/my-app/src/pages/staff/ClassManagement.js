@@ -14,7 +14,6 @@ const ClassManagement = () => {
   const toast = useToast();
   const { users } = useUser();
   
-  // Main state
   const [classes, setClasses] = useState([]);
   const [tutors, setTutors] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
@@ -23,30 +22,26 @@ const ClassManagement = () => {
   const [success, setSuccess] = useState('');
   const [dataLoading, setDataLoading] = useState(true);
   
-  // Selected class state
   const [selectedClass, setSelectedClass] = useState(null);
   const [classStudents, setClassStudents] = useState([]);
   const [classTutor, setClassTutor] = useState(null);
   const [fetchingClassDetails, setFetchingClassDetails] = useState(false);
   
-  // Modal states
   const [isEditTutorModalOpen, setIsEditTutorModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [isRemoveStudentModalOpen, setIsRemoveStudentModalOpen] = useState(false);
   const [studentToRemove, setStudentToRemove] = useState(null);
   
-  // Search and filter state
   const [classSearchQuery, setClassSearchQuery] = useState('');
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   
-  // Di chuyển state lên cấp cao nhất
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   
-  // Thêm state để lưu trữ sinh viên theo major
   const [majorStudents, setMajorStudents] = useState([]);
   const [loadingMajorStudents, setLoadingMajorStudents] = useState(false);
   
-  // Utility function xử lý lỗi
+  const effectRan = React.useRef(false);
+  
   const handleApiError = useCallback((err, defaultMessage) => {
     let errorMsg = defaultMessage || 'An error occurred';
     
@@ -82,7 +77,6 @@ const ClassManagement = () => {
     }, 3000);
   }, [toast]);
   
-  // Fetch classes
   const fetchClasses = useCallback(async () => {
     try {
       const response = await api.get('/api/class/get-all-class');
@@ -98,7 +92,6 @@ const ClassManagement = () => {
     }
   }, [handleApiError]);
   
-  // Fetch users (tutors and students)
   const fetchUsers = useCallback(async () => {
     try {
       const response = await api.get('/api/admin/get-users');
@@ -115,7 +108,7 @@ const ClassManagement = () => {
     }
   }, [handleApiError]);
 
-  useEffect(() => {
+  const loadInitialData = useCallback(async () => {
     if (!isAuthenticated()) {
       setError('Authentication required. Please log in again.');
       toast.error('Authentication required. Please log in again.');
@@ -124,56 +117,105 @@ const ClassManagement = () => {
     
     setDataLoading(true);
     
-    Promise.all([
-      fetchClasses(),
-      fetchUsers()
-    ]).then(() => {
+    try {
+      await Promise.all([
+        fetchClasses(),
+        fetchUsers()
+      ]);
       toast.info('Đã tải dữ liệu quản lý lớp học');
-    }).catch(err => {
-      console.error('Error loading initial data:', err);
-    }).finally(() => {
+    } catch (err) {
+      handleApiError(err, 'Failed to load initial data');
+    } finally {
       setDataLoading(false);
-    });
-    
-  }, []); 
+    }
+  }, [fetchClasses, fetchUsers, handleApiError, toast]);
+
+  useEffect(() => {
+    if (!effectRan.current) {
+      loadInitialData();
+      effectRan.current = true;
+    }
+  }, [loadInitialData]);
   
-  // Fetch class details (students and tutor)
   const fetchClassDetails = useCallback(async (classId) => {
     if (!classId) return;
     
     setFetchingClassDetails(true);
     
     try {
-      // Get class users (students)
       const usersResponse = await api.get(`/api/class/${classId}/users`);
       if (usersResponse.data) {
-        setClassStudents(usersResponse.data.students || []);
+        const validStudents = (usersResponse.data.students || [])
+          .filter(student => student != null)
+          .map(student => ({
+            ...student, 
+            userRef: true,
+            key: `student-${student._id}`
+          }));
         
-        // Find tutor details
+        setClassStudents(validStudents);
+        
         if (usersResponse.data.tutor) {
           const tutorId = usersResponse.data.tutor;
-          const tutorData = tutors.find(t => t._id === tutorId);
+          const tutorData = tutors.find(t => t && t._id === tutorId);
           setClassTutor(tutorData || null);
         } else {
           setClassTutor(null);
         }
-        toast.success(`Đã tải thông tin lớp học ${selectedClass?.class_name || ''}`);
+        
+        if (selectedClass && selectedClass.class_name) {
+          toast.success(`Loaded class details for ${selectedClass.class_name}`);
+        }
       }
     } catch (err) {
       handleApiError(err, 'Failed to fetch class details');
+      setClassStudents([]);
+      setClassTutor(null);
     } finally {
       setFetchingClassDetails(false);
     }
   }, [tutors, handleApiError, toast, selectedClass]);
   
-  // Handle selecting a class
+  useEffect(() => {
+    if (classStudents.length > 0 && users.length > 0 && selectedClass) {
+      if (fetchingClassDetails || loading) return;
+
+      let shouldUpdate = false;
+      const updatedStudents = classStudents.map(student => {
+        if (!student || !student._id) return student;
+        
+        const updatedUser = users.find(u => u && u._id === student._id);
+        if (!updatedUser) return student;
+        
+        if (
+          updatedUser.firstName !== student.firstName ||
+          updatedUser.lastName !== student.lastName ||
+          updatedUser.student_ID !== student.student_ID
+        ) {
+          shouldUpdate = true;
+          return { ...updatedUser, userRef: student.userRef };
+        }
+        
+        return student;
+      });
+      
+      if (shouldUpdate) {
+        setClassStudents(updatedStudents);
+      }
+    }
+  }, [users, classStudents, selectedClass, fetchingClassDetails, loading]);
+
   const handleSelectClass = useCallback((classItem) => {
+    if (!classItem || !classItem._id) {
+      toast.error('Invalid class selected');
+      return;
+    }
+    
     setSelectedClass(classItem);
     fetchClassDetails(classItem._id);
     toast.info(`Đã chọn lớp ${classItem.class_name}`);
   }, [fetchClassDetails, toast]);
   
-  // Filter classes based on search query
   const filteredClasses = useMemo(() => {
     if (!classSearchQuery.trim()) return classes;
     
@@ -184,7 +226,6 @@ const ClassManagement = () => {
     );
   }, [classes, classSearchQuery]);
   
-  // Hàm để lấy sinh viên theo major khi mở modal thêm sinh viên
   const fetchStudentsByMajor = useCallback(async (majorName) => {
     if (!majorName) return;
     
@@ -204,7 +245,6 @@ const ClassManagement = () => {
     }
   }, [handleApiError]);
 
-  // Cập nhật logic khi mở modal thêm sinh viên
   const handleOpenAddStudentModal = useCallback(() => {
     if (selectedClass && selectedClass.major) {
       fetchStudentsByMajor(selectedClass.major);
@@ -212,15 +252,12 @@ const ClassManagement = () => {
     }
   }, [selectedClass, fetchStudentsByMajor]);
 
-  // Filter available students từ majorStudents thay vì allStudents
   const availableStudents = useMemo(() => {
     if (!selectedClass || !majorStudents.length) return [];
     
-    // Filter out students already in the class
     const classStudentIds = classStudents.map(s => s._id);
     const availableStudents = majorStudents.filter(s => !classStudentIds.includes(s._id));
     
-    // Filter by search query if provided
     if (studentSearchQuery.trim()) {
       return availableStudents.filter(student => 
         student.firstName.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
@@ -232,7 +269,6 @@ const ClassManagement = () => {
     return availableStudents;
   }, [majorStudents, classStudents, selectedClass, studentSearchQuery]);
   
-  // Update class tutor
   const handleUpdateTutor = useCallback(async (newTutorId) => {
     if (!selectedClass) return;
     
@@ -250,11 +286,9 @@ const ClassManagement = () => {
       
       setSuccess('Tutor updated successfully');
       
-      // Refresh class list and details
       await fetchClasses();
       await fetchClassDetails(selectedClass._id);
       
-      // Close modal
       setIsEditTutorModalOpen(false);
     } catch (err) {
       handleApiError(err, 'Failed to update tutor');
@@ -263,7 +297,6 @@ const ClassManagement = () => {
     }
   }, [selectedClass, fetchClasses, fetchClassDetails, handleApiError]);
   
-  // Add students to class
   const handleAddStudents = useCallback(async (studentIds) => {
     if (!selectedClass || !studentIds.length) return;
     
@@ -288,38 +321,41 @@ const ClassManagement = () => {
       
       setSuccess('Students added successfully');
       
-      // Refresh class details
       await fetchClassDetails(selectedClass._id);
       
-      // Close modal
       setIsAddStudentModalOpen(false);
     } catch (err) {
       handleApiError(err, 'Failed to add students');
     } finally {
       setLoading(false);
     }
-  }, [selectedClass, fetchClassDetails]);
+  }, [selectedClass, fetchClassDetails, handleApiError]);
   
-  // Remove student from class
   const handleRemoveStudent = useCallback((student) => {
+    if (!student || !student._id) {
+      toast.error('Invalid student selected');
+      return;
+    }
+    
     setStudentToRemove(student);
     setIsRemoveStudentModalOpen(true);
-  }, []);
+  }, [toast]);
   
-  // Confirm remove student
   const confirmRemoveStudent = useCallback(async () => {
-    if (!selectedClass || !studentToRemove) return;
+    if (!selectedClass || !studentToRemove || !studentToRemove._id) {
+      toast.error('Invalid student or class selected');
+      setIsRemoveStudentModalOpen(false);
+      setStudentToRemove(null);
+      return;
+    }
     
-    // Lưu trữ học sinh trước khi xóa để có thể hoàn tác
     const studentId = studentToRemove._id;
     const studentName = `${studentToRemove.firstName} ${studentToRemove.lastName}`;
     
-    // Optimistic update - cập nhật UI ngay lập tức
     setClassStudents(prev => prev.filter(s => s._id !== studentId));
     setIsRemoveStudentModalOpen(false);
     setStudentToRemove(null);
     
-    // Hiển thị thông báo đang xử lý
     setLoading(true);
     setError('');
     setSuccess(`Removing ${studentName}...`);
@@ -333,42 +369,24 @@ const ClassManagement = () => {
       });
       
       setSuccess(`${studentName} removed successfully`);
-      
-      // Không cần phải gọi lại fetchClassDetails, vì đã cập nhật UI
     } catch (err) {
-      // Hoàn tác UI change nếu API call thất bại
       setClassStudents(prev => [...prev, studentToRemove]);
       handleApiError(err, `Failed to remove ${studentName}`);
     } finally {
       setLoading(false);
     }
-  }, [selectedClass, studentToRemove]);
+  }, [selectedClass, studentToRemove, toast, handleApiError]);
   
   const handleStudentSelect = (studentId) => {
     setSelectedStudentIds(prev => {
-      // Nếu sinh viên đã được chọn, loại bỏ khỏi danh sách
       if (prev.includes(studentId)) {
         return prev.filter(id => id !== studentId);
-      } 
-      // Nếu chưa được chọn, thêm vào danh sách
-      else {
+      } else {
         return [...prev, studentId];
       }
     });
   };
   
-  // Update useEffect to sync class students with latest user data
-  useEffect(() => {
-    if (classStudents.length > 0 && users.length > 0) {
-      const updatedStudents = classStudents.map(student => {
-        const updatedUser = users.find(u => u._id === student._id);
-        return updatedUser || student;
-      });
-      setClassStudents(updatedStudents);
-    }
-  }, [users, classStudents]);
-  
-  // Render class list sidebar
   const renderClassList = () => (
     <div className="class-management-sidebar">
       <h3>Classes</h3>
@@ -416,7 +434,41 @@ const ClassManagement = () => {
     </div>
   );
   
-  // Render class details section
+  const renderStudents = (students) => {
+    if (!students || students.length === 0) {
+      return <p className="no-data">No students assigned to this class</p>;
+    }
+    
+    return (
+      <div className="students-list">
+        {students.map((student, index) => {
+          if (!student || !student._id) return null;
+          
+          const uniqueKey = `student-${student._id}-${index}`;
+          const firstName = student?.firstName || 'N/A';
+          const lastName = student?.lastName || 'N/A';
+          const studentIdDisplay = student?.student_ID || 'No ID';
+          
+          return (
+            <div key={uniqueKey} className="student-card">
+              <div className="student-info">
+                <h4>{firstName} {lastName}</h4>
+                <p>{studentIdDisplay}</p>
+              </div>
+              <Button 
+                variant="danger" 
+                size="small"
+                onClick={() => handleRemoveStudent(student)}
+              >
+                Remove
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+  
   const renderClassDetails = () => {
     if (!selectedClass) {
       return (
@@ -425,14 +477,18 @@ const ClassManagement = () => {
         </div>
       );
     }
+
+    const className = selectedClass?.class_name || 'Class';
+    const classMajor = selectedClass?.major || '';
+    const classSubject = selectedClass?.subject || '';
     
     return (
       <div className="class-management-content">
         <div className="class-header">
-          <h2>{selectedClass.class_name}</h2>
+          <h2>{className}</h2>
           <div className="class-info">
-            <span className="badge major">{selectedClass.major}</span>
-            <span className="badge subject">{selectedClass.subject}</span>
+            {classMajor && <span className="badge major">{classMajor}</span>}
+            {classSubject && <span className="badge subject">{classSubject}</span>}
           </div>
         </div>
         
@@ -457,8 +513,8 @@ const ClassManagement = () => {
               {classTutor ? (
                 <div className="tutor-card">
                   <div className="tutor-info">
-                    <h4>{classTutor.firstName} {classTutor.lastName}</h4>
-                    <p>{classTutor.email}</p>
+                    <h4>{classTutor?.firstName || ''} {classTutor?.lastName || ''}</h4>
+                    <p>{classTutor?.email || ''}</p>
                   </div>
                 </div>
               ) : (
@@ -478,31 +534,7 @@ const ClassManagement = () => {
                 </Button>
               </div>
               
-              {!classStudents || classStudents.length === 0 ? (
-                <p className="no-data">No students assigned to this class</p>
-              ) : (
-                <div className="students-list">
-                  {classStudents.map(student => {
-                    if (!student) return null;
-                    
-                    return (
-                      <div key={student._id} className="student-card">
-                        <div className="student-info">
-                          <h4>{student?.firstName || 'N/A'} {student?.lastName || 'N/A'}</h4>
-                          <p>{student?.student_ID || 'No ID'}</p>
-                        </div>
-                        <Button 
-                          variant="danger" 
-                          size="small"
-                          onClick={() => handleRemoveStudent(student)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {renderStudents(classStudents)}
             </div>
           </>
         )}
@@ -510,7 +542,6 @@ const ClassManagement = () => {
     );
   };
   
-  // Edit Tutor Modal
   const renderEditTutorModal = () => (
     <Modal 
       isOpen={isEditTutorModalOpen} 
@@ -545,14 +576,13 @@ const ClassManagement = () => {
     </Modal>
   );
   
-  // Add Students Modal
   const renderAddStudentModal = () => {
     return (
       <Modal 
         isOpen={isAddStudentModalOpen} 
         onClose={() => {
           setIsAddStudentModalOpen(false);
-          setSelectedStudentIds([]); // Reset khi đóng modal
+          setSelectedStudentIds([]);
         }}
         title={`Add Students: ${selectedClass?.class_name}`}
       >
@@ -560,7 +590,7 @@ const ClassManagement = () => {
           e.preventDefault();
           if (selectedStudentIds.length > 0) {
             handleAddStudents(selectedStudentIds);
-            setSelectedStudentIds([]); // Reset sau khi submit
+            setSelectedStudentIds([]);
           }
         }} className="add-student-form">
           <div className="major-info">
@@ -650,7 +680,6 @@ const ClassManagement = () => {
     );
   };
   
-  // Remove Student Confirmation Modal
   const renderRemoveStudentModal = () => (
     <ConfirmModal
       isOpen={isRemoveStudentModalOpen}
@@ -664,7 +693,6 @@ const ClassManagement = () => {
     />
   );
   
-  // Main render
   return (
     <div className="class-management-container">
       <h2 className="page-title">Class Management</h2>

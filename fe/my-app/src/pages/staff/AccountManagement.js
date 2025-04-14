@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import api from '../../utils/api';
+import React, { useState, useEffect, useMemo } from 'react';
 import InputField from '../../components/inputField/InputField';
 import Button from '../../components/button/Button';
 import Modal from '../../components/modal/Modal';
@@ -138,7 +137,7 @@ const UserTable = ({ users, onEdit, onDelete }) => (
             <td>
               <Button 
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent row click event
+                  e.stopPropagation();
                   onDelete(user._id, `${user.firstName} ${user.lastName}`);
                 }}
                 variant="danger"
@@ -167,7 +166,6 @@ const EditUserForm = ({
   onSubmit,
   onCancel
 }) => {
-  // Add getInitials function
   const getInitials = () => {
     if (selectedUser) {
       const firstInitial = selectedUser.firstName?.[0] || '';
@@ -219,7 +217,7 @@ const EditUserForm = ({
           value={formData.role}
           onChange={handleRoleChange}
           className="form-select"
-          disabled={true} // Cannot change role when editing
+          disabled={true}
         >
           <option value={USER_ROLES.STUDENT}>Student</option>
           <option value={USER_ROLES.TUTOR}>Tutor</option>
@@ -336,7 +334,7 @@ const EditUserForm = ({
 };
 
 const AccountManagement = () => {
-  const { users, loading: userLoading, fetchUsers, updateUser } = useUser();
+  const { users, loading: userLoading, fetchUsers, updateUser, deleteUser } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ role: '', major: '', searchTerm: '' });
@@ -529,7 +527,6 @@ const AccountManagement = () => {
     try {
       const formDataToSend = new FormData();
       
-      // Add form fields
       formDataToSend.append('firstName', formData.firstName);
       formDataToSend.append('lastName', formData.lastName);
       formDataToSend.append('email', formData.email);
@@ -551,13 +548,11 @@ const AccountManagement = () => {
         formDataToSend.append('avatar', avatar);
       }
       
-      // Update user using context
       await updateUser(selectedUser._id, formDataToSend);
       
       toast.success(`Successfully updated account for ${formData.email}`);
       handleCloseModal();
       
-      // Refresh users list
       await fetchUsers();
       
     } catch (err) {
@@ -575,9 +570,8 @@ const AccountManagement = () => {
       setError(null);
       
       try {
-        await api.delete(`/api/admin/delete-user/${userId}`);
+        await deleteUser(userId);
         toast.success(`Successfully deleted account for ${userName}`);
-        await fetchUsers(); // Refresh users list
       } catch (err) {
         const errorMessage = err.response?.data?.message || err.message;
         setError(errorMessage);

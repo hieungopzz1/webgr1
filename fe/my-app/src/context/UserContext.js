@@ -45,11 +45,71 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
+  const deleteUser = useCallback(async (userId) => {
+    try {
+      const response = await api.delete(`/api/admin/delete-user/${userId}`);
+      
+      setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
+      
+      return response.data;
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      throw err;
+    }
+  }, []);
+
+  const refreshUsersIfNeeded = useCallback(async (forceRefresh = false) => {
+    try {
+      if (loading && !forceRefresh) return users;
+      
+      const response = await api.get('/api/admin/get-users');
+      if (response.data?.users) {
+        const newUsers = response.data.users;
+        const hasChanges = () => {
+          if (users.length !== newUsers.length) return true;
+          
+          const userMap = {};
+          users.forEach(user => {
+            userMap[user._id] = user;
+          });
+          
+          for (const newUser of newUsers) {
+            const existingUser = userMap[newUser._id];
+            if (!existingUser) return true;
+            
+            if (
+              existingUser.firstName !== newUser.firstName ||
+              existingUser.lastName !== newUser.lastName ||
+              existingUser.email !== newUser.email ||
+              existingUser.role !== newUser.role
+            ) {
+              return true;
+            }
+          }
+          
+          return false;
+        };
+        
+        if (forceRefresh || hasChanges()) {
+          setUsers(newUsers);
+        }
+        
+        return newUsers;
+      }
+      return users;
+    } catch (err) {
+      console.error('Error refreshing users:', err);
+      throw err;
+    }
+  }, [users, loading]);
+
   const value = {
     users,
     loading,
     fetchUsers,
-    updateUser
+    updateUser,
+    deleteUser,
+    refreshUsersIfNeeded
   };
 
   return (

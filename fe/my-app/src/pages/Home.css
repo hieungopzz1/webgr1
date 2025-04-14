@@ -63,16 +63,11 @@
 }
 
 @media (max-width: 768px) {
-  .home {
-    padding: 20px 0;
-  }
-  
-  .home__content {
-    gap: 16px;
-  }
+  .home { padding: 20px 0; }
+  .home__content { gap: 16px; }
 }
 
-/* Layout 2 columns */
+/* Layout */
 .home__layout {
   display: flex;
   margin: 0 auto;
@@ -84,6 +79,8 @@
 .home__main-content {
   flex: 1;
   max-width: 650px;
+  display: flex;
+  flex-direction: column;
 }
 
 .home__sidebar {
@@ -111,6 +108,12 @@
   transform: translateY(-3px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-color: #007bff;
+}
+
+.user-profile-card.no-click:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-color: #e3e3e3;
 }
 
 .user-profile-card.active {
@@ -241,7 +244,7 @@
   }
 }
 
-/* Style for active filter information */
+/* Filter information */
 .active-filter-info {
   display: flex;
   align-items: center;
@@ -275,7 +278,7 @@
   color: white;
 }
 
-/* Style for no blogs state */
+/* No blogs state */
 .home__no-blogs {
   text-align: center;
   padding: 30px;
@@ -303,4 +306,80 @@
 
 .create-blog-button:hover {
   background-color: #0069d9;
+}
+
+/* Search styles */
+.home__search-container {
+  position: relative;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.home__search-input {
+  width: 100%;
+  padding: 12px 40px 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.home__search-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.home__search-input::placeholder {
+  color: #aaa;
+}
+
+.home__search-loading {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.home__search-clear {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.home__search-clear:hover {
+  color: #007bff;
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.spinner.small {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .home__search-container {
+    margin-bottom: 15px;
+  }
+  
+  .home__search-input {
+    padding: 10px 38px 10px 12px;
+  }
 } 

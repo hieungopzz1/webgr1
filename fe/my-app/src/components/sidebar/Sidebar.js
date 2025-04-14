@@ -25,12 +25,6 @@ const MENU_ITEMS = {
       hideFor: [USER_ROLES.ADMIN],
     },
     {
-      to: "/search",
-      icon: <i className="bi bi-search-heart" />,
-      activeIcon: <i className="bi bi-search-heart-fill" />,
-      label: "Search",
-    },
-    {
       to: ROUTES.MESSAGES,
       icon: <i className="bi bi-chat-dots" />,
       activeIcon: <i className="bi bi-chat-dots-fill" />,

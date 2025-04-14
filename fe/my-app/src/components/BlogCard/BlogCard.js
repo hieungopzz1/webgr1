@@ -23,10 +23,13 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
   const dropdownRef = useRef(null);
   const toast = useToast();
 
-  const shouldShowMore = blog.content.length > MAX_CONTENT_LENGTH;
-  const displayContent = isExpanded
+  const shouldShowMore = blog.content && blog.content.length > MAX_CONTENT_LENGTH;
+  
+  const displayContent = !blog.content ? '' : isExpanded
     ? blog.content
-    : blog.content.slice(0, blog.content.lastIndexOf(" ", MAX_CONTENT_LENGTH));
+    : shouldShowMore 
+      ? blog.content.substring(0, MAX_CONTENT_LENGTH) + (isExpanded ? '' : '...') 
+      : blog.content;
 
   // Get user information from localStorage
   useEffect(() => {
@@ -115,8 +118,17 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
   const authorName = author
     ? `${author.firstName} ${author.lastName}`
     : "Unknown";
-  const authorAvatar = author?.avatar
-    ? `http://localhost:5001${author.avatar}`
+    
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return "/default-avatar.png";
+    
+    return avatarPath.startsWith('http') 
+      ? avatarPath 
+      : `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}${avatarPath}`;
+  };
+  
+  const authorAvatar = author?.avatar 
+    ? getAvatarUrl(author.avatar)
     : "/default-avatar.png";
 
   const isAuthor = () => {

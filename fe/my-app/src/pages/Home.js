@@ -5,26 +5,21 @@ import { getUserData } from '../utils/storage';
 import { useToast } from '../context/ToastContext';
 import './Home.css';
 
-// Tách thành component con riêng biệt để có thể tối ưu hiệu suất
 const UserProfileCard = memo(({ user, onFilterByUser, isCurrentUserFilter }) => {
   if (!user) return null;
   
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
-    
-    // If the path is already a full URL, use it as is
-    if (avatarPath.startsWith('http')) {
-      return avatarPath;
-    }
-    
-    // If the path is a relative path, add the base URL
-    return `${process.env.REACT_APP_API_URL}${avatarPath}`;
+    return avatarPath.startsWith('http') ? avatarPath : `${process.env.REACT_APP_API_URL}${avatarPath}`;
   };
+  
+  const isAdmin = user.role === 'Admin';
   
   return (
     <div 
-      className={`user-profile-card ${isCurrentUserFilter ? 'active' : ''}`}
-      onClick={() => onFilterByUser(user)}
+      className={`user-profile-card ${isCurrentUserFilter ? 'active' : ''} ${isAdmin ? 'no-click' : ''}`}
+      onClick={() => isAdmin ? null : onFilterByUser(user)}
+      style={{ cursor: isAdmin ? 'default' : 'pointer' }}
     >
       <div className="user-profile-avatar">
         {user.avatar ? (
@@ -32,7 +27,6 @@ const UserProfileCard = memo(({ user, onFilterByUser, isCurrentUserFilter }) => 
             src={getAvatarUrl(user.avatar)} 
             alt={`${user.firstName}'s avatar`} 
             onError={(e) => {
-              // If image loading fails, display default avatar
               e.target.style.display = 'none';
               e.target.nextElementSibling.style.display = 'flex';
             }}
@@ -50,7 +44,7 @@ const UserProfileCard = memo(({ user, onFilterByUser, isCurrentUserFilter }) => 
         {isCurrentUserFilter ? (
           <span className="viewing-profile-badge">Viewing</span>
         ) : (
-          <span className="view-profile-hint">Click to view blogs</span>
+          !isAdmin && <span className="view-profile-hint">Click to view blogs</span>
         )}
       </div>
     </div>
@@ -71,6 +65,10 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [filterUser, setFilterUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeout = useRef(null);
   const initialFetchDone = useRef(false);
   const eventListenerRegistered = useRef(false);
   const toast = useToast();
@@ -93,6 +91,116 @@ const Home = () => {
     }
   }, [toast]);
 
+  // Utility function to format search results
+  const formatSearchResults = useCallback((results) => {
+    return results.map(result => {
+      const formattedBlog = { ...result };
+      
+      // Convert the author field to student_id or tutor_id based on role
+      if (result.author) {
+        if (result.author.role === 'Student') {
+          formattedBlog.student_id = {
+            _id: result.author._id,
+            firstName: result.author.name.split(' ')[0],
+            lastName: result.author.name.split(' ').slice(1).join(' '),
+            student_ID: result.author.id,
+            avatar: result.author.avatar
+          };
+          formattedBlog.tutor_id = null;
+        } else if (result.author.role === 'Tutor') {
+          formattedBlog.tutor_id = {
+            _id: result.author._id,
+            firstName: result.author.name.split(' ')[0],
+            lastName: result.author.name.split(' ').slice(1).join(' '),
+            tutor_ID: result.author.id,
+            avatar: result.author.avatar
+          };
+          formattedBlog.student_id = null;
+        }
+      }
+      
+      // If content includes the "..." from truncation in search results,
+      // make sure it's the full content for BlogCard
+      if (formattedBlog.content && formattedBlog.fullContent) {
+        formattedBlog.content = formattedBlog.fullContent;
+        delete formattedBlog.fullContent;
+      }
+      
+      return formattedBlog;
+    });
+  }, []);
+
+  // Function to perform search with current query
+  const performSearch = useCallback(async (query, currentFilterUser = null) => {
+    if (!query || query.trim() === '') return null;
+    
+    try {
+      const response = await api.get(`/api/search/blogs?query=${encodeURIComponent(query)}`);
+      
+      if (response.data && Array.isArray(response.data.results)) {
+        const formattedResults = formatSearchResults(response.data.results);
+        
+        // If filtering by user, only show search results for that user
+        if (currentFilterUser) {
+          const userFilteredResults = formattedResults.filter(blog => 
+            (currentFilterUser.role === 'Student' && blog.student_id?._id === currentFilterUser.id) || 
+            (currentFilterUser.role === 'Tutor' && blog.tutor_id?._id === currentFilterUser.id)
+          );
+          return userFilteredResults;
+        } else {
+          return formattedResults;
+        }
+      }
+    } catch (err) {
+      console.error('Error searching blogs:', err);
+      toast.error('Error searching blogs. Please try again.');
+    }
+    
+    return null;
+  }, [formatSearchResults, toast]);
+
+  // Handle search query change
+  const handleSearchChange = useCallback((e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    // Clear any existing timeout
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    
+    if (query.trim() === '') {
+      setIsSearching(false);
+      // If search is cleared, show original filtered blogs
+      setFilteredBlogs(filterUser ? 
+        blogs.filter(blog => 
+          (filterUser.role === 'Student' && blog.student_id?._id === filterUser.id) || 
+          (filterUser.role === 'Tutor' && blog.tutor_id?._id === filterUser.id)
+        ) : 
+        blogs
+      );
+      return;
+    }
+    
+    // Debounce search to avoid too many requests
+    searchTimeout.current = setTimeout(async () => {
+      setIsSearching(true);
+      
+      const searchResults = await performSearch(query, filterUser);
+      
+      if (searchResults) {
+        setSearchResults(searchResults);
+        setFilteredBlogs(searchResults);
+        
+        if (searchResults.length === 0) {
+          toast.info(`No blogs found for "${query}"`);
+        }
+      }
+      
+      setIsSearching(false);
+    }, 300); // 300ms debounce
+  }, [blogs, filterUser, performSearch, toast]);
+
   // Handle filtering blogs by user
   const handleFilterByUser = useCallback(async (selectedUser) => {
     if (filterUser && filterUser.id === selectedUser.id) {
@@ -106,7 +214,18 @@ const Home = () => {
         
         if (response.data && Array.isArray(response.data.blogs)) {
           setBlogs(response.data.blogs);
-          setFilteredBlogs(response.data.blogs);
+          
+          // If there's an active search, filter the returned blogs by the search query
+          if (searchQuery.trim() !== '') {
+            const searchResults = await performSearch(searchQuery);
+            if (searchResults) {
+              setFilteredBlogs(searchResults);
+            } else {
+              setFilteredBlogs(response.data.blogs);
+            }
+          } else {
+            setFilteredBlogs(response.data.blogs);
+          }
         }
         toast.info('Showing all blogs');
       } catch (err) {
@@ -125,12 +244,25 @@ const Home = () => {
         const response = await api.get(`/api/blog/get-user-blogs/${selectedUser.role}/${selectedUser.id}`);
         
         if (response.data && Array.isArray(response.data.blogs)) {
-          setFilteredBlogs(response.data.blogs);
+          // Store the blogs filtered by user
+          const userBlogs = response.data.blogs;
           
-          if (response.data.blogs.length === 0) {
+          // If there's an active search, we need to apply it to these user-filtered blogs
+          if (searchQuery.trim() !== '') {
+            const searchResults = await performSearch(searchQuery, selectedUser);
+            if (searchResults) {
+              setFilteredBlogs(searchResults);
+            } else {
+              setFilteredBlogs(userBlogs);
+            }
+          } else {
+            setFilteredBlogs(userBlogs);
+          }
+          
+          if (userBlogs.length === 0) {
             toast.info(`${selectedUser.firstName} has no blogs yet`);
           } else {
-            toast.info(`Showing ${response.data.blogs.length} blogs by ${selectedUser.firstName}`);
+            toast.info(`Showing ${userBlogs.length} blogs by ${selectedUser.firstName}`);
           }
         }
       } catch (err) {
@@ -142,7 +274,7 @@ const Home = () => {
         setLoading(false);
       }
     }
-  }, [filterUser, toast]);
+  }, [filterUser, toast, searchQuery, performSearch]);
 
   // Use useCallback for event handlers
   const handleCreateBlogClick = useCallback(() => {
@@ -307,7 +439,44 @@ const Home = () => {
       <div className="home__layout">
         {/* Left column - BlogCards */}
         <div className="home__main-content">
-          {filteredBlogs.length > 0 ? (
+          {/* Search Bar */}
+          <div className="home__search-container">
+            <input
+              type="text"
+              className="home__search-input"
+              placeholder="Search blogs by title, content or author..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+            {isSearching && (
+              <div className="home__search-loading">
+                <div className="spinner small"></div>
+              </div>
+            )}
+            {searchQuery && !isSearching && (
+              <button 
+                className="home__search-clear" 
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilteredBlogs(filterUser ? 
+                    blogs.filter(blog => 
+                      (filterUser.role === 'Student' && blog.student_id?._id === filterUser.id) || 
+                      (filterUser.role === 'Tutor' && blog.tutor_id?._id === filterUser.id)
+                    ) : 
+                    blogs
+                  );
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {loading && (
+            <LoadingSpinner />
+          )}
+
+          {!loading && filteredBlogs.length > 0 ? (
             filteredBlogs.map((blog) => (
               <BlogCard 
                 key={blog._id} 
@@ -318,7 +487,9 @@ const Home = () => {
             ))
           ) : (
             <div className="home__no-blogs">
-              {userHasNoBlogs ? (
+              {searchQuery ? (
+                <p>No blogs found matching "{searchQuery}"</p>
+              ) : userHasNoBlogs ? (
                 <>
                   <p>You don't have any blogs yet</p>
                   <button 

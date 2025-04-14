@@ -26,9 +26,6 @@ const BlogSchema = new mongoose.Schema({
     ref: "Student",
     default: null,
   },
-  image: {
-    type: String,
-  },
   // likes: [
   //   {
   //     userId: {

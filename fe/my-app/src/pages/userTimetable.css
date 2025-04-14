@@ -531,7 +531,7 @@
   font-size: 0.9em;
 }
 
-/* Thêm CSS cho phần hiển thị lỗi và các trường hợp đặc biệt */
+/* CSS for error display and special cases */
 
 .error-container {
   display: flex;

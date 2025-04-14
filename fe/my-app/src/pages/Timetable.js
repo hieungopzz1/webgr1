@@ -7,6 +7,7 @@ import Loader from "../components/loader/Loader";
 import Modal from "../components/modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import { useToast } from "../context/ToastContext";
+import { useUser } from "../context/UserContext";
 import Pagination from "../components/pagination/Pagination";
 import { format } from 'date-fns';
 import "./Timetable.css";
@@ -14,7 +15,7 @@ import "./Timetable.css";
 const Timetable = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  // Chỉ lưu trữ trạng thái lỗi nhưng hiển thị qua toast
+  // Only store error state but display through toast
   // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState("");
   // eslint-disable-next-line no-unused-vars
@@ -38,6 +39,7 @@ const Timetable = () => {
   const [tutorFilter, setTutorFilter] = useState("");
 
   const toast = useToast();
+  const { users } = useUser(); // Use UserContext to get users data
   
   const classesRef = useRef();
   classesRef.current = classes;
@@ -140,15 +142,15 @@ const Timetable = () => {
 
   const fetchTutors = useCallback(async () => {
     try {
-      const response = await api.get('/api/admin/get-users');
-      const tutorsList = response.data.users.filter(user => user.role === 'Tutor');
+      // Sử dụng data từ UserContext thay vì gọi API
+      const tutorsList = users.filter(user => user.role === 'Tutor');
       setTutors(tutorsList);
-      return response;
+      return { data: { users: tutorsList } };
     } catch (err) {
       handleApiError(err, "Failed to fetch tutors");
       return err;
     }
-  }, [handleApiError]);
+  }, [users, handleApiError]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -258,7 +260,7 @@ const Timetable = () => {
     }
   }, [fetchSchedulesForAdmin, handleApiError, toast]);
 
-  // Xóa hoặc sử dụng hàm handleCreateMeetLink
+  // Delete or use the handleCreateMeetLink function
   // eslint-disable-next-line no-unused-vars
   const handleCreateMeetLink = useCallback(async (scheduleId) => {
     setLoading(true);

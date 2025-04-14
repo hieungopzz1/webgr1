@@ -7,6 +7,8 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import api from "../../utils/api";
 import ConfirmModal from "../ConfirmModal/ConfirmModal";
 import CreateBlogModal from "../CreateBlogModal/CreateBlogModal";
+import CommentList from "../CommentList/CommentList";
+import { useToast } from "../../context/ToastContext";
 
 const MAX_CONTENT_LENGTH = 300;
 
@@ -19,19 +21,20 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const dropdownRef = useRef(null);
+  const toast = useToast();
 
   const shouldShowMore = blog.content.length > MAX_CONTENT_LENGTH;
   const displayContent = isExpanded
     ? blog.content
     : blog.content.slice(0, blog.content.lastIndexOf(" ", MAX_CONTENT_LENGTH));
 
-  // Lấy thông tin người dùng từ localStorage
+  // Get user information from localStorage
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("userData"));
     setCurrentUser(userData);
   }, []);
 
-  // Hàm fetch trạng thái like (dùng useCallback để tránh re-render)
+  // Fetch like status (using useCallback to prevent re-renders)
   const fetchLikeStatus = useCallback(async () => {
     if (!currentUser || !currentUser.id) return;
 
@@ -43,7 +46,7 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
     }
   }, [blog._id, currentUser]);
 
-  // Gọi API để lấy trạng thái like khi currentUser thay đổi
+  // Call API to get like status when currentUser changes
   useEffect(() => {
     if (currentUser) {
       fetchLikeStatus();
@@ -52,7 +55,7 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
 
   const handleLike = async () => {
     if (!currentUser || !currentUser.id) {
-      console.error("User is not logged in!");
+      toast.error("You need to log in to like posts");
       return;
     }
 
@@ -64,9 +67,15 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
       });
 
       setLiked(response.data.liked);
+      if (response.data.liked) {
+        toast.success("Post liked!");
+      } else {
+        toast.info("Like removed");
+      }
       fetchLikeStatus();
     } catch (error) {
       console.error("Error toggling like:", error);
+      toast.error("Failed to update like status");
     }
   };
 
@@ -80,8 +89,10 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
       await api.delete(`/api/blog/delete-blog/${blog._id}`);
       if (onDelete) onDelete(blog._id);
       setShowConfirmDelete(false);
+      toast.success("Blog post deleted successfully");
     } catch (error) {
       console.error("Error deleting blog:", error);
+      toast.error("Failed to delete the blog post");
     }
   };
 
@@ -93,6 +104,11 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
   const handleEditSuccess = (updatedBlog) => {
     if (onEdit) onEdit(updatedBlog);
     setShowEditModal(false);
+    toast.success("Blog post updated successfully");
+  };
+
+  const toggleComments = () => {
+    setShowComments(!showComments);
   };
 
   const author = blog.student_id || blog.tutor_id;
@@ -109,7 +125,7 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
     return currentUser.id === authorId;
   };
 
-  // Xử lý click ngoài dropdown
+  // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -158,21 +174,6 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
           </div>
         </div>
 
-        {blog.image && (
-          <div className="blog-card__image-container">
-            <img
-              src={
-                blog.image.startsWith("http")
-                  ? blog.image
-                  : `http://localhost:5001${blog.image}`
-              }
-              alt={blog.title || "Blog image"}
-              className="blog-card__image"
-              onError={(e) => (e.target.src = "/default-image.png")}
-            />
-          </div>
-        )}
-
         <div className="blog-card__content">
           {blog.title && <h3 className="blog-card__title">{blog.title}</h3>}
           <div className="blog-card__description">
@@ -182,6 +183,12 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
                 <button
                   className="blog-card__show-more"
                   onClick={() => setIsExpanded(!isExpanded)}
+                  style={{ 
+                    textDecoration: 'none', 
+                    backgroundColor: 'transparent',
+                    color: '#1877f2',
+                    transition: 'none'
+                  }}
                 >
                   {isExpanded ? " show less" : " ...show more"}
                 </button>
@@ -205,12 +212,14 @@ const BlogCard = ({ blog, onDelete, onEdit }) => {
 
             <button
               className="blog-card__action-btn"
-              onClick={() => setShowComments(!showComments)}
+              onClick={toggleComments}
             >
               <FaRegComment />
             </button>
           </div>
         </div>
+
+        {showComments && <CommentList blogId={blog._id} />}
       </div>
 
       <ConfirmModal

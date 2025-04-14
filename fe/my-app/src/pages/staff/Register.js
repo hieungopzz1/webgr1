@@ -257,7 +257,7 @@ const Register = () => {
           // Handle validation errors
           errorMessage = err.response.data?.message || "Please check your input data.";
 
-          // Xử lý đặc biệt khi student_ID đã tồn tại
+          // Special handling when student_ID already exists
           if (
             err.response.data?.message?.includes("student_ID") ||
             err.response.data?.message?.includes("Student ID")

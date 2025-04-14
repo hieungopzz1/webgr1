@@ -149,16 +149,22 @@ const deleteUser = async (req, res) => {
     // Xóa Student
     const deletedStudent = await Student.findOneAndDelete({ _id: id });
     if (deletedStudent) {
+      // Xóa các bản ghi liên quan đến student
+      await AssignStudent.deleteMany({ student: id });
+      await Attendance.deleteMany({ student: id });
+      
       return res.status(200).json({ message: "Student and related data deleted", deletedUser: deletedStudent });
     }
 
     // Xóa Tutor
     const deletedTutor = await Tutor.findOneAndDelete({ _id: id });
     if (deletedTutor) {
+      // Cập nhật lại các lớp mà tutor này quản lý
+      await Class.updateMany({ tutor: id }, { $set: { tutor: null } });
+      
       return res.status(200).json({ message: "Tutor and related data deleted", deletedUser: deletedTutor });
     }
 
-    
     return res.status(404).json({ message: "User not found" });
   } catch (error) {
     res.status(500).json({ error: error.message });

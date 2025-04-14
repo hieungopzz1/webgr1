@@ -1,24 +1,24 @@
-/* Toàn bộ background với gradient */
+/* Complete background with gradient */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #ADD8E6, #87CEFA); /* Gradient xanh dương nhạt */
+  background: linear-gradient(135deg, #ADD8E6, #87CEFA); /* Light blue gradient */
 }
 
-/* Tạo box đăng nhập với thiết kế bo tròn và đổ bóng */
+/* Create login box with rounded corners and shadow */
 .login-box {
   background: white;
   padding: 2rem;
-  border-radius: 15px; /* Bo tròn góc hộp */
+  border-radius: 15px; /* Rounded corners */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
   text-align: center;
 }
 
-/* Tiêu đề của trang đăng nhập */
+/* Login page title */
 .login-title {
   font-size: 2.5rem;
   color: #007bff;
@@ -27,7 +27,7 @@
   font-weight: bold;
 }
 
-/* Các trường nhập liệu */
+/* Input fields */
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -36,7 +36,7 @@
   width: 100%;
   padding: 1rem;
   border: 1px solid #ddd;
-  border-radius: 8px; /* Viền bo tròn */
+  border-radius: 8px; /* Rounded borders */
   font-size: 1rem;
   background-color: #f8f9fa;
   transition: all 0.3s ease;
@@ -48,7 +48,7 @@
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
-/* Nút đăng nhập */
+/* Login button */
 button {
   width: 100%;
   padding: 1rem;
@@ -70,7 +70,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Các liên kết */
+/* Links */
 .auth-links {
   margin-top: 1.5rem;
   font-size: 1rem;

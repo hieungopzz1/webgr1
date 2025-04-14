@@ -8,6 +8,7 @@ import Modal from '../../components/modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getUserData, isAuthenticated } from '../../utils/storage';
 import { useToast } from '../../context/ToastContext';
+import { useUser } from '../../context/UserContext';
 
 const CreateClassForm = memo(({ onSubmit, loading, tutors, students, onSuccess }) => {
   const [className, setClassName] = useState('');
@@ -426,7 +427,7 @@ const EditClassModal = memo(({ isOpen, onClose, classData, tutors, loading, onSa
   const [errors, setErrors] = useState({});
   const [saveLoading, setSaveLoading] = useState(false);
 
-  // Cập nhật form khi classData thay đổi
+  // Update form when classData changes
   useEffect(() => {
     if (classData) {
       setFormData({
@@ -583,6 +584,7 @@ const AssignClass = () => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const toast = useToast();
+  const { users, refreshUsersIfNeeded } = useUser(); // Sử dụng UserContext
   
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -601,7 +603,7 @@ const AssignClass = () => {
     else if (type === 'warning') toast.warning(message);
   }, [toast]);
   
-  // Utility function xử lý lỗi
+  // Utility function to handle errors
   const handleApiError = useCallback((err, defaultMessage) => {
     let errorMsg = defaultMessage || 'An error occurred';
     
@@ -657,43 +659,35 @@ const AssignClass = () => {
     }
   }, [handleApiError]);
 
-  // Improved fetchStudents with proper error handling
+  // Improved fetchStudents using UserContext
   const fetchStudents = useCallback(async () => {
     try {
-      const response = await api.get('/api/admin/get-users');
-      if (response.data && Array.isArray(response.data.users)) {
-        const studentsList = response.data.users.filter(user => user.role === 'Student');
-        setStudents(studentsList);
-      } else {
-        setStudents([]);
-        showToast('warning', 'No students found or invalid data format received');
-      }
-      return response;
+      // Force refresh users data from context if needed
+      await refreshUsersIfNeeded(true);
+      
+      const studentsList = users.filter(user => user.role === 'Student');
+      setStudents(studentsList);
+      return { data: { users: studentsList } };
     } catch (err) {
       handleApiError(err, 'Failed to fetch students');
       setStudents([]);
       return err;
     }
-  }, [handleApiError, showToast]);
+  }, [users, refreshUsersIfNeeded, handleApiError]);
 
-  // Improved fetchTutors with proper error handling
+  // Improved fetchTutors using UserContext
   const fetchTutors = useCallback(async () => {
     try {
-      const response = await api.get('/api/admin/get-users');
-      if (response.data && Array.isArray(response.data.users)) {
-        const tutorsList = response.data.users.filter(user => user.role === 'Tutor');
-        setTutors(tutorsList);
-      } else {
-        setTutors([]);
-        showToast('warning', 'No tutors found or invalid data format received');
-      }
-      return response;
+      // Use users from context instead of making a direct API call
+      const tutorsList = users.filter(user => user.role === 'Tutor');
+      setTutors(tutorsList);
+      return { data: { users: tutorsList } };
     } catch (err) {
       handleApiError(err, 'Failed to fetch tutors');
       setTutors([]);
       return err;
     }
-  }, [handleApiError, showToast]);
+  }, [users, handleApiError]);
 
   useEffect(() => {
     if (initialLoadRef.current || !isAuthenticated()) {
@@ -817,7 +811,7 @@ const AssignClass = () => {
   }, [fetchClasses, resetCreateForm, handleApiError, showToast]);
 
   const handleDeleteStudent = useCallback(async (studentId, classId) => {
-    // Tìm thông tin sinh viên và lớp để hiển thị thông báo
+    // Find student and class information to display in notifications
     const studentData = students.find(s => s._id === studentId);
     const studentName = studentData ? `${studentData.firstName} ${studentData.lastName}` : 'Student';
     
@@ -860,22 +854,22 @@ const AssignClass = () => {
   const confirmDeleteClass = useCallback(async () => {
     if (!classToDelete) return;
     
-    // Optimistic update - xóa class khỏi UI ngay lập tức
+    // Optimistic update - remove class from UI immediately
     const classToDeleteData = classes.find(c => c._id === classToDelete);
     const className = classToDeleteData?.class_name || 'Class';
     
     setClasses(prev => prev.filter(c => c._id !== classToDelete));
     setIsConfirmModalOpen(false);
     
-    // Hiển thị thông báo đang xử lý
+    // Display processing notification
     setLoading(true);
     
     try {
       await api.delete(`/api/class/delete-class/${classToDelete}`);
       showToast('success', `${className} deleted successfully`);
-      // Không cần fetchClasses vì đã cập nhật UI
+      // No need to fetchClasses because UI is already updated
     } catch (err) {
-      // Hoàn tác UI change nếu API call thất bại
+      // Rollback UI change if API call fails
       handleApiError(err, `Failed to delete ${className}`);
       setClasses(prev => [...prev, classToDeleteData]); 
     } finally {
@@ -891,7 +885,7 @@ const AssignClass = () => {
 
   const isDataLoaded = !dataLoading;
 
-  // Thêm hàm xử lý update class
+  // Add function to handle class update
   const handleUpdateClass = useCallback(async (updateData) => {
     setLoading(true);
 

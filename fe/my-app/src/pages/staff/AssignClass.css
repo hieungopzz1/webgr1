@@ -33,7 +33,7 @@
   font-size: 14px;
 }
 
-/* Ngoại trừ checkbox */
+/* Except for checkboxes */
 .form-group input[type="checkbox"] {
   width: auto;
   padding: 0;

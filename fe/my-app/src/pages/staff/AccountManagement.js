@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import InputField from '../../components/inputField/InputField';
 import Button from '../../components/button/Button';
 import Modal from '../../components/modal/Modal';
@@ -354,13 +354,18 @@ const AccountManagement = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   
   const toast = useToast();
+  const initialLoadRef = useRef(false);
   
   // Load initial data
   useEffect(() => {
+    // Prevent multiple loads
+    if (initialLoadRef.current) return;
+    
     const loadUsers = async () => {
       try {
         setLoading(true);
         await fetchUsers();
+        initialLoadRef.current = true;
       } catch (err) {
         const errorMessage = err.response?.data?.message || err.message;
         setError(errorMessage);
@@ -371,9 +376,9 @@ const AccountManagement = () => {
     };
 
     loadUsers();
-  }, [fetchUsers, toast]);
+  }, [fetchUsers]); // Remove toast from dependencies
   
-  // Filtered users based on search term
+  // Memoized filtered users
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       if (!filters.searchTerm) return true;
@@ -553,8 +558,6 @@ const AccountManagement = () => {
       toast.success(`Successfully updated account for ${formData.email}`);
       handleCloseModal();
       
-      await fetchUsers();
-      
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message;
       setError(errorMessage);
@@ -565,13 +568,16 @@ const AccountManagement = () => {
   };
   
   const handleDeleteUser = async (userId, userName) => {
-    if (window.confirm(`Are you sure you want to delete the account for ${userName}?`)) {
+    if (window.confirm(`Are you sure you want to delete the account for ${userName}?\n\nThis will also remove all data associated with this user including:\n- Class assignments\n- Attendance records\n- Documents\n- Blog posts\n\nThis action cannot be undone.`)) {
       setLoading(true);
       setError(null);
       
       try {
         await deleteUser(userId);
         toast.success(`Successfully deleted account for ${userName}`);
+        
+        // Refresh the user list after successful deletion
+        fetchUsers();
       } catch (err) {
         const errorMessage = err.response?.data?.message || err.message;
         setError(errorMessage);

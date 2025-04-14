@@ -108,7 +108,7 @@ const UserDocument = () => {
         } else {
           setClasses([]);
           setDocuments({});
-          toast.error("Định dạng dữ liệu không hợp lệ");
+          toast.error("Invalid data format");
         }
       } else if (responseData && responseData.message) {
         setClasses([]);
@@ -116,7 +116,7 @@ const UserDocument = () => {
       } else {
         setClasses([]);
         setDocuments({});
-        toast.error("Định dạng phản hồi không hợp lệ");
+        toast.error("Invalid response format");
       }
     } catch (err) {
       if (err.response && err.response.status === 400 && err.response.data?.message) {

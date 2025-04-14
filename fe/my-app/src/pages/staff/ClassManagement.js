@@ -122,7 +122,7 @@ const ClassManagement = () => {
         fetchClasses(),
         fetchUsers()
       ]);
-      toast.info('Đã tải dữ liệu quản lý lớp học');
+      toast.info('Class management data loaded successfully');
     } catch (err) {
       handleApiError(err, 'Failed to load initial data');
     } finally {
@@ -213,7 +213,7 @@ const ClassManagement = () => {
     
     setSelectedClass(classItem);
     fetchClassDetails(classItem._id);
-    toast.info(`Đã chọn lớp ${classItem.class_name}`);
+    toast.info(`Selected class ${classItem.class_name}`);
   }, [fetchClassDetails, toast]);
   
   const filteredClasses = useMemo(() => {

@@ -5,27 +5,26 @@ const AssignStudent = require("../models/AssignStudent");
 const getStudentsBySchedule = async (req, res) => {
   try {
     const { scheduleId } = req.params;
-
-    const schedule = await Schedule.findById(scheduleId);
+    
+    const schedule = await Schedule.findById(scheduleId).populate('class');
     if (!schedule) {
       return res.status(404).json({ message: "Schedule not found" });
     }
-
-    const students = await AssignStudent.find({
-      class: schedule.class,
-    }).populate("student", "firstName lastName student_ID email");
-
-
-    res.status(200).json({
-      scheduleId,
-      classId: schedule.class,
-      date: schedule.date,
-      startTime: schedule.startTime,
-      endTime: schedule.endTime,
-      students: students.map((s) => s.student),
-    });
+    
+    const classId = schedule.class._id;
+    
+    // Lấy danh sách sinh viên được gán cho lớp học
+    const assignedStudents = await AssignStudent.find({ class: classId })
+      .populate('student');
+    
+    // Lọc ra sinh viên không tồn tại (có thể đã bị xóa)
+    const validStudents = assignedStudents
+      .filter(assignment => assignment.student)
+      .map(assignment => assignment.student);
+    
+    res.json({ students: validStudents });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Error retrieving students", error: error.message });
   }
 };
 
@@ -102,67 +101,54 @@ const markAttendance = async (req, res) => {
   }
 };
 
-
-
 const getAttendanceStatus = async (req, res) => {
   try {
     const { scheduleId } = req.params;
-
+    
+    // Lấy trạng thái điểm danh
+    const attendances = await Attendance.find({ schedule: scheduleId })
+      .populate('student', 'firstName lastName email student_ID');
+    
+    // Tìm sinh viên đã được điểm danh là present
+    const presentStudents = attendances
+      .filter(att => att.status === 'Present' && att.student)
+      .map(att => att.student);
+    
+    // Tìm sinh viên đã được điểm danh là absent
+    const absentStudents = attendances
+      .filter(att => att.status === 'Absent' && att.student)
+      .map(att => att.student);
+    
+    // Tìm lớp học của lịch trình
     const schedule = await Schedule.findById(scheduleId);
     if (!schedule) {
       return res.status(404).json({ message: "Schedule not found" });
     }
-
-    const studentsInClass = await AssignStudent.find({ class: schedule.class })
-      .populate("student", "firstName lastName email role student_ID");
-
-    const allStudents = studentsInClass.map(s => ({
-      _id: s.student._id.toString(),
-      firstName: s.student.firstName,
-      lastName: s.student.lastName,
-      email: s.student.email,
-      role: s.student.role,
-      student_ID: s.student.student_ID
-    }));
-
-    const attendanceRecords = await Attendance.find({ schedule: scheduleId }).populate("student", "firstName lastName email role student_ID");
-
-    const presentStudents = [];
-    const absentStudents = [];
-    const notYetStudents = [];
-
-    const attendanceMap = new Map();
-    attendanceRecords.forEach(record => {
-      attendanceMap.set(record.student._id.toString(), record.status);
-    });
-
-    allStudents.forEach(student => {
-      if (attendanceMap.has(student._id)) {
-        if (attendanceMap.get(student._id) === "Present") {
-          presentStudents.push(student);
-        } else {
-          absentStudents.push(student);
-        }
-      } else {
-        notYetStudents.push(student);
-      }
-    });
-
-    res.status(200).json({
-      scheduleId,
-      classId: schedule.class,
-      date: schedule.date,
-      startTime: schedule.startTime,
-      endTime: schedule.endTime,
+    
+    // Lấy tất cả sinh viên trong lớp
+    const assignedStudents = await AssignStudent.find({ class: schedule.class })
+      .populate('student', 'firstName lastName email student_ID');
+    
+    // Lọc sinh viên hợp lệ (chưa điểm danh và tồn tại)
+    const validAssignedStudents = assignedStudents.filter(as => as.student);
+    
+    // Lấy danh sách ID của sinh viên đã điểm danh
+    const attendedStudentIds = [...presentStudents, ...absentStudents].map(s => s._id.toString());
+    
+    // Lọc ra sinh viên chưa điểm danh
+    const notYetStudents = validAssignedStudents
+      .filter(as => !attendedStudentIds.includes(as.student._id.toString()))
+      .map(as => as.student);
+    
+    res.json({
       presentStudents,
       absentStudents,
-      notYetStudents
+      notYetStudents,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Error retrieving attendance status", error: error.message });
   }
 };
-
 
 const getStudentAttendance = async (req, res) => {
   try {
@@ -178,6 +164,5 @@ const getStudentAttendance = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 module.exports = { getStudentsBySchedule, getAttendanceStatus , markAttendance,getStudentAttendance };

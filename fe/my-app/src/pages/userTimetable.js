@@ -235,7 +235,7 @@ const UserTimetable = () => {
       setError("");
       
       if (typeof user.id !== 'string' || user.id.trim() === '') {
-        setError("ID người dùng không hợp lệ");
+        setError("Invalid user ID");
         setDataLoading(false);
         return;
       }
@@ -246,7 +246,7 @@ const UserTimetable = () => {
       } else if (user.role === "Tutor") {
         endpoint = `/api/schedule/schedule-tutor`;
       } else {
-        setError("Vai trò người dùng không hợp lệ");
+        setError("Invalid user role");
         setDataLoading(false);
         return;
       }
@@ -458,17 +458,19 @@ const UserTimetable = () => {
   }, [fetchStudentsBySchedule, fetchAttendanceStatus]);
 
   const getStudentAttendanceStatus = useCallback((studentId, scheduleId) => {
+    if (!studentId) return null;
+    
     if (user?.role === "Student" && studentId === user.id && scheduleId) {
       return studentAttendanceMap[scheduleId];
     }
     
-    const isPresentStudent = attendanceStatus.presentStudents.some(student => student._id === studentId);
+    const isPresentStudent = attendanceStatus.presentStudents.some(student => student && student._id === studentId);
     if (isPresentStudent) return "Present";
     
-    const isAbsentStudent = attendanceStatus.absentStudents.some(student => student._id === studentId);
+    const isAbsentStudent = attendanceStatus.absentStudents.some(student => student && student._id === studentId);
     if (isAbsentStudent) return "Absent";
     
-    const isNotYetStudent = attendanceStatus.notYetStudents.some(student => student._id === studentId);
+    const isNotYetStudent = attendanceStatus.notYetStudents.some(student => student && student._id === studentId);
     if (isNotYetStudent) return null;
     
     return null;
@@ -810,14 +812,16 @@ const UserTimetable = () => {
     const [attendanceData, setAttendanceData] = useState([]);
     
     useEffect(() => {
-      if (isAttendanceModalOpen && studentsInClass.length > 0 && selectedSchedule?._id) {
-        const initialAttendance = studentsInClass.map(student => {
-          const status = getStudentAttendanceStatus(student._id, selectedSchedule._id);
-          return {
-            studentId: student._id,
-            status: status || null // Default to null instead of "Absent"
-          };
-        });
+      if (isAttendanceModalOpen && studentsInClass && studentsInClass.length > 0 && selectedSchedule?._id) {
+        const initialAttendance = studentsInClass
+          .filter(student => student) // Chỉ lấy student không null
+          .map(student => {
+            const status = getStudentAttendanceStatus(student._id, selectedSchedule._id);
+            return {
+              studentId: student._id,
+              status: status || null // Default to null instead of "Absent"
+            };
+          });
         setAttendanceData(initialAttendance);
       } else if (!isAttendanceModalOpen) {
         setAttendanceData([]);
@@ -835,7 +839,7 @@ const UserTimetable = () => {
     const handleSubmit = () => {
       if (!selectedSchedule || !attendanceData.length) return;
       
-      // Chỉ gửi những bản ghi đã được đánh dấu (không phải null)
+      // Only send records that have been marked (not null)
       const validAttendanceData = attendanceData
         .filter(item => item.status !== null)
         .map(item => ({
@@ -860,7 +864,7 @@ const UserTimetable = () => {
         ) : (
           <div className="attendance-container">
             <div className="attendance-header">
-              <p><strong>Class:</strong> {selectedSchedule?.class?.class_name}</p>
+              <p><strong>Class:</strong> {selectedSchedule?.class?.class_name || "Unknown Class"}</p>
               <p><strong>Date:</strong> {selectedSchedule && formatDate(selectedSchedule.date)}</p>
               <p><strong>Slot:</strong> {selectedSchedule?.slot && slotLabels[selectedSchedule.slot]}</p>
             </div>
@@ -887,10 +891,10 @@ const UserTimetable = () => {
                         
                         return (
                           <tr key={student._id}>
-                            <td className="student-id" title={student.email || "No email available"}>
-                              {student.student_ID || "ID không có sẵn"}
+                            <td className="student-id" title={student && student.email ? student.email : "No email available"}>
+                              {student && student.student_ID ? student.student_ID : "ID not available"}
                             </td>
-                            <td>{student.firstName} {student.lastName}</td>
+                            <td>{student && student.firstName ? student.firstName : "Unknown"} {student && student.lastName ? student.lastName : ""}</td>
                             <td>
                               <div className="attendance-radio-group">
                                 <label className="attendance-radio">

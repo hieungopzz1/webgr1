@@ -182,7 +182,7 @@ const Message = () => {
                     <h2>Messages</h2>
                 </div>
 
-                {/* Người online */}
+                {/* Online users */}
                 <div className="message-sidebar__section">
                     <h3 className="message-sidebar__section-title">Online</h3>
                     <div className="message-sidebar__users">
@@ -219,7 +219,7 @@ const Message = () => {
                     </div>
                 </div>
 
-                {/* Người offline */}
+                {/* Offline users */}
                 <div className="message-sidebar__section">
                     <h3 className="message-sidebar__section-title">Offline</h3>
                     <div className="message-sidebar__users scrollable-list">

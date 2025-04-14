@@ -12,7 +12,7 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Hàm fetch dữ liệu ban đầu hoặc khi cần loading
+  // Function to fetch initial data or when loading is needed
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -27,24 +27,24 @@ const StaffDashboard = () => {
     }
   };
   
-  // Hàm fetch khi cập nhật nhẹ (không bật loading)
+  // Function to fetch updates without showing loading indicator
   const refreshDashboardData = async () => {
     try {
       const response = await api.get('/api/dashboard/admin');
       setDashboardData(response.data);
     } catch (err) {
       console.error('❌ Error refreshing dashboard:', err);
-      // Không cần set error vì đây là update nền
+      // No need to set error as this is a background update
     }
   };
   
   useEffect(() => {
-    fetchDashboardData(); // Load lần đầu
+    fetchDashboardData(); // Initial load
   
-    // Lắng nghe socket sự kiện "updateDashboard"
+    // Listen for "updateDashboard" socket event
     socket.on("updateDashboard", () => {
-      // console.log("🔄 Có thay đổi - Tự động cập nhật Dashboard");
-      refreshDashboardData(); // cập nhật nhẹ, không giật loading
+      // console.log("🔄 Changes detected - Automatically updating Dashboard");
+      refreshDashboardData(); // light update, no loading indicator
     });
   
     return () => {

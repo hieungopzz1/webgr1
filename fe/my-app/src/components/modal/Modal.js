@@ -11,7 +11,6 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         {title && (
           <div className="modal-header">
             <h2>{title}</h2>
-            <button className="modal-close" onClick={onClose} aria-label="Close modal">&times;</button>
           </div>
         )}
         <div className="modal-content">

@@ -102,6 +102,21 @@
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.user-profile-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: #007bff;
+}
+
+.user-profile-card.active {
+  border-color: #007bff;
+  background-color: rgba(0, 123, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
 }
 
 .user-profile-avatar {
@@ -142,6 +157,27 @@
   margin: 0;
   font-size: 14px;
   color: #8e8e8e;
+}
+
+.view-profile-hint {
+  display: none;
+  font-size: 0.75rem;
+  color: #007bff;
+  margin-top: 5px;
+}
+
+.user-profile-card:hover .view-profile-hint {
+  display: block;
+}
+
+.viewing-profile-badge {
+  font-size: 0.75rem;
+  color: #007bff;
+  background-color: rgba(0, 123, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  display: inline-block;
 }
 
 /* Sidebar sections */
@@ -192,11 +228,10 @@
 @media (max-width: 992px) {
   .home__layout {
     flex-direction: column;
-    padding: 0 15px;
   }
   
   .home__main-content {
-    max-width: 100%;
+    width: 100%;
   }
   
   .home__sidebar {
@@ -204,4 +239,68 @@
     position: static;
     margin-top: 20px;
   }
+}
+
+/* Style for active filter information */
+.active-filter-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f8f9fa;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #007bff;
+}
+
+.active-filter-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.clear-filter-button {
+  background-color: transparent;
+  border: 1px solid #007bff;
+  color: #007bff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.clear-filter-button:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+/* Style for no blogs state */
+.home__no-blogs {
+  text-align: center;
+  padding: 30px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.home__no-blogs p {
+  font-size: 1.1rem;
+  color: #6c757d;
+  margin-bottom: 20px;
+}
+
+.create-blog-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.create-blog-button:hover {
+  background-color: #0069d9;
 } 

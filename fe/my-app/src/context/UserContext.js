@@ -1,18 +1,38 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import api from '../utils/api';
+import { getUserData } from '../utils/storage';
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const currentUser = getUserData(); // Get current user information
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/admin/get-users');
+      let response;
+      const userRole = currentUser?.role;
+      
+      if (userRole === 'Admin') {
+        // Admin can view all users
+        response = await api.get('/api/admin/get-users');
+      } else if (userRole === 'Tutor') {
+        // Tutor can view their students
+        response = await api.get('/api/tutor/students');
+      } else if (userRole === 'Student') {
+        // Students can view their classmates
+        response = await api.get('/api/student/classmates');
+      } else {
+        throw new Error('Unauthorized user role');
+      }
+      
       if (response.data?.users) {
         setUsers(response.data.users);
+      } else if (response.data) {
+        // Handle different response formats from different APIs
+        setUsers(Array.isArray(response.data) ? response.data : []);
       }
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -20,7 +40,7 @@ export const UserProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
   const updateUser = useCallback(async (userId, userData) => {
     try {
@@ -28,7 +48,21 @@ export const UserProvider = ({ children }) => {
         ? { 'Content-Type': 'multipart/form-data' }
         : { 'Content-Type': 'application/json' };
 
-      const response = await api.put(`/api/admin/update-user/${userId}`, userData, { headers });
+      let response;
+      const userRole = currentUser?.role;
+      
+      if (userRole === 'Admin') {
+        // Admin can update any user
+        response = await api.put(`/api/admin/update-user/${userId}`, userData, { headers });
+      } else if (userRole === 'Tutor' || userRole === 'Student') {
+        // Tutors and Students can only update their own profile
+        if (userId !== currentUser.id) {
+          throw new Error('You can only update your own profile');
+        }
+        response = await api.put(`/api/users/update-profile`, userData, { headers });
+      } else {
+        throw new Error('Unauthorized user role');
+      }
       
       if (response.data) {
         setUsers(prevUsers => 
@@ -43,10 +77,15 @@ export const UserProvider = ({ children }) => {
       console.error('Error updating user:', err);
       throw err;
     }
-  }, []);
+  }, [currentUser]);
 
   const deleteUser = useCallback(async (userId) => {
     try {
+      // Only Admin can delete users
+      if (currentUser?.role !== 'Admin') {
+        throw new Error('Only administrators can delete users');
+      }
+      
       const response = await api.delete(`/api/admin/delete-user/${userId}`);
       
       setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
@@ -56,13 +95,25 @@ export const UserProvider = ({ children }) => {
       console.error('Error deleting user:', err);
       throw err;
     }
-  }, []);
+  }, [currentUser]);
 
   const refreshUsersIfNeeded = useCallback(async (forceRefresh = false) => {
     try {
       if (loading && !forceRefresh) return users;
       
-      const response = await api.get('/api/admin/get-users');
+      let response;
+      const userRole = currentUser?.role;
+      
+      if (userRole === 'Admin') {
+        response = await api.get('/api/admin/get-users');
+      } else if (userRole === 'Tutor') {
+        response = await api.get('/api/tutor/students');
+      } else if (userRole === 'Student') {
+        response = await api.get('/api/student/classmates');
+      } else {
+        throw new Error('Unauthorized user role');
+      }
+      
       if (response.data?.users) {
         const newUsers = response.data.users;
         const hasChanges = () => {
@@ -101,14 +152,16 @@ export const UserProvider = ({ children }) => {
       console.error('Error refreshing users:', err);
       throw err;
     }
-  }, [users, loading]);
+  }, [users, loading, currentUser]);
 
+  // Create appropriate value object based on user role
   const value = {
     users,
     loading,
     fetchUsers,
     updateUser,
-    deleteUser,
+    // Only provide deleteUser to Admin
+    ...(currentUser?.role === 'Admin' && { deleteUser }),
     refreshUsersIfNeeded
   };
 

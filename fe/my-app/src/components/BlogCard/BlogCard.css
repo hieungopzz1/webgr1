@@ -1,189 +1,163 @@
 .blog-card {
-  width: 100%;
-  max-width: 800px;
   background-color: #fff;
-  border: 1px solid #dbdbdb;
   border-radius: 8px;
-  margin: 0 auto 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.blog-card:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
 }
 
 .blog-card__header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid #efefef;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .blog-card__user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
 .blog-card__avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  margin-right: 12px;
   object-fit: cover;
+  border: 1px solid #f0f0f0;
 }
 
 .blog-card__username {
   font-weight: 600;
-  font-size: 14px;
-  color: #262626;
+  color: #333;
+}
+
+.blog-card__content {
+  padding: 16px;
+}
+
+.blog-card__title {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #1a1a1a;
+  font-size: 1.2rem;
+}
+
+.blog-card__description {
+  color: #4a4a4a;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.blog-card__show-more {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1877f2;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.blog-card__timestamp {
+  display: block;
+  font-size: 0.8rem;
+  color: #777;
+  margin-top: 8px;
+}
+
+.blog-card__actions {
+  padding: 8px 16px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.blog-card__action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.blog-card__action-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #555;
+  font-size: 1.1rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.blog-card__action-btn:hover {
+  background-color: #f2f2f2;
+}
+
+.blog-card__action-btn .icon-filled {
+  color: #e74c3c;
+}
+
+.blog-card__more-options {
+  cursor: pointer;
+  font-size: 1.3rem;
+  color: #555;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.blog-card__more-options:hover {
+  background-color: #f2f2f2;
 }
 
 .blog-card__options {
   position: relative;
 }
 
-.blog-card__more-options {
-  cursor: pointer;
-  font-size: 1.5rem;
-  padding: 5px;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-}
-
-.blog-card__more-options:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
 .blog-card__dropdown {
   position: absolute;
-  top: 100%;
   right: 0;
+  top: 100%;
   background-color: white;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  min-width: 150px;
-  padding: 8px 0;
+  z-index: 10;
+  min-width: 120px;
 }
 
 .blog-card__dropdown-item {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 12px;
   width: 100%;
-  padding: 8px 16px;
-  border: none;
+  text-align: left;
   background: none;
+  border: none;
   cursor: pointer;
-  font-size: 14px;
-  color: #333;
   transition: background-color 0.2s;
+  color: #333;
 }
 
 .blog-card__dropdown-item:hover {
   background-color: #f5f5f5;
 }
 
-.blog-card__dropdown-item svg {
-  font-size: 16px;
+.blog-card__dropdown-item:first-child {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
 }
 
-/* Thêm màu đỏ cho nút Delete khi hover */
-.blog-card__dropdown-item:last-child:hover {
-  color: #dc3545;
-}
-
-.blog-card__image-container {
-  width: 100%;
-  aspect-ratio: 4/3;
-  position: relative;
-}
-
-.blog-card__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.blog-card__actions {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 1px solid #efefef;
-}
-
-.blog-card__action-buttons {
-  display: flex;
-  gap: 16px;
-}
-
-.blog-card__action-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-size: 24px;
-  color: #262626;
-  display: flex;
-  align-items: center;
-}
-
-.blog-card__action-btn .icon-filled {
-  color: #ed4956;
-}
-
-.blog-card__content {
-  padding: 12px 16px;
-}
-
-.blog-card__title {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.blog-card__description {
-  margin: 12px 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #262626;
-}
-
-.blog-card__description p {
-  margin: 0;
-}
-
-.blog-card__show-more {
-  background: transparent;
-  border: none;
-  color: #000000;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  font-size: 14px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  width: fit-content;
-  min-width: min-content;
-  display: inline;
-  margin: 0;
-  vertical-align: baseline;
-  text-decoration: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  outline: none;
-}
-
-.blog-card__show-more:hover {
-  text-decoration: underline;
-  background: transparent;
-}
-
-.blog-card__show-more:focus {
-  outline: none;
-  background: transparent;
-}
-
-.blog-card__timestamp {
-  display: block;
-  margin-top: 12px;
-  font-size: 12px;
-  color: #8e8e8e;
+.blog-card__dropdown-item:last-child {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
 } 

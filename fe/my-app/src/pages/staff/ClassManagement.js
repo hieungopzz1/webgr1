@@ -8,9 +8,11 @@ import Modal from '../../components/modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getUserData, isAuthenticated } from '../../utils/storage';
 import { useToast } from '../../context/ToastContext';
+import { useUser } from '../../context/UserContext';
 
 const ClassManagement = () => {
   const toast = useToast();
+  const { users } = useUser();
   
   // Main state
   const [classes, setClasses] = useState([]);
@@ -355,6 +357,17 @@ const ClassManagement = () => {
     });
   };
   
+  // Update useEffect to sync class students with latest user data
+  useEffect(() => {
+    if (classStudents.length > 0 && users.length > 0) {
+      const updatedStudents = classStudents.map(student => {
+        const updatedUser = users.find(u => u._id === student._id);
+        return updatedUser || student;
+      });
+      setClassStudents(updatedStudents);
+    }
+  }, [users, classStudents]);
+  
   // Render class list sidebar
   const renderClassList = () => (
     <div className="class-management-sidebar">
@@ -455,7 +468,7 @@ const ClassManagement = () => {
             
             <div className="section students-section">
               <div className="section-header">
-                <h3>Students ({classStudents.length})</h3>
+                <h3>Students ({classStudents?.length || 0})</h3>
                 <Button 
                   variant="primary" 
                   size="small"
@@ -465,25 +478,29 @@ const ClassManagement = () => {
                 </Button>
               </div>
               
-              {classStudents.length === 0 ? (
+              {!classStudents || classStudents.length === 0 ? (
                 <p className="no-data">No students assigned to this class</p>
               ) : (
                 <div className="students-list">
-                  {classStudents.map(student => (
-                    <div key={student._id} className="student-card">
-                      <div className="student-info">
-                        <h4>{student.firstName} {student.lastName}</h4>
-                        <p>{student.student_ID || 'No ID'}</p>
+                  {classStudents.map(student => {
+                    if (!student) return null;
+                    
+                    return (
+                      <div key={student._id} className="student-card">
+                        <div className="student-info">
+                          <h4>{student?.firstName || 'N/A'} {student?.lastName || 'N/A'}</h4>
+                          <p>{student?.student_ID || 'No ID'}</p>
+                        </div>
+                        <Button 
+                          variant="danger" 
+                          size="small"
+                          onClick={() => handleRemoveStudent(student)}
+                        >
+                          Remove
+                        </Button>
                       </div>
-                      <Button 
-                        variant="danger" 
-                        size="small"
-                        onClick={() => handleRemoveStudent(student)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

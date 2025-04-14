@@ -8,6 +8,7 @@ import { USER_ROLES } from '../../utils/constants';
 import { useToast } from '../../context/ToastContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AccountManagement.css';
+import { useUser } from '../../context/UserContext';
 
 // UserAvatar Component
 const UserAvatar = ({ user }) => (
@@ -165,171 +166,178 @@ const EditUserForm = ({
   loading,
   onSubmit,
   onCancel
-}) => (
-  <form onSubmit={onSubmit} className="account-form">
-    <div className="form-row">
-      <InputField
-        label="First Name*"
-        name="firstName"
-        value={formData.firstName}
-        onChange={handleInputChange}
-        required
-      />
-      <InputField
-        label="Last Name*"
-        name="lastName"
-        value={formData.lastName}
-        onChange={handleInputChange}
-        required
-      />
-    </div>
-    
-    <InputField
-      label="Email*"
-      name="email"
-      type="email"
-      value={formData.email}
-      onChange={handleInputChange}
-      required
-    />
-    
-    <PasswordInput
-      label={"Password (leave blank to keep unchanged)"}
-      name="password"
-      value={formData.password}
-      onChange={handleInputChange}
-    />
-    
-    <div className="form-group">
-      <label>Account Type*</label>
-      <select
-        name="role"
-        value={formData.role}
-        onChange={handleRoleChange}
-        className="form-select"
-        disabled={true} // Cannot change role when editing
-      >
-        <option value={USER_ROLES.STUDENT}>Student</option>
-        <option value={USER_ROLES.TUTOR}>Tutor</option>
-        <option value={USER_ROLES.ADMIN}>Admin</option>
-      </select>
-    </div>
-    
-    {formData.role === USER_ROLES.STUDENT && (
-      <>
+}) => {
+  // Add getInitials function
+  const getInitials = () => {
+    if (selectedUser) {
+      const firstInitial = selectedUser.firstName?.[0] || '';
+      const lastInitial = selectedUser.lastName?.[0] || '';
+      return firstInitial + lastInitial;
+    }
+    return '';
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="account-form">
+      <div className="form-row">
         <InputField
-          label="Student ID*"
-          name="student_ID"
-          value={formData.student_ID}
+          label="First Name*"
+          name="firstName"
+          value={formData.firstName}
           onChange={handleInputChange}
           required
         />
-        
-        <div className="form-group">
-          <label>Major*</label>
-          <select
-            name="major"
-            value={formData.major}
-            onChange={handleInputChange}
-            className="form-select"
-            required
-          >
-            <option value="IT">IT</option>
-            <option value="Business">Business</option>
-            <option value="Design">Design</option>
-          </select>
-        </div>
-      </>
-    )}
-    
-    {formData.role === USER_ROLES.TUTOR && (
-      <>
         <InputField
-          label="Tutor ID*"
-          name="tutor_ID"
-          value={formData.tutor_ID}
+          label="Last Name*"
+          name="lastName"
+          value={formData.lastName}
           onChange={handleInputChange}
           required
         />
-        
-        <div className="form-group">
-          <label>Major*</label>
-          <select
-            name="major"
-            value={formData.major}
-            onChange={handleInputChange}
-            className="form-select"
-            required
-          >
-            <option value="IT">IT</option>
-            <option value="Business">Business</option>
-            <option value="Design">Design</option>
-          </select>
-        </div>
-      </>
-    )}
-    
-    <div className="form-group">
-      <label>Avatar</label>
-      <input
-        type="file"
-        name="avatar"
-        accept="image/*"
-        onChange={handleAvatarChange}
-        className="file-input"
-      />
-      <div className="avatar-preview-container">
-        {avatarPreview ? (
-          <div className="avatar-preview">
-            <img 
-              src={avatarPreview} 
-              alt="Avatar Preview"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                const placeholder = document.createElement('div');
-                placeholder.className = 'avatar-preview-placeholder';
-                placeholder.innerText = selectedUser ? 
-                  `${selectedUser.firstName?.[0] || ''}${selectedUser.lastName?.[0] || ''}` : 
-                  'Avatar';
-                e.target.parentNode.appendChild(placeholder);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="avatar-preview avatar-preview-empty">
-            <div className="avatar-preview-placeholder">
-              {selectedUser ? 
-                `${selectedUser.firstName?.[0] || ''}${selectedUser.lastName?.[0] || ''}` :
-                'Add Avatar'}
-            </div>
-          </div>
-        )}
       </div>
-    </div>
-    
-    <div className="form-actions">
-      <Button
-        type="button"
-        onClick={onCancel}
-        variant="secondary"
-      >
-        Cancel
-      </Button>
-      <Button
-        type="submit"
-        variant="primary"
-        disabled={loading}
-      >
-        {loading ? 'Processing...' : 'Update Account'}
-      </Button>
-    </div>
-  </form>
-);
+      
+      <InputField
+        label="Email*"
+        name="email"
+        type="email"
+        value={formData.email}
+        onChange={handleInputChange}
+        required
+      />
+      
+      <PasswordInput
+        label={"Password (leave blank to keep unchanged)"}
+        name="password"
+        value={formData.password}
+        onChange={handleInputChange}
+      />
+      
+      <div className="form-group">
+        <label>Account Type*</label>
+        <select
+          name="role"
+          value={formData.role}
+          onChange={handleRoleChange}
+          className="form-select"
+          disabled={true} // Cannot change role when editing
+        >
+          <option value={USER_ROLES.STUDENT}>Student</option>
+          <option value={USER_ROLES.TUTOR}>Tutor</option>
+          <option value={USER_ROLES.ADMIN}>Admin</option>
+        </select>
+      </div>
+      
+      {formData.role === USER_ROLES.STUDENT && (
+        <>
+          <InputField
+            label="Student ID*"
+            name="student_ID"
+            value={formData.student_ID}
+            onChange={handleInputChange}
+            required
+          />
+          
+          <div className="form-group">
+            <label>Major*</label>
+            <select
+              name="major"
+              value={formData.major}
+              onChange={handleInputChange}
+              className="form-select"
+              required
+            >
+              <option value="IT">IT</option>
+              <option value="Business">Business</option>
+              <option value="Design">Design</option>
+            </select>
+          </div>
+        </>
+      )}
+      
+      {formData.role === USER_ROLES.TUTOR && (
+        <>
+          <InputField
+            label="Tutor ID*"
+            name="tutor_ID"
+            value={formData.tutor_ID}
+            onChange={handleInputChange}
+            required
+          />
+          
+          <div className="form-group">
+            <label>Major*</label>
+            <select
+              name="major"
+              value={formData.major}
+              onChange={handleInputChange}
+              className="form-select"
+              required
+            >
+              <option value="IT">IT</option>
+              <option value="Business">Business</option>
+              <option value="Design">Design</option>
+            </select>
+          </div>
+        </>
+      )}
+      
+      <div className="form-group">
+        <label>Avatar</label>
+        <input
+          type="file"
+          name="avatar"
+          accept="image/*"
+          onChange={handleAvatarChange}
+          className="file-input"
+        />
+        <div className="avatar-preview-container">
+          {avatarPreview ? (
+            <div className="avatar-preview">
+              <img 
+                src={avatarPreview} 
+                alt="Avatar Preview"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  const placeholder = e.target.parentNode.querySelector('.avatar-preview-placeholder');
+                  if (placeholder) {
+                    placeholder.style.display = 'flex';
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <div className="avatar-preview">
+              <div className="avatar-preview-placeholder">
+                {getInitials()}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="form-actions">
+        <Button
+          type="button"
+          onClick={onCancel}
+          variant="secondary"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={loading}
+        >
+          {loading ? 'Processing...' : 'Update Account'}
+        </Button>
+      </div>
+    </form>
+  );
+};
 
 const AccountManagement = () => {
-  // State management
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { users, loading: userLoading, fetchUsers, updateUser } = useUser();
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ role: '', major: '', searchTerm: '' });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -349,43 +357,23 @@ const AccountManagement = () => {
   
   const toast = useToast();
   
-  // API calls
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { role, major } = filters;
-      let endpoint = '/api/admin/get-users';
-      
-      if (role || major) {
-        endpoint = '/api/admin/filter-users';
-        const params = new URLSearchParams();
-        if (role) params.append('role', role);
-        if (major) params.append('major', major);
-        endpoint += `?${params.toString()}`;
-      }
-      
-      const response = await api.get(endpoint);
-      
-      if (response.data?.users) {
-        setUsers(response.data.users);
-      } else {
-        setUsers([]);
-      }
-    } catch (err) {
-      const errorMsg = `Error fetching users: ${err.message}`;
-      setError(errorMsg);
-      toast.error(`Failed to load users: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, toast]);
-  
-  // Initial data load
+  // Load initial data
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        await fetchUsers();
+      } catch (err) {
+        const errorMessage = err.response?.data?.message || err.message;
+        setError(errorMessage);
+        toast.error(`Failed to load users: ${errorMessage}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, [fetchUsers, toast]);
   
   // Filtered users based on search term
   const filteredUsers = useMemo(() => {
@@ -536,6 +524,7 @@ const AccountManagement = () => {
     if (!validateForm()) return;
     
     setLoading(true);
+    setError(null);
     
     try {
       const formDataToSend = new FormData();
@@ -546,7 +535,6 @@ const AccountManagement = () => {
       formDataToSend.append('email', formData.email);
       formDataToSend.append('role', formData.role);
       
-      // Add role-specific fields
       if (formData.role === USER_ROLES.STUDENT) {
         formDataToSend.append('student_ID', formData.student_ID);
         formDataToSend.append('major', formData.major);
@@ -555,7 +543,6 @@ const AccountManagement = () => {
         formDataToSend.append('major', formData.major);
       }
       
-      // Add optional fields
       if (formData.password) {
         formDataToSend.append('password', formData.password);
       }
@@ -564,18 +551,19 @@ const AccountManagement = () => {
         formDataToSend.append('avatar', avatar);
       }
       
-      // Update user
-      await api.put(`/api/admin/update-user/${selectedUser._id}`, formDataToSend, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Update user using context
+      await updateUser(selectedUser._id, formDataToSend);
       
       toast.success(`Successfully updated account for ${formData.email}`);
       handleCloseModal();
-      fetchUsers();
+      
+      // Refresh users list
+      await fetchUsers();
       
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message;
-      toast.error(`Error: ${errorMessage}`);
+      setError(errorMessage);
+      toast.error(`Error updating user: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -584,13 +572,15 @@ const AccountManagement = () => {
   const handleDeleteUser = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to delete the account for ${userName}?`)) {
       setLoading(true);
+      setError(null);
       
       try {
         await api.delete(`/api/admin/delete-user/${userId}`);
         toast.success(`Successfully deleted account for ${userName}`);
-        fetchUsers();
+        await fetchUsers(); // Refresh users list
       } catch (err) {
         const errorMessage = err.response?.data?.message || err.message;
+        setError(errorMessage);
         toast.error(`Error deleting account: ${errorMessage}`);
       } finally {
         setLoading(false);
@@ -602,29 +592,31 @@ const AccountManagement = () => {
     <div className="account-management-container">
       <h2 className="page-title">Account Management</h2>
       
-      <FilterSection 
-        filters={filters} 
-        handleFilterChange={handleFilterChange} 
-        handleClearFilters={handleClearFilters}
-      />
+      {error && <div className="error-message">{error}</div>}
       
-      <div className="users-list-container">
-        {loading && <div className="loading-indicator">Loading users...</div>}
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        {!loading && !error && filteredUsers.length === 0 && (
-          <div className="no-results">No users found matching your criteria.</div>
-        )}
-        
-        {!loading && !error && filteredUsers.length > 0 && (
-          <UserTable 
-            users={filteredUsers} 
-            onEdit={handleOpenEditModal} 
-            onDelete={handleDeleteUser}
+      {loading || userLoading ? (
+        <div className="loading-indicator">Loading users...</div>
+      ) : (
+        <>
+          <FilterSection 
+            filters={filters} 
+            handleFilterChange={handleFilterChange} 
+            handleClearFilters={handleClearFilters}
           />
-        )}
-      </div>
+          
+          <div className="users-list-container">
+            {users.length === 0 ? (
+              <div className="no-results">No users found.</div>
+            ) : (
+              <UserTable 
+                users={filteredUsers} 
+                onEdit={handleOpenEditModal} 
+                onDelete={handleDeleteUser}
+              />
+            )}
+          </div>
+        </>
+      )}
       
       <Modal 
         isOpen={isModalOpen} 

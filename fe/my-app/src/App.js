@@ -34,6 +34,7 @@ import {
   TutorStudentRoute,
   AuthenticatedRoute
 } from './guards/RouteGuards';
+import { UserProvider } from './context/UserContext';
 
 const ToastInitializer = () => {
   const toastContext = useToast();
@@ -61,7 +62,7 @@ const PublicRoute = ({ children, restricted }) => {
 
 const App = () => {
   return (
-    <>
+    <UserProvider>
       <ToastInitializer />
       <Toast />
       <Routes>
@@ -204,7 +205,7 @@ const App = () => {
         {/* Catch all route - show NotFound instead of redirecting */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </UserProvider>
   );
 };
 

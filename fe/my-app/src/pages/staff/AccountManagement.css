@@ -208,40 +208,43 @@
 }
 
 .file-input {
-  padding: 8px 0;
+  margin-bottom: 10px;
 }
 
 .avatar-preview-container {
-  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
 }
 
 .avatar-preview {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   overflow: hidden;
-  position: relative;
-  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0;
 }
 
 .avatar-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  position: relative;
 }
 
-.avatar-preview-empty,
 .avatar-preview-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #4a90e2, #357abd);
+  color: white;
+  font-size: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  background-color: #3f51b5;
-  color: white;
-  font-weight: bold;
-  font-size: 1.2rem;
+  text-transform: uppercase;
+  font-weight: 500;
 }
 
 .form-actions {
